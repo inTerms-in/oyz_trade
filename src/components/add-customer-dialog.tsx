@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-// Removed useAuth import as user_id is no longer used for inserts
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 
 import { Button } from "@/components/ui/button";
@@ -44,36 +44,36 @@ type CustomerFormValues = z.infer<typeof customerFormSchema>;
 interface AddCustomerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialValue?: { name?: string; mobileNo?: string } | null; // Changed default to null
+  initialValue?: { name?: string; mobileNo?: string } | null;
   onCustomerAdded: () => void;
 }
 
 export function AddCustomerDialog({ open, onOpenChange, initialValue, onCustomerAdded }: AddCustomerDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Removed user from useAuth
+  const { user } = useAuth(); // Import useAuth
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
     mode: "onChange",
     defaultValues: {
-      CustomerName: initialValue?.name || "", // Safely access properties
-      MobileNo: initialValue?.mobileNo || "", // Safely access properties
+      CustomerName: initialValue?.name || "",
+      MobileNo: initialValue?.mobileNo || "",
     },
   });
   
   useEffect(() => {
     if (open) {
       form.reset({ 
-        CustomerName: initialValue?.name || "", // Safely access properties
-        MobileNo: initialValue?.mobileNo || "" // Safely access properties
+        CustomerName: initialValue?.name || "",
+        MobileNo: initialValue?.mobileNo || ""
       });
     }
-  }, [open, initialValue, form]); // initialValue is now stable if not passed
+  }, [open, initialValue, form]);
 
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: CustomerFormValues) {
-    // Removed user check
+    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
     setIsSubmitting(true);
 
     const { error } = await supabase
@@ -81,7 +81,7 @@ export function AddCustomerDialog({ open, onOpenChange, initialValue, onCustomer
       .insert([{ 
         CustomerName: values.CustomerName, 
         MobileNo: values.MobileNo || null,
-        // user_id: user.id, // Removed user_id
+        user_id: user.id, // Add user_id
       }])
       .select();
 

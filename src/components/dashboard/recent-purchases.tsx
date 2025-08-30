@@ -1,5 +1,4 @@
 import { PurchaseWithItems } from "@/types";
-// Removed useAuth import as user_id filtering is no longer applied
 import {
   Card,
   CardContent,
@@ -40,7 +39,7 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
-                <TableHead>Supplier</TableHead> {/* Changed to Supplier */}
+                <TableHead>Supplier</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
@@ -51,7 +50,7 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
                     {new Date(purchase.PurchaseDate).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{purchase.SupplierMaster?.SupplierName || 'N/A'}</div> {/* Display Supplier Name */}
+                    <div className="font-medium">{purchase.SupplierMaster?.SupplierName || 'N/A'}</div>
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(purchase.TotalAmount)}

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { ExpenseCategory } from "@/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-// Removed useAuth import as user_id is no longer used for inserts or queries
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
 import { SelectItem } from "@/components/ui/select";
-import { CalendarIcon, PlusCircle } from "lucide-react";
+import { Calendar as CalendarIcon, PlusCircle } from "lucide-react";
 import { AddExpenseCategoryDialog } from "./add-expense-category-dialog";
 
 const expenseFormSchema = z.object({
@@ -59,7 +59,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
-  // Removed user from useAuth
+  const { user } = useAuth(); // Import useAuth
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -74,11 +74,11 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   });
 
   const fetchExpenseCategories = useCallback(async () => {
-    // Removed user check
+    if (!user?.id) return; // Ensure user is logged in
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
-      // .eq("user_id", user.id) // Removed user_id filter
+      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
@@ -89,7 +89,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         form.setValue("ExpenseCategoryId", data[0].ExpenseCategoryId, { shouldValidate: true });
       }
     }
-  }, [form]); // Removed user from dependencies
+  }, [form, user?.id]); // Add user.id to dependencies
 
   useEffect(() => {
     if (open) {
@@ -107,7 +107,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: ExpenseFormValues) {
-    // Removed user check
+    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
     setIsSubmitting(true);
 
     const { error } = await supabase
@@ -118,7 +118,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         Description: values.Description || null,
         ExpenseCategoryId: values.ExpenseCategoryId,
         ReferenceNo: values.ReferenceNo || null,
-        // user_id: user.id, // Removed user_id
+        user_id: user.id, // Add user_id
       }])
       .select();
 

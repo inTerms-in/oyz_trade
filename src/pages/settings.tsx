@@ -6,14 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Upload, Store } from "lucide-react"; // Added Store icon
+import { Download, Upload, Store } from "lucide-react";
 import Papa from "papaparse";
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth-provider";
 import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
 import { SelectItem } from "@/components/ui/select";
-import { EditShopDetailsDialog } from "@/components/edit-shop-details-dialog"; // New import
+import { EditShopDetailsDialog } from "@/components/edit-shop-details-dialog";
 
 interface CategoryCsvRow {
   CategoryName?: string;
@@ -36,7 +36,7 @@ function SettingsPage() {
 
   const [financialYearStartMonth, setFinancialYearStartMonth] = useState<number>(4); // Default to April
   const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [isEditShopDetailsOpen, setIsEditShopDetailsOpen] = useState(false); // New state for shop dialog
+  const [isEditShopDetailsOpen, setIsEditShopDetailsOpen] = useState(false);
 
   const months = [
     { value: 1, label: "January" },
@@ -91,6 +91,10 @@ function SettingsPage() {
   };
 
   const handleExport = async () => {
+    if (!user?.id) {
+      toast.error("Authentication error. Please log in again.");
+      return;
+    }
     setIsExporting(true);
     toast.info("Starting data export...", { description: "This may take a moment." });
 
@@ -98,55 +102,55 @@ function SettingsPage() {
       const zip = new JSZip();
 
       // Fetch and add categories
-      const { data: categories } = await supabase.from("CategoryMaster").select("*");
+      const { data: categories } = await supabase.from("CategoryMaster").select("*").eq("user_id", user.id);
       if (categories) zip.file("categories.csv", Papa.unparse(categories));
 
       // Fetch and add items
-      const { data: items } = await supabase.from("ItemMaster").select("*");
+      const { data: items } = await supabase.from("ItemMaster").select("*").eq("user_id", user.id);
       if (items) zip.file("items.csv", Papa.unparse(items));
 
       // Fetch and add purchases
-      const { data: purchases } = await supabase.from("Purchase").select("*");
+      const { data: purchases } = await supabase.from("Purchase").select("*").eq("user_id", user.id);
       if (purchases) zip.file("purchases.csv", Papa.unparse(purchases));
 
       // Fetch and add purchase items
-      const { data: purchaseItems } = await supabase.from("PurchaseItem").select("*");
+      const { data: purchaseItems } = await supabase.from("PurchaseItem").select("*").eq("user_id", user.id);
       if (purchaseItems) zip.file("purchase_items.csv", Papa.unparse(purchaseItems));
 
       // Fetch and add sales
-      const { data: sales } = await supabase.from("Sales").select("*");
+      const { data: sales } = await supabase.from("Sales").select("*").eq("user_id", user.id);
       if (sales) zip.file("sales.csv", Papa.unparse(sales));
 
       // Fetch and add sales items
-      const { data: salesItems } = await supabase.from("SalesItem").select("*");
+      const { data: salesItems } = await supabase.from("SalesItem").select("*").eq("user_id", user.id);
       if (salesItems) zip.file("sales_items.csv", Papa.unparse(salesItems));
 
       // Fetch and add customers
-      const { data: customers } = await supabase.from("CustomerMaster").select("*");
+      const { data: customers } = await supabase.from("CustomerMaster").select("*").eq("user_id", user.id);
       if (customers) zip.file("customers.csv", Papa.unparse(customers));
 
       // Fetch and add suppliers
-      const { data: suppliers } = await supabase.from("SupplierMaster").select("*");
+      const { data: suppliers } = await supabase.from("SupplierMaster").select("*").eq("user_id", user.id);
       if (suppliers) zip.file("suppliers.csv", Papa.unparse(suppliers));
 
       // Fetch and add expenses
-      const { data: expenses } = await supabase.from("Expenses").select("*");
+      const { data: expenses } = await supabase.from("Expenses").select("*").eq("user_id", user.id);
       if (expenses) zip.file("expenses.csv", Papa.unparse(expenses));
 
       // Fetch and add expense categories
-      const { data: expenseCategories } = await supabase.from("ExpenseCategoryMaster").select("*");
+      const { data: expenseCategories } = await supabase.from("ExpenseCategoryMaster").select("*").eq("user_id", user.id);
       if (expenseCategories) zip.file("expense_categories.csv", Papa.unparse(expenseCategories));
 
       // Fetch and add stock adjustments
-      const { data: stockAdjustments } = await supabase.from("StockAdjustment").select("*");
+      const { data: stockAdjustments } = await supabase.from("StockAdjustment").select("*").eq("user_id", user.id);
       if (stockAdjustments) zip.file("stock_adjustments.csv", Papa.unparse(stockAdjustments));
 
       // Fetch and add shop details (user-specific)
-      const { data: shopData } = await supabase.from("shop").select("*").eq("user_id", user?.id);
+      const { data: shopData } = await supabase.from("shop").select("*").eq("user_id", user.id);
       if (shopData) zip.file("shop_details.csv", Papa.unparse(shopData));
 
       // Fetch and add reference number sequences (user-specific)
-      const { data: refSequences } = await supabase.from("reference_number_sequences").select("*").eq("user_id", user?.id);
+      const { data: refSequences } = await supabase.from("reference_number_sequences").select("*").eq("user_id", user.id);
       if (refSequences) zip.file("reference_number_sequences.csv", Papa.unparse(refSequences));
 
 
@@ -189,6 +193,7 @@ function SettingsPage() {
 
   const handleImportCategories = async () => {
     if (!categoryFile) return toast.error("Please select a file to import.");
+    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     setIsImportingCategories(true);
     toast.info("Starting category import...");
 
@@ -205,7 +210,7 @@ function SettingsPage() {
           return;
         }
 
-        const { data: existingCategories, error: fetchError } = await supabase.from("CategoryMaster").select("CategoryName");
+        const { data: existingCategories, error: fetchError } = await supabase.from("CategoryMaster").select("CategoryName").eq("user_id", user.id);
         if (fetchError) {
           toast.error("Failed to check for existing categories.", { description: fetchError.message });
           setIsImportingCategories(false);
@@ -215,7 +220,7 @@ function SettingsPage() {
         
         const newCategories = validData
           .filter((row: CategoryCsvRow) => !existingNames.has(row.CategoryName!.trim().toLowerCase()))
-          .map((row: CategoryCsvRow) => ({ CategoryName: row.CategoryName!.trim() })); // Removed user_id
+          .map((row: CategoryCsvRow) => ({ CategoryName: row.CategoryName!.trim(), user_id: user.id })); // Add user_id
 
         const duplicateCount = validData.length - newCategories.length;
 
@@ -245,6 +250,7 @@ function SettingsPage() {
 
   const handleImportItems = async () => {
     if (!itemFile) return toast.error("Please select a file to import.");
+    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     setIsImportingItems(true);
     toast.info("Starting item import... This may take a while.");
 
@@ -260,10 +266,10 @@ function SettingsPage() {
             throw new Error("No valid data found. Ensure 'ItemName' and 'CategoryName' columns are present and filled.");
           }
 
-          const { data: existingItemsData } = await supabase.from("ItemMaster").select("ItemName");
-          const existingItemNames = new Set(existingItemsData?.map(i => i.ItemName.toLowerCase()));
+          const { data: existingItemsData } = await supabase.from("ItemMaster").select("ItemName").eq("user_id", user.id);
+          const existingItemNames = new Set(existingItemsData?.map(i => i.ItemName!.toLowerCase()));
 
-          const { data: existingCategoriesData } = await supabase.from("CategoryMaster").select("CategoryId, CategoryName");
+          const { data: existingCategoriesData } = await supabase.from("CategoryMaster").select("CategoryId, CategoryName").eq("user_id", user.id);
           const categoryMap = new Map(existingCategoriesData?.map(c => [c.CategoryName.toLowerCase(), c.CategoryId]));
 
           const uniqueCategoryNames = new Set(validData.map((row: ItemCsvRow) => row.CategoryName!.trim().toLowerCase()));
@@ -273,7 +279,7 @@ function SettingsPage() {
             toast.info(`Found ${newCategoryNames.length} new categories. Creating them now...`);
             const newCategoriesToInsert = newCategoryNames.map(name => ({
               CategoryName: (name as string).split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-              // user_id: user?.id, // Removed user_id
+              user_id: user.id, // Add user_id
             }));
             const { data: insertedCategories, error: categoryInsertError } = await supabase.from("CategoryMaster").insert(newCategoriesToInsert).select();
             if (categoryInsertError) throw new Error(`Failed to create new categories: ${categoryInsertError.message}`);
@@ -304,7 +310,7 @@ function SettingsPage() {
               CategoryId: categoryId,
               SellPrice: row.SellPrice && !isNaN(parseFloat(row.SellPrice)) ? parseFloat(row.SellPrice) : null,
               Barcode: row.Barcode || null,
-              // user_id: user?.id, // Removed user_id
+              user_id: user.id, // Add user_id
             });
             existingItemNames.add(itemNameLower);
           }
@@ -430,7 +436,7 @@ function SettingsPage() {
       <EditShopDetailsDialog
         open={isEditShopDetailsOpen}
         onOpenChange={setIsEditShopDetailsOpen}
-        onShopDetailsUpdated={fetchSettings} /* Re-fetch settings to ensure UI updates if needed */
+        onShopDetailsUpdated={fetchSettings}
       />
     </div>
   );

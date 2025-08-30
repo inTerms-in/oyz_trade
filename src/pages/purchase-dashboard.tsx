@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-// Removed useAuth import as user_id filtering is no longer applied
+import { useAuth } from "@/contexts/auth-provider"; // Re-import useAuth
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -13,8 +13,8 @@ import { RecentPurchases } from "@/components/dashboard/recent-purchases";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { TopItemsChart } from "@/components/dashboard/top-items-chart";
 import { RecentPurchaseItems } from "@/components/dashboard/recent-purchase-items";
-import { SpendingOverTimeChart } from "@/components/dashboard/spending-over-time-chart"; // New import
-import { MonthlyPurchasesChart } from "@/components/dashboard/monthly-purchases-chart"; // New import
+import { SpendingOverTimeChart } from "@/components/dashboard/spending-over-time-chart";
+import { MonthlyPurchasesChart } from "@/components/dashboard/monthly-purchases-chart";
 
 interface CategorySpending {
   name: string;
@@ -37,7 +37,7 @@ interface MonthlyTotal {
 }
 
 function PurchaseDashboardPage() {
-  // Removed user from useAuth
+  const { user } = useAuth(); // Re-import useAuth
   const [loading, setLoading] = useState(true);
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalPurchases, setTotalPurchases] = useState(0);
@@ -45,107 +45,111 @@ function PurchaseDashboardPage() {
   const [categorySpending, setCategorySpending] = useState<CategorySpending[]>([]);
   const [recentPurchases, setRecentPurchases] = useState<PurchaseWithItems[]>([]);
   const [topItems, setTopItems] = useState<TopItem[]>([]);
-  const [spendingOverTime, setSpendingOverTime] = useState<DailyTotal[]>([]); // New state
-  const [monthlyPurchases, setMonthlyPurchases] = useState<MonthlyTotal[]>([]); // New state
+  const [spendingOverTime, setSpendingOverTime] = useState<DailyTotal[]>([]);
+  const [monthlyPurchases, setMonthlyPurchases] = useState<MonthlyTotal[]>([]);
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Default to 1st of current month
     to: new Date(),
   });
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
+  const fetchData = useCallback(async () => {
+    if (!user?.id) return; // Ensure user is logged in
+    setLoading(true);
 
-      const { count, error: itemsError } = await supabase
-        .from("ItemMaster")
-        .select('*', { count: 'exact', head: true });
-      
-      if (itemsError) toast.error("Failed to fetch item count", { description: itemsError.message });
-      else setTotalItems(count || 0);
+    const { count, error: itemsError } = await supabase
+      .from("ItemMaster")
+      .select('*', { count: 'exact', head: true })
+      .eq("user_id", user.id); // Filter by user_id
+    
+    if (itemsError) toast.error("Failed to fetch item count", { description: itemsError.message });
+    else setTotalItems(count || 0);
 
-      let query = supabase
-        .from("Purchase")
-        .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
-        .order("PurchaseDate", { ascending: false });
+    let query = supabase
+      .from("Purchase")
+      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
+      .eq("user_id", user.id) // Filter by user_id
+      .order("PurchaseDate", { ascending: false });
 
-      if (dateRange?.from) query = query.gte("PurchaseDate", dateRange.from.toISOString());
-      if (dateRange?.to) {
-        const toDate = new Date(dateRange.to);
-        toDate.setHours(23, 59, 59, 999);
-        query = query.lte("PurchaseDate", toDate.toISOString());
-      }
-
-      const { data: purchases, error: purchasesError } = await query;
-
-      if (purchasesError) {
-        toast.error("Failed to fetch purchase data", { description: purchasesError.message });
-        setLoading(false);
-        return;
-      }
-
-      const typedPurchases = purchases as PurchaseWithItems[];
-      
-      const total = typedPurchases.reduce((acc, p) => acc + p.TotalAmount, 0);
-      setTotalSpent(total);
-      setTotalPurchases(typedPurchases.length);
-      setRecentPurchases(typedPurchases.slice(0, 10));
-
-      const spendingMap: { [key: string]: number } = {};
-      const dailySpending: { [key: string]: number } = {}; // For SpendingOverTimeChart
-      const monthlySpending: { [key: string]: number } = {}; // For MonthlyPurchasesChart
-
-      typedPurchases.forEach((p) => {
-        const dateKey = format(parseISO(p.PurchaseDate), 'yyyy-MM-dd');
-        dailySpending[dateKey] = (dailySpending[dateKey] || 0) + p.TotalAmount;
-
-        const monthKey = format(parseISO(p.PurchaseDate), 'yyyy-MM');
-        monthlySpending[monthKey] = (monthlySpending[monthKey] || 0) + p.TotalAmount;
-
-        p.PurchaseItem.forEach((item) => {
-          const categoryName = item.ItemMaster?.CategoryMaster?.CategoryName || "Uncategorized";
-          const cost = item.UnitPrice * item.Qty;
-          if (spendingMap[categoryName]) spendingMap[categoryName] += cost;
-          else spendingMap[categoryName] = cost;
-        });
-      });
-      setCategorySpending(Object.entries(spendingMap).map(([name, value]) => ({ name, value })));
-
-      const sortedDailySpending = Object.entries(dailySpending)
-        .map(([date, total]) => ({ date, total }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      setSpendingOverTime(sortedDailySpending);
-
-      const sortedMonthlySpending = Object.entries(monthlySpending)
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month));
-      setMonthlyPurchases(sortedMonthlySpending);
-
-      const { data: allPurchaseItems, error: allItemsError } = await supabase
-        .from("PurchaseItem")
-        .select("ItemMaster(*)");
-
-      if (allItemsError) {
-        toast.error("Failed to fetch top items", { description: allItemsError.message });
-      } else {
-        const itemCounts: { [key: string]: number } = {};
-        allPurchaseItems.forEach(item => {
-            const itemMaster = item.ItemMaster;
-            const itemName = (Array.isArray(itemMaster) ? itemMaster[0] : itemMaster)?.ItemName;
-            if (itemName) itemCounts[itemName] = (itemCounts[itemName] || 0) + 1;
-        });
-        const sortedItems = Object.entries(itemCounts)
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 10)
-            .map(([name, count]) => ({ name, count }));
-        setTopItems(sortedItems);
-      }
-
-      setLoading(false);
+    if (dateRange?.from) query = query.gte("PurchaseDate", dateRange.from.toISOString());
+    if (dateRange?.to) {
+      const toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
+      query = query.lte("PurchaseDate", toDate.toISOString());
     }
 
+    const { data: purchases, error: purchasesError } = await query;
+
+    if (purchasesError) {
+      toast.error("Failed to fetch purchase data", { description: purchasesError.message });
+      setLoading(false);
+      return;
+    }
+
+    const typedPurchases = purchases as PurchaseWithItems[];
+    
+    const total = typedPurchases.reduce((acc, p) => acc + p.TotalAmount, 0);
+    setTotalSpent(total);
+    setTotalPurchases(typedPurchases.length);
+    setRecentPurchases(typedPurchases.slice(0, 10));
+
+    const spendingMap: { [key: string]: number } = {};
+    const dailySpending: { [key: string]: number } = {}; // For SpendingOverTimeChart
+    const monthlySpending: { [key: string]: number } = {}; // For MonthlyPurchasesChart
+
+    typedPurchases.forEach((p) => {
+      const dateKey = format(parseISO(p.PurchaseDate), 'yyyy-MM-dd');
+      dailySpending[dateKey] = (dailySpending[dateKey] || 0) + p.TotalAmount;
+
+      const monthKey = format(parseISO(p.PurchaseDate), 'yyyy-MM');
+      monthlySpending[monthKey] = (monthlySpending[monthKey] || 0) + p.TotalAmount;
+
+      p.PurchaseItem.forEach((item) => {
+        const categoryName = item.ItemMaster?.CategoryMaster?.CategoryName || "Uncategorized";
+        const cost = item.UnitPrice * item.Qty;
+        if (spendingMap[categoryName]) spendingMap[categoryName] += cost;
+        else spendingMap[categoryName] = cost;
+      });
+    });
+    setCategorySpending(Object.entries(spendingMap).map(([name, value]) => ({ name, value })));
+
+    const sortedDailySpending = Object.entries(dailySpending)
+      .map(([date, total]) => ({ date, total }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    setSpendingOverTime(sortedDailySpending);
+
+    const sortedMonthlySpending = Object.entries(monthlySpending)
+      .map(([month, total]) => ({ month, total }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+    setMonthlyPurchases(sortedMonthlySpending);
+
+    const { data: allPurchaseItems, error: allItemsError } = await supabase
+      .from("PurchaseItem")
+      .select("ItemMaster(*)")
+      .eq("user_id", user.id); // Filter by user_id
+
+    if (allItemsError) {
+      toast.error("Failed to fetch top items", { description: allItemsError.message });
+    } else {
+      const itemCounts: { [key: string]: number } = {};
+      allPurchaseItems.forEach(item => {
+          const itemMaster = item.ItemMaster;
+          const itemName = (Array.isArray(itemMaster) ? itemMaster[0] : itemMaster)?.ItemName;
+          if (itemName) itemCounts[itemName] = (itemCounts[itemName] || 0) + 1;
+      });
+      const sortedItems = Object.entries(itemCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10)
+          .map(([name, count]) => ({ name, count }));
+      setTopItems(sortedItems);
+    }
+
+    setLoading(false);
+  }, [dateRange, user?.id]); // Add user.id to dependencies
+
+  useEffect(() => {
     fetchData();
-  }, [dateRange]);
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -163,7 +167,7 @@ function PurchaseDashboardPage() {
             <Skeleton className="h-80" />
             <Skeleton className="h-80" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2"> {/* Added for new charts */}
+        <div className="grid gap-4 md:grid-cols-2">
             <Skeleton className="h-96" />
             <Skeleton className="h-96" />
         </div>
@@ -182,7 +186,7 @@ function PurchaseDashboardPage() {
         totalPurchases={totalPurchases}
         totalItems={totalItems}
       />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"> {/* Adjusted layout for more charts */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <SpendingOverTimeChart data={spendingOverTime} />
         <MonthlyPurchasesChart data={monthlyPurchases} />
         <CategorySpendingChart data={categorySpending} />
@@ -191,7 +195,7 @@ function PurchaseDashboardPage() {
         <TopItemsChart data={topItems} />
         <RecentPurchases purchases={recentPurchases} />
       </div>
-      <div className="grid gap-4 grid-cols-1"> {/* Full width for recent items */}
+      <div className="grid gap-4 grid-cols-1">
         <RecentPurchaseItems />
       </div>
     </div>

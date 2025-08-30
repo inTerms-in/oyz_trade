@@ -7,7 +7,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Category, Item } from "@/types";
-// Removed useAuth import as user_id is no longer used for inserts or queries
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
-import { FloatingLabelSelect } from "@/components/ui/floating-label-select"; // Using FloatingLabelSelect
+import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
 import {
   SelectItem,
 } from "@/components/ui/select";
@@ -55,7 +55,7 @@ export function AddNewItemInlineDialog({
 }: AddNewItemInlineDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  // Removed user from useAuth
+  const { user } = useAuth(); // Import useAuth
   
 
   const form = useForm<ItemFormValues>({
@@ -73,9 +73,9 @@ export function AddNewItemInlineDialog({
 
   useEffect(() => {
     async function fetchCategories() {
-      // Removed user check
+      if (!user?.id) return; // Ensure user is logged in
       const { data } = await supabase.from("CategoryMaster").select("*")
-      // .eq("user_id", user.id) // Removed user_id filter
+      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
       if (data) {
         setCategories(data);
@@ -87,10 +87,10 @@ export function AddNewItemInlineDialog({
     if (open) {
       fetchCategories();
     }
-  }, [open, form]); // Removed user from dependencies
+  }, [open, form, user?.id]); // Add user.id to dependencies
 
   async function onSubmit(values: ItemFormValues) {
-    // Removed user check
+    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
     setIsSubmitting(true);
 
     // Proceed with Supabase if online
@@ -99,7 +99,7 @@ export function AddNewItemInlineDialog({
       .insert([{ 
         ItemName: values.ItemName, 
         CategoryId: values.CategoryId, 
-        // user_id: user.id, // Removed user_id
+        user_id: user.id, // Add user_id
       }])
       .select()
       .single();
@@ -115,11 +115,12 @@ export function AddNewItemInlineDialog({
     const newItemCode = await supabase.rpc('generate_item_code', {
       p_category_id: values.CategoryId,
       p_item_id: insertedItem.ItemId,
+      p_user_id: user.id, // Pass user_id to RPC
     });
 
     if (newItemCode.error) {
       toast.error("Failed to generate item code", { description: newItemCode.error.message });
-      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId);
+      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId).eq("user_id", user.id); // Filter by user_id
       setIsSubmitting(false);
       return;
     }
@@ -128,6 +129,7 @@ export function AddNewItemInlineDialog({
       .from("ItemMaster")
       .update({ ItemCode: newItemCode.data })
       .eq("ItemId", insertedItem.ItemId)
+      .eq("user_id", user.id) // Filter by user_id
       .select()
       .single();
 

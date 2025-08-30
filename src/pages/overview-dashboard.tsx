@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -77,6 +78,7 @@ interface MonthlyComparison {
 }
 
 function OverviewDashboardPage() {
+  const { user } = useAuth(); // Use useAuth
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalPurchaseSpending, setTotalPurchaseSpending] = useState(0);
@@ -107,6 +109,7 @@ function OverviewDashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
+      if (!user?.id) return; // Ensure user is logged in
       setLoading(true);
       let currentTotalPurchaseSpending = 0;
       let currentTotalExpenses = 0;
@@ -122,13 +125,15 @@ function OverviewDashboardPage() {
       // Fetch total item count and items in stock for gauge
       const { count: totalItemsCount, error: totalItemsError } = await supabase
         .from("ItemMaster")
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq("user_id", user.id); // Filter by user_id
       if (totalItemsError) toast.error("Failed to fetch total item count", { description: totalItemsError.message });
       else setTotalItems(totalItemsCount || 0);
 
       const { count: itemsInStockCount, error: itemsInStockError } = await supabase
         .from("item_stock_details")
         .select('*', { count: 'exact', head: true })
+        .eq("user_id", user.id) // Filter by user_id
         .gt('current_stock', 0);
       if (itemsInStockError) toast.error("Failed to fetch items in stock count", { description: itemsInStockError.message });
       else setItemsInStock(itemsInStockCount || 0);
@@ -137,13 +142,14 @@ function OverviewDashboardPage() {
       const { count: lowStockCount, error: lowStockCountError } = await supabase
         .from("item_stock_details")
         .select('*', { count: 'exact', head: true })
+        .eq("user_id", user.id) // Filter by user_id
         .lte("current_stock", 5); // Threshold for low stock
       if (lowStockCountError) toast.error("Failed to fetch low stock count", { description: lowStockCountError.message });
       else setLowStockAlerts(lowStockCount || 0);
 
 
       // Fetch Sales
-      let salesQuery = supabase.from("Sales").select("TotalAmount, SaleDate, CustomerId");
+      let salesQuery = supabase.from("Sales").select("TotalAmount, SaleDate, CustomerId").eq("user_id", user.id); // Filter by user_id
       if (dateRange?.from) salesQuery = salesQuery.gte("SaleDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
@@ -186,7 +192,8 @@ function OverviewDashboardPage() {
       // Fetch Purchases and aggregate by category for pie chart
       let purchasesQuery = supabase
         .from("Purchase")
-        .select("TotalAmount, PurchaseDate, SupplierId, PurchaseItem(Qty, UnitPrice, ItemMaster(CategoryMaster(CategoryName)))");
+        .select("TotalAmount, PurchaseDate, SupplierId, PurchaseItem(Qty, UnitPrice, ItemMaster(CategoryMaster(CategoryName)))")
+        .eq("user_id", user.id); // Filter by user_id
       if (dateRange?.from) purchasesQuery = purchasesQuery.gte("PurchaseDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
@@ -238,7 +245,7 @@ function OverviewDashboardPage() {
       }
 
       // Fetch Expenses
-      let expensesQuery = supabase.from("Expenses").select("Amount, ExpenseDate");
+      let expensesQuery = supabase.from("Expenses").select("Amount, ExpenseDate").eq("user_id", user.id); // Filter by user_id
       if (dateRange?.from) expensesQuery = expensesQuery.gte("ExpenseDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
@@ -286,6 +293,7 @@ function OverviewDashboardPage() {
       const { data: stockData, error: stockError } = await supabase
         .from("item_stock_details")
         .select("*")
+        .eq("user_id", user.id) // Filter by user_id
         .lte("current_stock", 5)
         .order("current_stock", { ascending: true });
       
@@ -296,7 +304,7 @@ function OverviewDashboardPage() {
     }
 
     fetchData();
-  }, [dateRange]);
+  }, [dateRange, user?.id]); // Add user.id to dependencies
 
   // Handler for card clicks to toggle chart visibility
   const handleCardClick = (type: 'sales' | 'purchases' | 'reset') => {

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 interface RecentItem {
   ItemName: string;
@@ -13,11 +14,13 @@ interface RecentItem {
 }
 
 export function RecentPurchaseItems() {
+  const { user } = useAuth(); // Use useAuth
   const [items, setItems] = useState<RecentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRecentItems = async () => {
+      if (!user?.id) return; // Ensure user is logged in
       setLoading(true);
       const { data, error } = await supabase
         .from("PurchaseItem")
@@ -26,7 +29,8 @@ export function RecentPurchaseItems() {
           ItemMaster (ItemName),
           Purchase (SupplierMaster(SupplierName), PurchaseDate)
         `)
-        .order("PurchaseId", { ascending: false }) // Changed order column
+        .eq("user_id", user.id) // Filter by user_id
+        .order("PurchaseId", { ascending: false })
         .limit(10);
 
       if (error) {
@@ -34,7 +38,7 @@ export function RecentPurchaseItems() {
       } else {
         const formattedData = data.map((item: any) => ({
           ItemName: item.ItemMaster.ItemName,
-          ShopName: item.Purchase.SupplierMaster?.SupplierName || 'N/A', // Adjusted to SupplierName
+          ShopName: item.Purchase.SupplierMaster?.SupplierName || 'N/A',
           PurchaseDate: item.Purchase.PurchaseDate,
           UnitPrice: item.UnitPrice,
         }));
@@ -44,7 +48,7 @@ export function RecentPurchaseItems() {
     };
 
     fetchRecentItems();
-  }, []);
+  }, [user?.id]); // Add user.id to dependencies
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

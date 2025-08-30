@@ -1,6 +1,7 @@
 export interface Category {
   CategoryId: number;
   CategoryName: string;
+  user_id: string; // Added user_id
   // created_at: string; // Removed
 }
 
@@ -8,6 +9,7 @@ export interface Item {
   ItemId: number;
   ItemName: string | null; // Changed to allow null
   CategoryId: number;
+  user_id: string; // Added user_id
   // created_at: string; // Removed
   SellPrice: number | null;
   Barcode?: string | null;
@@ -42,6 +44,7 @@ export interface PurchaseItem {
   Qty: number;
   Unit: string;
   UnitPrice: number;
+  user_id: string; // Added user_id
   // created_at: string; // Removed
   ItemMaster?: {
     ItemName: string | null; // Changed to allow null
@@ -59,6 +62,7 @@ export interface Supplier {
   SupplierId: number;
   SupplierName: string;
   MobileNo: string | null;
+  user_id: string; // Added user_id
 }
 
 export interface Purchase {
@@ -66,6 +70,7 @@ export interface Purchase {
   PurchaseDate: string;
   SupplierId: number | null;
   TotalAmount: number;
+  user_id: string; // Added user_id
   // created_at: string; // Removed
   ReferenceNo?: string;
   AdditionalCost?: number | null;
@@ -83,6 +88,7 @@ export interface SaleItem {
   Qty: number;
   Unit: string;
   UnitPrice: number;
+  user_id: string; // Added user_id
   // created_at: string; // Removed
   ItemMaster?: {
     ItemName: string | null; // Changed to allow null
@@ -100,6 +106,7 @@ export interface Customer {
   CustomerId: number;
   CustomerName: string;
   MobileNo: string | null;
+  user_id: string; // Added user_id
 }
 
 export interface Sale {
@@ -107,6 +114,7 @@ export interface Sale {
   SaleDate: string;
   CustomerId: number | null;
   TotalAmount: number;
+  user_id: string; // Added user_id
   // created_at: string; // Removed
   AdditionalDiscount?: number | null;
   DiscountPercentage?: number | null; // Added DiscountPercentage
@@ -125,6 +133,7 @@ export interface StockAdjustment {
   Quantity: number;
   Reason: string | null;
   AdjustmentDate: string;
+  user_id: string; // Added user_id
   ItemMaster?: {
     ItemName: string | null;
     ItemCode: string | null;
@@ -135,6 +144,7 @@ export interface ExpenseCategory {
   ExpenseCategoryId: number;
   CategoryName: string;
   Description: string | null;
+  user_id: string; // Added user_id
 }
 
 export interface Expense {
@@ -145,6 +155,7 @@ export interface Expense {
   ExpenseCategoryId: number | null;
   ReferenceNo: string | null;
   CreatedAt: string;
+  user_id: string; // Added user_id
   ExpenseCategoryMaster?: ExpenseCategory | null; // For joining
 }
 
@@ -204,6 +215,7 @@ export interface SalesReturn {
   TotalRefundAmount: number;
   Reason: string | null;
   ReferenceNo: string;
+  user_id: string; // Added user_id
   created_at: string;
 }
 
@@ -214,6 +226,7 @@ export interface SalesReturnItem {
   Qty: number;
   Unit: string;
   UnitPrice: number;
+  user_id: string; // Added user_id
   created_at: string;
   ItemMaster?: {
     ItemName: string | null;
@@ -237,6 +250,7 @@ export interface PurchaseReturn {
   TotalRefundAmount: number;
   Reason: string | null;
   ReferenceNo: string;
+  user_id: string; // Added user_id
   created_at: string;
 }
 
@@ -247,6 +261,7 @@ export interface PurchaseReturnItem {
   Qty: number;
   Unit: string;
   UnitPrice: number;
+  user_id: string; // Added user_id
   created_at: string;
   ItemMaster?: {
     ItemName: string | null;
