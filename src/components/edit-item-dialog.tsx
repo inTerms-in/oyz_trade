@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Category, ItemWithCategory } from "@/types";
 import { generateItemCode } from "@/lib/utils";
 import Barcode from "@/components/barcode";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Button } from "@/components/ui/button";
 import {
@@ -59,7 +58,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [itemCodeDisplay, setItemCodeDisplay] = useState("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  // Removed user from useAuth
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -89,7 +87,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
   useEffect(() => {
     async function fetchCategories() {
       const { data } = await supabase.from("CategoryMaster").select("*").order("CategoryName");
-      // Removed .eq("user_id", user.id)
       if (data) {
         setCategories(data);
       }
@@ -97,7 +94,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
     if (open) {
       fetchCategories();
     }
-  }, [open]); // Removed user from dependencies
+  }, [open]);
 
   useEffect(() => {
     form.reset({
@@ -112,7 +109,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
 
   const handleGenerateBarcode = async () => {
     // Barcode generation is a server-side RPC, so it requires online status
-    // Removed user check
     
     const { data, error } = await supabase.rpc('generate_unique_barcode');
     if (error) {

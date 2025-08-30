@@ -142,13 +142,12 @@ function EditSalePage() {
   }, [watchedAdditionalDiscount, watchedDiscountPercentage, itemsTotal, form, lastDiscountChangeSource]);
 
   const fetchData = useCallback(async () => {
-    if (!saleId || !user) return;
+    if (!saleId) return;
     
     const { data, error } = await supabase
       .from("Sales")
       .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)")
       .eq("SaleId", saleId)
-      // Removed .eq("user_id", user.id)
       .single();
 
     if (error || !data) {
@@ -184,27 +183,27 @@ function EditSalePage() {
     setAddedItems(loadedItems);
 
     const { data: itemsData } = await supabase.from("ItemMaster").select("*, CategoryMaster(*)")
-    // Removed .eq("user_id", user.id)
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo")
-    // Removed .eq("user_id", user.id)
-    ;
+    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
     if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
     else setCustomerSuggestions(customersData || []);
 
     // Fetch shop details for WhatsApp message
-    const { data: shopData, error: shopError } = await supabase
-      .from("shop")
-      .select("shop_name, mobile_no, address")
-      .eq("user_id", user.id)
-      .single();
+    // Ensure user is not null before accessing user.id
+    if (user?.id) {
+      const { data: shopData, error: shopError } = await supabase
+        .from("shop")
+        .select("shop_name, mobile_no, address")
+        .eq("user_id", user!.id) // Non-null assertion added here
+        .single();
 
-    if (shopError && shopError.code !== 'PGRST116') {
-      toast.error("Failed to fetch shop details", { description: shopError.message });
-    } else if (shopData) {
-      setShopDetails(shopData);
+      if (shopError && shopError.code !== 'PGRST116') { // PGRST116 means no rows found
+        toast.error("Failed to fetch shop details", { description: shopError.message });
+      } else if (shopData) {
+        setShopDetails(shopData);
+      }
     }
     
     setLoading(false);
@@ -247,7 +246,7 @@ function EditSalePage() {
       } else {
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
-          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }]) // Removed user_id
+          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }])
           .select()
           .single();
 
@@ -266,7 +265,6 @@ function EditSalePage() {
           .from("CustomerMaster")
           .update({ MobileNo: values.customerMobileNo || null })
           .eq("CustomerId", customerToUpdate.CustomerId);
-          // Removed .eq("user_id", user.id)
         if (updateMobileError) {
           toast.error("Failed to update customer mobile number", { description: updateMobileError.message });
           setIsSubmitting(false);
@@ -285,7 +283,6 @@ function EditSalePage() {
         TotalAmount: itemsTotal - additionalDiscount,
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
-        // user_id: user.id, // Removed user_id
       }).eq("SaleId", saleId);
 
     if (saleError) {
@@ -307,7 +304,6 @@ function EditSalePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -838,13 +834,13 @@ function EditSalePage() {
       <SalePostSaveActionsDialog
         open={isPostSaveActionsDialogOpen}
         onOpenChange={setIsPostSaveActionsDialogOpen}
-        saleId={saleId ? Number(saleId) : null}
-        onSendWhatsApp={handleSendWhatsApp}
-        onPrint={handlePrint}
+        saleId={newlyCreatedSaleId}
+        onSendWhatsApp={handleSendWhatsAppFromDialog}
+        onPrint={handlePrintFromDialog}
         onReturnToList={handleReturnToListFromDialog}
       />
     </div>
   );
 }
 
-export default EditSalePage;
+export default NewSalePage;

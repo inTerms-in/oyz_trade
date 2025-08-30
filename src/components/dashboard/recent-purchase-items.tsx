@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-// Removed useAuth import as user_id filtering is no longer applied
 
 interface RecentItem {
   ItemName: string;
@@ -27,7 +26,6 @@ export function RecentPurchaseItems() {
           ItemMaster (ItemName),
           Purchase (SupplierMaster(SupplierName), PurchaseDate)
         `)
-        // Removed .eq("user_id", user.id)
         .order("PurchaseId", { ascending: false }) // Changed order column
         .limit(10);
 
@@ -46,7 +44,7 @@ export function RecentPurchaseItems() {
     };
 
     fetchRecentItems();
-  }, []); // Removed user from dependencies
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

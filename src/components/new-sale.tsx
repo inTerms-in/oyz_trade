@@ -137,22 +137,18 @@ function NewSalePage() {
 
   useEffect(() => {
     async function fetchData() {
-      // Removed user check
       const { data: itemsData, error: itemsError } = await supabase
         .from("ItemMaster").select("*, CategoryMaster(*)")
-        // Removed .eq("user_id", user.id)
         .order("ItemName");
       if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
       else setItemSuggestions(itemsData as ItemWithCategory[]);
 
-      const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo")
-      // Removed .eq("user_id", user.id)
-      ;
+      const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
       if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
       else setCustomerSuggestions(customersData || []);
     }
     fetchData();
-  }, []); // Removed user from dependencies
+  }, []);
 
   // Effect to update mobile number when customer is selected from autocomplete
   useEffect(() => {
@@ -327,7 +323,7 @@ function NewSalePage() {
       } else {
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
-          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }]) // Removed user_id
+          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }])
           .select()
           .single();
 
@@ -346,7 +342,6 @@ function NewSalePage() {
           .from("CustomerMaster")
           .update({ MobileNo: values.customerMobileNo || null })
           .eq("CustomerId", customerToUpdate.CustomerId);
-          // Removed .eq("user_id", user.id)
         if (updateMobileError) {
           toast.error("Failed to update customer mobile number", { description: updateMobileError.message });
           setIsSubmitting(false);
@@ -374,7 +369,6 @@ function NewSalePage() {
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
         ReferenceNo: refNoData,
-        // user_id: user.id, // Removed user_id
       }).select().single();
 
     if (saleError || !saleData) {
@@ -389,7 +383,6 @@ function NewSalePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

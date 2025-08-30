@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { useNavigate } from "react-router-dom";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,7 +89,6 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
       .from("PurchaseItem")
       .select("UnitPrice, Purchase(SupplierMaster(SupplierName), PurchaseDate)")
       .eq("ItemId", item.ItemId)
-      // Removed .eq("user_id", user.id)
       .order("PurchaseId", { ascending: false })
       .limit(10);
     

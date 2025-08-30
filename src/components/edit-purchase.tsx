@@ -110,13 +110,12 @@ function EditPurchasePage() {
   const displayGrandTotal = parseFloat((itemsTotalRaw + numericAdditionalCost).toFixed(2));
 
   const fetchData = useCallback(async () => {
-    if (!purchaseId || !user) return;
+    if (!purchaseId) return;
     
     const { data, error } = await supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
       .eq("PurchaseId", purchaseId)
-      // Removed .eq("user_id", user.id)
       .single();
 
     if (error || !data) {
@@ -151,18 +150,15 @@ function EditPurchasePage() {
     setAddedItems(loadedItems);
 
     const { data: itemsData } = await supabase.from("ItemMaster").select("*, CategoryMaster(*)")
-    // Removed .eq("user_id", user.id)
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo")
-    // Removed .eq("user_id", user.id)
-    ;
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo");
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []); // Store raw supplier data
     
     setLoading(false);
-  }, [purchaseId, navigate, form, user]);
+  }, [purchaseId, navigate, form]);
 
   useEffect(() => {
     fetchData();
@@ -329,7 +325,6 @@ function EditPurchasePage() {
           .select("SellPrice")
           .eq("ItemId", itemToUpdateSellPrice.ItemId)
           .single();
-          // Removed .eq("user_id", user.id)
 
         if (error) {
           toast.error("Failed to fetch item sell price", { description: error.message });
@@ -345,7 +340,7 @@ function EditPurchasePage() {
       };
       fetchItemSellPrice();
     }
-  }, [isUpdateSellPriceDialogOpen, itemToUpdateSellPrice]); // Removed user from dependencies
+  }, [isUpdateSellPriceDialogOpen, itemToUpdateSellPrice]);
 
   const handleConfirmUpdateSellPrice = async () => {
     if (!itemToUpdateSellPrice || typeof newSellPrice !== 'number' || isNaN(newSellPrice) || newSellPrice < 0) {
@@ -358,7 +353,6 @@ function EditPurchasePage() {
       .from("ItemMaster")
       .update({ SellPrice: newSellPrice })
       .eq("ItemId", itemToUpdateSellPrice.ItemId);
-      // Removed .eq("user_id", user.id)
     setIsSubmitting(false);
 
     if (error) {
@@ -367,7 +361,6 @@ function EditPurchasePage() {
       toast.success(`Sell price for "${itemToUpdateSellPrice.ItemName}" updated to ${formatCurrency(newSellPrice)}!`);
       const { data: itemsData, error: itemsError } = await supabase
         .from("ItemMaster").select("*, CategoryMaster(*)")
-        // Removed .eq("user_id", user.id)
         .order("ItemName");
       if (!itemsError) setItemSuggestions(itemsData as ItemWithCategory[]);
       setIsUpdateSellPriceDialogOpen(false);
@@ -406,7 +399,7 @@ function EditPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }]) // Removed user_id
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
         .select()
         .single();
 
@@ -425,7 +418,6 @@ function EditPurchasePage() {
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
         .eq("SupplierId", supplierToUpdate.SupplierId); // Corrected to SupplierId
-        // Removed .eq("user_id", user.id)
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -442,7 +434,6 @@ function EditPurchasePage() {
         PurchaseDate: values.PurchaseDate.toISOString(),
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
-        // user_id: user.id, // Removed user_id
       }).eq("PurchaseId", purchaseId);
 
     if (purchaseError) {
@@ -464,7 +455,6 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
