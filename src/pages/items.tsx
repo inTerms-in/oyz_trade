@@ -20,7 +20,7 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
@@ -46,7 +46,7 @@ function ItemsPage() {
 
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
 
-  const fetchItems = useCallback(async () => {
+  const fetchItems = useCallback(async (initialItemIds?: number[]) => {
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -55,12 +55,16 @@ function ItemsPage() {
       .from("item_stock_details")
       .select("ItemId, ItemName, CategoryId, CategoryName, SellPrice, Barcode, ItemCode, RackNo", { count: "exact" });
 
-    if (debouncedSearchTerm) {
+    if (initialItemIds && initialItemIds.length > 0) {
+      query = query.in("ItemId", initialItemIds);
+    } else if (debouncedSearchTerm) {
       query = query.or(`ItemName.ilike.%${debouncedSearchTerm}%,ItemCode.ilike.%${debouncedSearchTerm}%`);
     }
 
     query = query.order(sort.column, { ascending: sort.direction === "asc" });
-    query = query.range(from, to); // Always apply range for this page
+    if (!initialItemIds) { // Only apply range if not fetching specific initial items
+      query = query.range(from, to);
+    }
 
     const { data, error, count } = await query;
 
@@ -72,22 +76,28 @@ function ItemsPage() {
       setItems(fetchedItems);
       setItemCount(count ?? 0);
       setPageCount(Math.ceil((count ?? 0) / pageSize));
+
+      if (initialItemIds && initialItemIds.length > 0) {
+        // Pre-select items that were passed via state
+        const preSelected = fetchedItems.map(item => ({
+          ...item,
+          CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
+          quantityToPrint: 1,
+        }));
+        setSelectedItems(preSelected);
+      }
     }
     setLoading(false);
   }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
-
-  // Open AddItemDialog if state indicates 'add-item'
-  useEffect(() => {
-    if (location.state?.action === 'add-item') {
-      setAddDialogOpen(true);
-      // Clear the state after use to prevent re-triggering on subsequent renders
-      window.history.replaceState({}, document.title); 
+    const initialItemIds = location.state?.initialSelectedItems as number[] | undefined;
+    fetchItems(initialItemIds);
+    // Clear state after use to prevent re-fetching on subsequent visits
+    if (location.state?.initialSelectedItems) {
+      window.history.replaceState({}, document.title); // Clear state from history
     }
-  }, [location.state]);
+  }, [fetchItems, location.state?.initialSelectedItems]);
 
   const handleSort = (column: string) => {
     const isAsc = sort.column === column && sort.direction === "asc";
@@ -101,17 +111,22 @@ function ItemsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedItemIds(items.map(item => item.ItemId));
+      const allItemsAsPrintable = items.map(item => ({
+        ...item,
+        CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
+        quantityToPrint: 1, // Default quantity
+      }));
+      setSelectedItems(allItemsAsPrintable);
     } else {
       setSelectedItemIds([]);
     }
   };
 
-  const handleSelectItem = (itemId: number, checked: boolean) => {
+  const handleSelectItem = (item: ItemWithStock, checked: boolean) => {
     if (checked) {
-      setSelectedItemIds(prev => [...prev, itemId]);
+      setSelectedItemIds(prev => [...prev, item.ItemId]);
     } else {
-      setSelectedItemIds(prev => prev.filter(id => id !== itemId));
+      setSelectedItemIds(prev => prev.filter(id => id !== item.ItemId));
     }
   };
 
@@ -244,7 +259,7 @@ function ItemsPage() {
                       <TableCell className="text-center">
                         <Checkbox
                           checked={isItemSelected(item.ItemId)}
-                          onCheckedChange={(checked: boolean) => handleSelectItem(item.ItemId, checked)}
+                          onCheckedChange={(checked: boolean) => handleSelectItem(item, checked)}
                           aria-label={`Select item ${item.ItemName}`}
                         />
                       </TableCell>

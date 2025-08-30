@@ -17,7 +17,7 @@ import { Printer, ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrintableBarcodes } from "@/components/printable-barcodes";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 

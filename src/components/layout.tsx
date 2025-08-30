@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { ChatbotTrigger } from "@/components/chatbot-trigger";
 import { ChatbotDialog } from "@/components/chatbot-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -294,7 +294,7 @@ function Layout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className={cn("h-8 w-8", !isCollapsed && "ml-auto")} onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
-                  <ChevronsLeft className={cn("h-5 w-5 transition-transform", isCollapsed && "rotate-180")} />
+                  <ChevronsLeft className="h-5 w-5 transition-transform" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -302,7 +302,7 @@ function Layout() {
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex-1 py-4 overflow-y-auto"> {/* Added overflow-y-auto */}
+          <div className="flex-1 py-4 overflow-y-auto">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               {renderNavLinks(navItems, false)}
             </nav>
@@ -320,7 +320,7 @@ function Layout() {
                 <SheetHeader>
                   <SheetTitle>PurchaseTracker</SheetTitle>
                 </SheetHeader>
-                <nav className="grid gap-2 text-lg font-medium overflow-y-auto"> {/* Added overflow-y-auto */}
+                <nav className="grid gap-2 text-lg font-medium overflow-y-auto">
                   <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
                     <Package className="h-6 w-6 text-primary" />
                     <span>PurchaseTracker</span>
@@ -329,8 +329,8 @@ function Layout() {
                 </nav>
               </SheetContent>
             </Sheet>
-            <h1 className="text-lg font-semibold md:text-xl mr-auto">{currentPageTitle}</h1> {/* Dynamic Page Title */}
-            <div className="w-full flex-1 max-w-xs hidden sm:block"> {/* Adjusted width and hid on small screens */}
+            <h1 className="text-lg font-semibold md:text-xl mr-auto">{currentPageTitle}</h1>
+            <div className="w-full flex-1 max-w-xs hidden sm:block">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
@@ -345,7 +345,7 @@ function Layout() {
               <DropdownMenuTrigger asChild>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button ref={newActionButtonRef} size="sm" className="ml-auto sm:ml-4"> {/* Adjusted margin */}
+                    <Button ref={newActionButtonRef} size="sm" className="ml-auto sm:ml-4">
                       <span className="flex items-center">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         <span>New</span>
@@ -391,7 +391,7 @@ function Layout() {
               </DropdownMenu>
             )}
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20 overflow-y-auto"> {/* Added overflow-y-auto */}
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20 overflow-y-auto">
             <Outlet key={location.pathname} />
           </main>
           <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom"; // Import useLocation
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
@@ -16,12 +16,11 @@ import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function PurchasesPage() {
-  const location = useLocation(); // Use useLocation to check for state
   const [purchases, setPurchases] = useState<PurchaseWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   

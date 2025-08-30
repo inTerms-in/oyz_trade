@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
@@ -112,7 +112,6 @@ function OverviewDashboardPage() {
       let currentTotalExpenses = 0;
 
       const today = format(new Date(), 'yyyy-MM-dd');
-      const startOfToday = new Date(today);
       const endOfToday = new Date(today);
       endOfToday.setHours(23, 59, 59, 999);
 
@@ -323,7 +322,7 @@ function OverviewDashboardPage() {
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
-          <Skeleton className="h-24" /> {/* For new KPI cards */}
+          <Skeleton className="h-24" />
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />

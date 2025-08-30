@@ -16,9 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
-import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
+import { ChevronDown, PlusCircle, ArrowUpDown } from "lucide-react";
 import { DeleteSalesReturnAlert } from "@/components/delete-sales-return-alert";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
