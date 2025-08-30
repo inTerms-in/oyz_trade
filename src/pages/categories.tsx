@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
@@ -107,21 +107,12 @@ function CategoriesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => setAddDialogOpen(true)}>
-                      <span className="flex items-center">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        <span>New</span>
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add New Category (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button onClick={() => setAddDialogOpen(true)}>
+                <span className="flex items-center">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  <span>New</span>
+                </span>
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -163,26 +154,8 @@ function CategoriesPage() {
                       <TableCell className="font-medium">{category.CategoryName}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <EditCategoryDialog category={category} onCategoryUpdated={fetchCategories} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit Category (Ctrl+E)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <DeleteCategoryAlert category={category} onCategoryDeleted={fetchCategories} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete Category (Ctrl+D)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <EditCategoryDialog category={category} onCategoryUpdated={fetchCategories} />
+                          <DeleteCategoryAlert category={category} onCategoryDeleted={fetchCategories} />
                         </div>
                       </TableCell>
                     </TableRow>

@@ -35,7 +35,6 @@ const purchaseReturnFormSchema = z.object({
   PurchaseId: z.coerce.number({ required_error: "Please select an original purchase." }).nullable(),
   ReturnDate: z.date(),
   Reason: z.string().optional().nullable(),
-  purchaseSearchText: z.string().optional(), // New field to hold the autocomplete text
 });
 
 type PurchaseReturnFormValues = z.infer<typeof purchaseReturnFormSchema>;
@@ -61,15 +60,15 @@ function NewPurchaseReturnPage() {
   const [purchaseSuggestions, setPurchaseSuggestions] = useState<PurchaseWithItems[]>([]);
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseWithItems | null>(null);
   const [returnableItems, setReturnableItems] = useState<ReturnableItem[]>([]);
+  const [displayPurchaseName, setDisplayPurchaseName] = useState(""); // New state for Autocomplete input text
 
   const form = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnFormSchema),
     mode: "onChange",
-    defaultValues: { PurchaseId: null, ReturnDate: new Date(), Reason: "", purchaseSearchText: "" },
+    defaultValues: { PurchaseId: null, ReturnDate: new Date(), Reason: "" },
   });
 
   const watchedPurchaseId = form.watch("PurchaseId");
-  const watchedPurchaseSearchText = form.watch("purchaseSearchText"); // Watch the new search text field
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchPurchaseSuggestions = useCallback(async () => {
@@ -95,6 +94,7 @@ function NewPurchaseReturnPage() {
       const purchase = purchaseSuggestions.find(s => s.PurchaseId === watchedPurchaseId);
       setSelectedPurchase(purchase || null);
       if (purchase) {
+        setDisplayPurchaseName(purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`);
         // Initialize returnable items from the selected purchase's items
         const items = purchase.PurchaseItem.map(item => ({
           PurchaseItemId: item.PurchaseItemId,
@@ -109,21 +109,16 @@ function NewPurchaseReturnPage() {
           TotalPrice: 0,
         }));
         setReturnableItems(items);
-        // Update the search text field to reflect the selected purchase's name
-        form.setValue("purchaseSearchText", purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`, { shouldValidate: true });
       } else {
+        setDisplayPurchaseName("");
         setReturnableItems([]);
-        form.setValue("purchaseSearchText", "", { shouldValidate: true });
       }
     } else {
       setSelectedPurchase(null);
+      setDisplayPurchaseName("");
       setReturnableItems([]);
-      // If PurchaseId is cleared, also clear the search text unless user is actively typing
-      if (!watchedPurchaseSearchText) {
-        form.setValue("purchaseSearchText", "", { shouldValidate: true });
-      }
     }
-  }, [watchedPurchaseId, purchaseSuggestions, form, watchedPurchaseSearchText]);
+  }, [watchedPurchaseId, purchaseSuggestions]);
 
   const handleQtyReturnedChange = (index: number, value: number) => {
     const updatedItems = [...returnableItems];
@@ -233,7 +228,7 @@ function NewPurchaseReturnPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="purchaseSearchText" // Use the new search text field for the Autocomplete's value
+                  name="PurchaseId"
                   render={({ field }) => (
                     <FormItem className="flex-grow">
                       <Label htmlFor="purchase-autocomplete">Original Purchase</Label>
@@ -241,18 +236,20 @@ function NewPurchaseReturnPage() {
                         <Autocomplete<PurchaseWithItems>
                           id="purchase-autocomplete"
                           suggestions={purchaseSuggestions}
-                          value={field.value ?? ""} // Bind Autocomplete's value to purchaseSearchText
+                          value={displayPurchaseName} // Use displayPurchaseName for input value
                           onValueChange={(v) => {
-                            field.onChange(v); // Update purchaseSearchText
-                            // If the typed value no longer matches a selected purchase, clear PurchaseId
+                            setDisplayPurchaseName(v);
+                            // If the user types and it no longer matches the selected purchase, clear the form's PurchaseId
                             const matchedPurchase = purchaseSuggestions.find(s => (s.ReferenceNo === v || `Purchase ${s.PurchaseId} (${s.SupplierMaster?.SupplierName || 'N/A'})` === v));
-                            if (!matchedPurchase) {
-                              form.setValue("PurchaseId", null, { shouldValidate: true });
+                            if (!matchedPurchase || matchedPurchase.PurchaseId !== selectedPurchase?.PurchaseId) {
+                                field.onChange(null); // Set to null when no match
+                                setSelectedPurchase(null); // Also clear selectedPurchase
                             }
                           }}
                           onSelect={(purchase) => {
-                            form.setValue("PurchaseId", purchase.PurchaseId, { shouldValidate: true }); // Set PurchaseId on selection
-                            field.onChange(purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`); // Update search text to selected item's display name
+                            field.onChange(purchase.PurchaseId);
+                            setSelectedPurchase(purchase); // Set selected purchase
+                            setDisplayPurchaseName(purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`); // Update display name
                           }}
                           placeholder="Search by Purchase Ref No or Supplier Name..."
                           getId={(s) => s.PurchaseId}

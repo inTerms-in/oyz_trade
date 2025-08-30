@@ -35,7 +35,6 @@ const salesReturnFormSchema = z.object({
   SaleId: z.coerce.number({ required_error: "Please select an original sale." }).nullable(),
   ReturnDate: z.date(),
   Reason: z.string().optional().nullable(),
-  saleSearchText: z.string().optional(), // New field to hold the autocomplete text
 });
 
 type SalesReturnFormValues = z.infer<typeof salesReturnFormSchema>;
@@ -61,15 +60,15 @@ function NewSalesReturnPage() {
   const [saleSuggestions, setSaleSuggestions] = useState<SaleWithItems[]>([]);
   const [selectedSale, setSelectedSale] = useState<SaleWithItems | null>(null);
   const [returnableItems, setReturnableItems] = useState<ReturnableItem[]>([]);
+  const [displaySaleName, setDisplaySaleName] = useState(""); // New state for Autocomplete input text
 
   const form = useForm<SalesReturnFormValues>({
     resolver: zodResolver(salesReturnFormSchema),
     mode: "onChange",
-    defaultValues: { SaleId: null, ReturnDate: new Date(), Reason: "", saleSearchText: "" },
+    defaultValues: { SaleId: null, ReturnDate: new Date(), Reason: "" },
   });
 
   const watchedSaleId = form.watch("SaleId");
-  const watchedSaleSearchText = form.watch("saleSearchText"); // Watch the new search text field
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchSalesSuggestions = useCallback(async () => {
@@ -95,6 +94,7 @@ function NewSalesReturnPage() {
       const sale = saleSuggestions.find(s => s.SaleId === watchedSaleId);
       setSelectedSale(sale || null);
       if (sale) {
+        setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`);
         // Initialize returnable items from the selected sale's items
         const items = sale.SalesItem.map(item => ({
           SalesItemId: item.SalesItemId,
@@ -109,21 +109,16 @@ function NewSalesReturnPage() {
           TotalPrice: 0,
         }));
         setReturnableItems(items);
-        // Update the search text field to reflect the selected sale's name
-        form.setValue("saleSearchText", sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`, { shouldValidate: true });
       } else {
+        setDisplaySaleName("");
         setReturnableItems([]);
-        form.setValue("saleSearchText", "", { shouldValidate: true });
       }
     } else {
       setSelectedSale(null);
+      setDisplaySaleName("");
       setReturnableItems([]);
-      // If SaleId is cleared, also clear the search text unless user is actively typing
-      if (!watchedSaleSearchText) { // Only clear if it's not already being typed into
-        form.setValue("saleSearchText", "", { shouldValidate: true });
-      }
     }
-  }, [watchedSaleId, saleSuggestions, form, watchedSaleSearchText]);
+  }, [watchedSaleId, saleSuggestions]);
 
   const handleQtyReturnedChange = (index: number, value: number) => {
     const updatedItems = [...returnableItems];
@@ -233,7 +228,7 @@ function NewSalesReturnPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="saleSearchText" // Use the new search text field for the Autocomplete's value
+                  name="SaleId"
                   render={({ field }) => (
                     <FormItem className="flex-grow">
                       <Label htmlFor="sale-autocomplete">Original Sale</Label>
@@ -241,18 +236,20 @@ function NewSalesReturnPage() {
                         <Autocomplete<SaleWithItems>
                           id="sale-autocomplete"
                           suggestions={saleSuggestions}
-                          value={field.value ?? ""} // Bind Autocomplete's value to saleSearchText
+                          value={displaySaleName} // Use displaySaleName for input value
                           onValueChange={(v) => {
-                            field.onChange(v); // Update saleSearchText
-                            // If the typed value no longer matches a selected sale, clear SaleId
+                            setDisplaySaleName(v);
+                            // If the user types and it no longer matches the selected sale, clear the form's SaleId
                             const matchedSale = saleSuggestions.find(s => (s.ReferenceNo === v || `Sale ${s.SaleId} (${s.CustomerMaster?.CustomerName || 'N/A'})` === v));
-                            if (!matchedSale) {
-                              form.setValue("SaleId", null, { shouldValidate: true });
+                            if (!matchedSale || matchedSale.SaleId !== selectedSale?.SaleId) {
+                                field.onChange(null); // Set to null when no match
+                                setSelectedSale(null); // Also clear selectedSale
                             }
                           }}
                           onSelect={(sale) => {
-                            form.setValue("SaleId", sale.SaleId, { shouldValidate: true }); // Set SaleId on selection
-                            field.onChange(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`); // Update search text to selected item's display name
+                            field.onChange(sale.SaleId);
+                            setSelectedSale(sale); // Set selected sale
+                            setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`); // Update display name
                           }}
                           placeholder="Search by Sale Ref No or Customer Name..."
                           getId={(s) => s.SaleId}
