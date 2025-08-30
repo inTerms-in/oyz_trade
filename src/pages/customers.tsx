@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Customer } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
-// Removed useAuth import as user_id filtering is no longer applied
+import { useLocation } from "react-router-dom"; // Import useLocation
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,12 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function CustomersPage() {
-  // Removed user from useAuth
+  const location = useLocation(); // Use useLocation to check for state
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -48,7 +48,6 @@ function CustomersPage() {
     let query = supabase
       .from("CustomerMaster")
       .select("*", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.or(`CustomerName.ilike.%${debouncedSearchTerm}%,MobileNo.ilike.%${debouncedSearchTerm}%`);
@@ -68,7 +67,7 @@ function CustomersPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
 
   useEffect(() => {
     fetchCustomers();
@@ -88,6 +87,15 @@ function CustomersPage() {
       supabase.removeChannel(channel);
     };
   }, [fetchCustomers]);
+
+  // Open AddCustomerDialog if state indicates 'add-customer'
+  useEffect(() => {
+    if (location.state?.action === 'add-customer') {
+      setAddDialogOpen(true);
+      // Clear the state after use to prevent re-triggering on subsequent renders
+      window.history.replaceState({}, document.title); 
+    }
+  }, [location.state]);
 
   const handleSort = (column: keyof Customer) => {
     const isAsc = sort.column === column && sort.direction === "asc";
@@ -110,21 +118,19 @@ function CustomersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => setAddDialogOpen(true)}>
-                      <span className="flex items-center">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        <span>New</span>
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add New Customer (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => setAddDialogOpen(true)}>
+                    <span className="flex items-center">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      <span>New</span>
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add New Customer (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -175,26 +181,22 @@ function CustomersPage() {
                       <TableCell>{customer.MobileNo || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <EditCustomerDialog customer={customer} onCustomerUpdated={fetchCustomers} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit Customer (Ctrl+E)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <DeleteCustomerAlert customer={customer} onCustomerDeleted={fetchCustomers} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete Customer (Ctrl+D)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <EditCustomerDialog customer={customer} onCustomerUpdated={fetchCustomers} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit Customer (Ctrl+E)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DeleteCustomerAlert customer={customer} onCustomerDeleted={fetchCustomers} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete Customer (Ctrl+D)</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

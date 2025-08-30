@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom"; // Import useLocation
 import { supabase } from "@/integrations/supabase/client";
 import { SaleWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,12 +16,12 @@ import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function SalesPage() {
-  // Removed user from useAuth
+  const location = useLocation(); // Use useLocation to check for state
   const [sales, setSales] = useState<SaleWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -49,10 +48,8 @@ function SalesPage() {
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
-      // Search for customers matching the search term
       const { data: matchingCustomers, error: customerError } = await supabase
         .from("CustomerMaster")
         .select("CustomerId")
@@ -60,15 +57,12 @@ function SalesPage() {
 
       if (customerError) {
         console.error("Error fetching matching customers:", customerError);
-        // Fallback: if customer search fails, only search by ReferenceNo
         query = query.ilike("ReferenceNo", `%${debouncedSearchTerm}%`);
       } else {
         const customerIds = matchingCustomers.map(c => c.CustomerId);
-        // Construct the OR clause: search ReferenceNo OR CustomerId is in the list of matching customer IDs
         if (customerIds.length > 0) {
           query = query.or(`ReferenceNo.ilike.%${debouncedSearchTerm}%,CustomerId.in.(${customerIds.join(',')})`);
         } else {
-          // If no customers match, only search by ReferenceNo
           query = query.ilike("ReferenceNo", `%${debouncedSearchTerm}%`);
         }
       }
@@ -83,10 +77,9 @@ function SalesPage() {
       query = query.lte("SaleDate", toDate.toISOString());
     }
 
-    // Adjust sorting for CustomerMaster.CustomerName
     let sortColumn = sort.column;
     if (sort.column === "CustomerMaster.CustomerName") {
-      sortColumn = "CustomerId"; // Sort by the foreign key directly
+      sortColumn = "CustomerId";
     }
 
     query = query.order(sortColumn, { ascending: sort.direction === "asc" }).range(from, to);
@@ -102,7 +95,7 @@ function SalesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
 
   useEffect(() => {
     fetchSales();
@@ -149,23 +142,21 @@ function SalesPage() {
                 className="w-full sm:w-auto"
               />
               <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link to="/sales-module/sales-invoice/new">
-                      <Button className="w-full">
-                        <span className="flex items-center"> {/* Single child for Button */}
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          <span>New Sale</span> {/* Wrap text in span */}
-                        </span>
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add New Sale (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/sales-module/sales-invoice/new">
+                    <Button className="w-full">
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New Sale</span>
+                      </span>
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add New Sale (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -177,32 +168,32 @@ function SalesPage() {
                   <TableHead className="w-12"></TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("ReferenceNo")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Ref No.</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Ref No.</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("CustomerMaster.CustomerName")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Customer</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Customer</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("SaleDate")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Date</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Date</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("TotalAmount")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Total Amount</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Total Amount</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
@@ -236,30 +227,26 @@ function SalesPage() {
                         <TableCell>{formatCurrency(sale.TotalAmount)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Link to={`/sales-module/sales-invoice/edit/${sale.SaleId}`}>
-                                    <Button variant="ghost" size="icon" aria-label="Edit sale">
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </Link>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edit Sale (Ctrl+E)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DeleteSaleAlert sale={sale} onSaleDeleted={fetchSales} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete Sale (Ctrl+D)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link to={`/sales-module/sales-invoice/edit/${sale.SaleId}`}>
+                                  <Button variant="ghost" size="icon" aria-label="Edit sale">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit Sale (Ctrl+E)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DeleteSaleAlert sale={sale} onSaleDeleted={fetchSales} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete Sale (Ctrl+D)</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>

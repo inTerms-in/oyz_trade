@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, Supplier } from "@/types";
-import { useAuth } from "@/contexts/auth-provider"; // Re-import useAuth
+import { useAuth } from "@/contexts/auth-provider";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -44,6 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const purchaseFormSchema = z.object({
   SupplierName: z.string().min(2, { message: "Supplier name is required." }),
@@ -76,7 +77,7 @@ const EMPTY_ITEM: Omit<PurchaseListItem, 'ItemId'> & { ItemId: number | string }
 
 function NewPurchasePage() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Re-import useAuth
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithCategory[]>([]);
   const [supplierSuggestions, setSupplierSuggestions] = useState<Supplier[]>([]);
@@ -121,7 +122,7 @@ function NewPurchasePage() {
 
     const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo");
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
-    else setSupplierSuggestions(suppliersData || []); // Store raw supplier data
+    else setSupplierSuggestions(suppliersData || []);
   }, []);
 
   useEffect(() => {
@@ -133,11 +134,11 @@ function NewPurchasePage() {
     const currentMobileNo = form.getValues("supplierMobileNo");
     if (selectedSupplier) {
       const newMobileNo = selectedSupplier.MobileNo || "";
-      if (currentMobileNo !== newMobileNo) { // Only update if different
+      if (currentMobileNo !== newMobileNo) {
         form.setValue("supplierMobileNo", newMobileNo, { shouldValidate: true });
       }
     } else {
-      if (!form.formState.dirtyFields.supplierMobileNo && currentMobileNo !== "") { // Only clear if not dirty and not already empty
+      if (!form.formState.dirtyFields.supplierMobileNo && currentMobileNo !== "") {
         form.setValue("supplierMobileNo", "", { shouldValidate: true });
       }
     }
@@ -148,7 +149,7 @@ function NewPurchasePage() {
     const subscription = form.watch((value, { name }) => {
       if (name === "SupplierName") {
         const currentSupplierName = value.SupplierName;
-        if (selectedSupplier && currentSupplierName?.toLowerCase() !== selectedSupplier.SupplierName.toLowerCase()) { // Corrected to SupplierName
+        if (selectedSupplier && currentSupplierName?.toLowerCase() !== selectedSupplier.SupplierName.toLowerCase()) {
           setSelectedSupplier(null);
         } else if (!currentSupplierName) {
           setSelectedSupplier(null);
@@ -160,19 +161,17 @@ function NewPurchasePage() {
 
   const handleSupplierSelect = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
-    form.setValue("SupplierName", supplier.SupplierName, { shouldValidate: true }); // Corrected to SupplierName
-    // Mobile number will be set by the useEffect watching selectedSupplier
+    form.setValue("SupplierName", supplier.SupplierName, { shouldValidate: true });
   };
 
   const handleSupplierNameChange = (name: string) => {
     form.setValue("SupplierName", name, { shouldValidate: true });
-    // selectedSupplier will be cleared by the useEffect watching SupplierName
   };
 
   const handleCurrentItemChange = (field: keyof typeof currentItem, value: string | number) => {
     const updatedItem = { ...currentItem, [field]: value };
     if (field === "ItemName") {
-      const selected = itemSuggestions.find(i => (i.ItemName ?? '').toLowerCase() === String(value).toLowerCase()); // Fixed: Handle null ItemName
+      const selected = itemSuggestions.find(i => (i.ItemName ?? '').toLowerCase() === String(value).toLowerCase());
       updatedItem.ItemId = selected ? selected.ItemId : "";
       updatedItem.CategoryName = selected ? selected.CategoryMaster?.CategoryName : "";
       updatedItem.Barcode = selected ? selected.Barcode : "";
@@ -196,7 +195,7 @@ function NewPurchasePage() {
     setCurrentItem({ 
       ...EMPTY_ITEM, 
       ItemId: selectedItem.ItemId, 
-      ItemName: selectedItem.ItemName ?? '', // Fixed: Handle null ItemName
+      ItemName: selectedItem.ItemName ?? '',
       CategoryName: selectedItem.CategoryMaster?.CategoryName,
       Barcode: selectedItem.Barcode,
       ItemCode: selectedItem.ItemCode,
@@ -217,7 +216,7 @@ function NewPurchasePage() {
       toast.error("Quantity must be greater than zero.");
       return;
     }
-    if (currentItem.UnitPrice <= 0) { // New validation
+    if (currentItem.UnitPrice <= 0) {
       toast.error("Unit price must be greater than zero.");
       return;
     }
@@ -230,7 +229,6 @@ function NewPurchasePage() {
     );
 
     if (existingItemIndex > -1) {
-      // Item with same ID, Unit, and UnitPrice exists, update quantity
       const updatedItems = [...addedItems];
       const existingItem = updatedItems[existingItemIndex];
       existingItem.Qty += currentItem.Qty;
@@ -238,7 +236,6 @@ function NewPurchasePage() {
       setAddedItems(updatedItems);
       toast.success(`Quantity for "${currentItem.ItemName}" updated.`);
     } else {
-      // Item is new or has different Unit/UnitPrice, add as a new entry
       setAddedItems([...addedItems, currentItem as PurchaseListItem]);
       toast.success(`Item "${currentItem.ItemName}" added.`);
     }
@@ -261,7 +258,7 @@ function NewPurchasePage() {
     setCurrentItem({ 
       ...EMPTY_ITEM, 
       ItemId: newItem.ItemId, 
-      ItemName: newItem.ItemName ?? '', // Fixed: Handle null ItemName
+      ItemName: newItem.ItemName ?? '',
       Barcode: newItem.Barcode, 
       ItemCode: newItem.ItemCode,
       Qty: 1,
@@ -304,7 +301,7 @@ function NewPurchasePage() {
           setNewSellPrice("");
         } else if (data) {
           setExistingSellPriceForDialog(data.SellPrice);
-          setNewSellPrice(data.SellPrice || ""); // Pre-fill input with existing sell price
+          setNewSellPrice(data.SellPrice || "");
         } else {
           setExistingSellPriceForDialog(null);
           setNewSellPrice("");
@@ -339,22 +336,22 @@ function NewPurchasePage() {
       setIsUpdateSellPriceDialogOpen(false);
       setItemToUpdateSellPrice(null);
       setNewSellPrice("");
-      setExistingSellPriceForDialog(null); // Clear dialog state
+      setExistingSellPriceForDialog(null);
     }
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase()); // Fixed: Handle null ItemName
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
 
   async function onSubmit(values: PurchaseFormValues) {
     if (addedItems.length === 0) return toast.error("Please add at least one item.");
-    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
+    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     
     setIsSubmitting(true);
 
     let finalSupplierId: number | null = null;
     let supplierToUpdate: Supplier | null = null;
 
-    const existingSupplier = supplierSuggestions.find(s => s.SupplierName.toLowerCase() === values.SupplierName.toLowerCase()); // Corrected to SupplierName
+    const existingSupplier = supplierSuggestions.find(s => s.SupplierName.toLowerCase() === values.SupplierName.toLowerCase());
 
     if (existingSupplier) {
       finalSupplierId = existingSupplier.SupplierId;
@@ -372,15 +369,15 @@ function NewPurchasePage() {
         return;
       }
       finalSupplierId = newSupplier.SupplierId;
-      supplierToUpdate = newSupplier; // Assign newSupplier directly
+      supplierToUpdate = newSupplier;
       toast.success(`New supplier "${newSupplier.SupplierName}" added.`);
     }
 
-    if (supplierToUpdate && supplierToUpdate.SupplierId && supplierToUpdate.MobileNo !== values.supplierMobileNo) { // Corrected to SupplierId and MobileNo
+    if (supplierToUpdate && supplierToUpdate.SupplierId && supplierToUpdate.MobileNo !== values.supplierMobileNo) {
       const { error: updateMobileError } = await supabase
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
-        .eq("SupplierId", supplierToUpdate.SupplierId); // Corrected to SupplierId
+        .eq("SupplierId", supplierToUpdate.SupplierId);
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -388,7 +385,7 @@ function NewPurchasePage() {
       }
     }
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no', { p_user_id: user.id }); // Pass user.id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no', { p_user_id: user.id });
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase reference number", { description: refNoError?.message });
@@ -396,7 +393,7 @@ function NewPurchasePage() {
       return;
     }
     
-    const itemsTotalSum = itemsTotalRaw; // Use the already calculated itemsTotalRaw
+    const itemsTotalSum = itemsTotalRaw;
     const additionalCost = values.AdditionalCost || 0;
     
     const { data: purchaseData, error: purchaseError } = await supabase
@@ -438,7 +435,7 @@ function NewPurchasePage() {
 
     setIsSubmitting(false);
     toast.success(`Purchase ${refNoData} added successfully!`);
-    navigate("/purchases");
+    navigate("/purchase-module/purchase-invoice");
   }
 
   const formatCurrency = (amount: number) => {
@@ -464,11 +461,11 @@ function NewPurchasePage() {
                         <EntityAutocomplete<Supplier>
                           id="supplier-name"
                           label="Supplier Name"
-                          suggestions={supplierSuggestions} // Pass Supplier[] directly
+                          suggestions={supplierSuggestions}
                           value={field.value}
                           onValueChange={handleSupplierNameChange}
                           onSelect={handleSupplierSelect}
-                          getId={(s) => s.SupplierId} // Provide mapping functions
+                          getId={(s) => s.SupplierId}
                           getName={(s) => s.SupplierName}
                           getMobileNo={(s) => s.MobileNo}
                         />
@@ -505,7 +502,7 @@ function NewPurchasePage() {
                     <FloatingLabelInput 
                       id="ReferenceNo" 
                       label="Reference No" 
-                      value="" // New purchases don't have a ref no yet
+                      value=""
                       readOnly 
                       className="bg-muted/50"
                     />
@@ -570,21 +567,39 @@ function NewPurchasePage() {
                   <div className="flex-1 min-w-[90px] relative">
                     <FloatingLabelInput type="number" value={currentItem.UnitPrice} onChange={(e) => handleCurrentItemChange("UnitPrice", e.target.valueAsNumber)} label="Unit Price" id="current_unit_price" className="pr-10" />
                     {typeof currentItem.ItemId === 'number' && currentItem.ItemId !== 0 && (
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={() => handleUpdateSellPriceClick(currentItem as PurchaseListItem)}
-                        title="Update Item Sell Price"
-                        aria-label="Update item sell price"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                            onClick={() => handleUpdateSellPriceClick(currentItem as PurchaseListItem)}
+                            title="Update Item Sell Price"
+                            aria-label="Update item sell price"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Update Item Sell Price</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                   <div className="flex-1 min-w-[90px]"><FloatingLabelInput type="number" value={currentItem.TotalPrice} onChange={(e) => handleCurrentItemChange("TotalPrice", e.target.valueAsNumber)} label="Total" id="current_total" /></div>
-                  <div><Button type="button" onClick={handleAddItem} className="self-center h-10 w-full" aria-label="Add item"><Plus className="h-4 w-4" /></Button></div>
+                  <div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button type="button" onClick={handleAddItem} className="self-center h-10 w-full" aria-label="Add item">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Add Item</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
 
@@ -601,8 +616,28 @@ function NewPurchasePage() {
                           <TableCell className="text-right">{item.UnitPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right">{item.TotalPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
-                            <Button type="button" variant="ghost" size="icon" onClick={() => handleEditItem(index)} aria-label="Edit item"><Pencil className="h-4 w-4" /></Button>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => { const newItems = [...addedItems]; newItems.splice(index, 1); setAddedItems(newItems); }} aria-label="Delete item"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            <div className="flex items-center justify-end space-x-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => handleEditItem(index)} aria-label="Edit item">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit Item (Ctrl+E)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => { const newItems = [...addedItems]; newItems.splice(index, 1); setAddedItems(newItems); }} aria-label="Delete item">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete Item (Ctrl+D)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -613,8 +648,19 @@ function NewPurchasePage() {
 
               <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 pt-4">
                 <div className="flex space-x-2 w-full sm:w-auto">
-                  <Link to="/purchases" className="flex-1 sm:flex-none"><Button type="button" variant="outline" className="w-full">Cancel</Button></Link>
-                  <Button type="submit" disabled={isSubmitting || !isValid || addedItems.length === 0} className="flex-1 sm:flex-none">{isSubmitting ? "Saving..." : "Save Purchase"}</Button>
+                  <Link to="/purchase-module/purchase-invoice" className="flex-1 sm:flex-none">
+                    <Button type="button" variant="outline" className="w-full">Cancel</Button>
+                  </Link>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button type="submit" disabled={isSubmitting || !isValid || addedItems.length === 0} className="flex-1 sm:flex-none">
+                        {isSubmitting ? "Saving..." : "Save Purchase"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Save Purchase (Ctrl+S)</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div className="w-full sm:w-auto sm:max-w-xs space-y-1 text-sm self-end">
                     <div className="flex justify-between">
@@ -658,9 +704,16 @@ function NewPurchasePage() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setItemToUpdateSellPrice(null); setNewSellPrice(""); setExistingSellPriceForDialog(null); }}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmUpdateSellPrice} disabled={isSubmitting || typeof newSellPrice !== 'number' || isNaN(newSellPrice) || newSellPrice < 0}>
-              {isSubmitting ? "Updating..." : "Update Price"}
-            </AlertDialogAction>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogAction onClick={handleConfirmUpdateSellPrice} disabled={isSubmitting || typeof newSellPrice !== 'number' || isNaN(newSellPrice) || newSellPrice < 0}>
+                  {isSubmitting ? "Updating..." : "Update Price"}
+                </AlertDialogAction>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Update Price (Ctrl+S)</p>
+              </TooltipContent>
+            </Tooltip>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

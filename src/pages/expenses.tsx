@@ -6,7 +6,7 @@ import { Expense, ExpenseCategory } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { format } from "date-fns";
-// Removed useAuth import as user_id filtering is no longer applied
+import { useLocation } from "react-router-dom"; // Import useLocation
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -27,12 +27,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function ExpensesPage() {
-  // Removed user from useAuth
+  const location = useLocation(); // Use useLocation to check for state
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -61,7 +61,6 @@ function ExpensesPage() {
     let query = supabase
       .from("Expenses")
       .select("*, ExpenseCategoryMaster(CategoryName)", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.or(`Description.ilike.%${debouncedSearchTerm}%,ReferenceNo.ilike.%${debouncedSearchTerm}%`);
@@ -85,21 +84,19 @@ function ExpensesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory]);
 
   const fetchExpenseCategories = useCallback(async () => {
-    // Removed user check
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
-      // Removed .eq("user_id", user.id)
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
     } else {
       setExpenseCategories(data || []);
     }
-  }, []); // Removed user.id from dependencies
+  }, []);
 
   useEffect(() => {
     fetchExpenses();
@@ -139,6 +136,15 @@ function ExpensesPage() {
       supabase.removeChannel(channel);
     };
   }, [fetchExpenseCategories, fetchExpenses]);
+
+  // Open AddExpenseDialog if state indicates 'add-expense'
+  useEffect(() => {
+    if (location.state?.action === 'add-expense') {
+      setAddDialogOpen(true);
+      // Clear the state after use to prevent re-triggering on subsequent renders
+      window.history.replaceState({}, document.title); 
+    }
+  }, [location.state]);
 
   const handleSort = (column: string) => {
     const isAsc = sort.column === column && sort.direction === "asc";
@@ -185,21 +191,19 @@ function ExpensesPage() {
                   </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => setAddDialogOpen(true)} className="w-full sm:w-auto">
-                      <span className="flex items-center">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        <span>New Expense</span>
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add New Expense (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => setAddDialogOpen(true)} className="w-full sm:w-auto">
+                    <span className="flex items-center">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      <span>New Expense</span>
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add New Expense (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -268,26 +272,22 @@ function ExpensesPage() {
                       <TableCell className="text-right">{formatCurrency(expense.Amount)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <EditExpenseDialog expense={expense} onExpenseUpdated={fetchExpenses} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit Expense (Ctrl+E)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <DeleteExpenseAlert expense={expense} onExpenseDeleted={fetchExpenses} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete Expense (Ctrl+D)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <EditExpenseDialog expense={expense} onExpenseUpdated={fetchExpenses} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit Expense (Ctrl+E)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DeleteExpenseAlert expense={expense} onExpenseDeleted={fetchExpenses} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete Expense (Ctrl+D)</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

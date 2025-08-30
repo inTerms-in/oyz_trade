@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -53,7 +52,7 @@ function LowStockItems({ items }: { items: ItemWithStock[] }) {
         ) : (
           <p className="text-sm text-muted-foreground">No items are currently low on stock. Great job!</p>
         )}
-        <Link to="/inventory-module/dashboard"> {/* Updated path */}
+        <Link to="/inventory-module/dashboard">
             <Button variant="link" className="mt-4 px-0">View Full Inventory &rarr;</Button>
         </Link>
       </CardContent>
@@ -113,7 +112,7 @@ function OverviewDashboardPage() {
       let currentTotalExpenses = 0;
 
       const today = format(new Date(), 'yyyy-MM-dd');
-      // Removed unused 'startOfToday' variable
+      const startOfToday = new Date(today);
       const endOfToday = new Date(today);
       endOfToday.setHours(23, 59, 59, 999);
 
@@ -324,18 +323,25 @@ function OverviewDashboardPage() {
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
+          <Skeleton className="h-24" /> {/* For new KPI cards */}
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Skeleton className="h-80" />
           <Skeleton className="h-80" />
           <Skeleton className="h-80" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-96" />
+        <div className="grid gap-4 grid-cols-1">
           <Skeleton className="h-96" />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Skeleton className="h-96" />
+          <Skeleton className="h-96" />
+        </div>
+        <div className="grid gap-4 grid-cols-1">
           <Skeleton className="h-96" />
         </div>
       </div>

@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom"; // Import useLocation
 import { supabase } from "@/integrations/supabase/client";
 import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,12 +16,12 @@ import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function PurchasesPage() {
-  // Removed user from useAuth
+  const location = useLocation(); // Use useLocation to check for state
   const [purchases, setPurchases] = useState<PurchaseWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -49,10 +48,8 @@ function PurchasesPage() {
     let query = supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
-      // Search for suppliers matching the search term
       const { data: matchingSuppliers, error: supplierError } = await supabase
         .from("SupplierMaster")
         .select("SupplierId")
@@ -60,15 +57,12 @@ function PurchasesPage() {
 
       if (supplierError) {
         console.error("Error fetching matching suppliers:", supplierError);
-        // Fallback: if supplier search fails, only search by ReferenceNo
         query = query.ilike("ReferenceNo", `%${debouncedSearchTerm}%`);
       } else {
         const supplierIds = matchingSuppliers.map(s => s.SupplierId);
-        // Construct the OR clause: search ReferenceNo OR SupplierId is in the list of matching supplier IDs
         if (supplierIds.length > 0) {
           query = query.or(`ReferenceNo.ilike.%${debouncedSearchTerm}%,SupplierId.in.(${supplierIds.join(',')})`);
         } else {
-          // If no suppliers match, only search by ReferenceNo
           query = query.ilike("ReferenceNo", `%${debouncedSearchTerm}%`);
         }
       }
@@ -83,10 +77,9 @@ function PurchasesPage() {
       query = query.lte("PurchaseDate", toDate.toISOString());
     }
 
-    // Adjust sorting for SupplierMaster.SupplierName
     let sortColumn = sort.column;
     if (sort.column === "SupplierMaster.SupplierName") {
-      sortColumn = "SupplierId"; // Sort by the foreign key directly
+      sortColumn = "SupplierId";
     }
 
     query = query.order(sortColumn, { ascending: sort.direction === "asc" }).range(from, to);
@@ -102,7 +95,7 @@ function PurchasesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
 
   useEffect(() => {
     fetchPurchases();
@@ -149,23 +142,21 @@ function PurchasesPage() {
                 className="w-full sm:w-auto"
               />
               <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link to="/purchase-module/purchase-invoice/new">
-                      <Button className="w-full">
-                        <span className="flex items-center"> {/* Single child for Button */}
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          <span>New</span> {/* Wrap text in span */}
-                        </span>
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add New Purchase (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/purchase-module/purchase-invoice/new">
+                    <Button className="w-full">
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New</span>
+                      </span>
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add New Purchase (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -177,32 +168,32 @@ function PurchasesPage() {
                   <TableHead className="w-12"></TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("ReferenceNo")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Ref No.</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Ref No.</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("SupplierMaster.SupplierName")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Supplier</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Supplier</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("PurchaseDate")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Date</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Date</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("TotalAmount")}>
-                      <span className="flex items-center"> {/* Single child for Button */}
-                        <span>Total Amount</span> {/* Wrap text in span */}
+                      <span className="flex items-center">
+                        <span>Total Amount</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
@@ -236,30 +227,26 @@ function PurchasesPage() {
                         <TableCell>{formatCurrency(purchase.TotalAmount)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Link to={`/purchase-module/purchase-invoice/edit/${purchase.PurchaseId}`}>
-                                    <Button variant="ghost" size="icon" aria-label="Edit purchase">
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </Link>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edit Purchase (Ctrl+E)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DeletePurchaseAlert purchase={purchase} onPurchaseDeleted={fetchPurchases} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete Purchase (Ctrl+D)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link to={`/purchase-module/purchase-invoice/edit/${purchase.PurchaseId}`}>
+                                  <Button variant="ghost" size="icon" aria-label="Edit purchase">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit Purchase (Ctrl+E)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DeletePurchaseAlert purchase={purchase} onPurchaseDeleted={fetchPurchases} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete Purchase (Ctrl+D)</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>

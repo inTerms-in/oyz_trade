@@ -6,7 +6,7 @@ import { ItemWithStock } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generateItemCode } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // Import useLocation
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,12 +20,13 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function ItemsPage() {
   const navigate = useNavigate();
+  const location = useLocation(); // Use useLocation to check for state
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -79,6 +80,15 @@ function ItemsPage() {
     fetchItems();
   }, [fetchItems]);
 
+  // Open AddItemDialog if state indicates 'add-item'
+  useEffect(() => {
+    if (location.state?.action === 'add-item') {
+      setAddDialogOpen(true);
+      // Clear the state after use to prevent re-triggering on subsequent renders
+      window.history.replaceState({}, document.title); 
+    }
+  }, [location.state]);
+
   const handleSort = (column: string) => {
     const isAsc = sort.column === column && sort.direction === "asc";
     setSort({ column, direction: isAsc ? "desc" : "asc" });
@@ -110,7 +120,7 @@ function ItemsPage() {
       toast.info("Please select at least one item to print barcodes.");
       return;
     }
-    navigate('/barcode-print', { state: { initialSelectedItems: selectedItemIds } });
+    navigate('/inventory-module/barcode-print', { state: { initialSelectedItems: selectedItemIds } });
   };
 
   const isItemSelected = (itemId: number) => selectedItemIds.includes(itemId);
@@ -132,40 +142,36 @@ function ItemsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => setAddDialogOpen(true)}>
-                      <span className="flex items-center">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        <span>New Item</span>
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add New Item (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={handlePrintSelectedBarcodes} 
-                      disabled={selectedItemIds.length === 0}
-                      variant="outline"
-                    >
-                      <span className="flex items-center">
-                        <Printer className="mr-2 h-4 w-4" />
-                        <span>Print Barcodes ({selectedItemIds.length})</span>
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Print Selected Barcodes</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => setAddDialogOpen(true)}>
+                    <span className="flex items-center">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      <span>New Item</span>
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add New Item (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={handlePrintSelectedBarcodes} 
+                    disabled={selectedItemIds.length === 0}
+                    variant="outline"
+                  >
+                    <span className="flex items-center">
+                      <Printer className="mr-2 h-4 w-4" />
+                      <span>Print Barcodes ({selectedItemIds.length})</span>
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Print Selected Barcodes</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -260,26 +266,22 @@ function ItemsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <EditItemDialog item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemUpdated={fetchItems} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit Item (Ctrl+E)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <DeleteItemAlert item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemDeleted={fetchItems} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete Item (Ctrl+D)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <EditItemDialog item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemUpdated={fetchItems} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit Item (Ctrl+E)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DeleteItemAlert item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemDeleted={fetchItems} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete Item (Ctrl+D)</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

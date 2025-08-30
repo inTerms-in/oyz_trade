@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Category } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useLocation } from "react-router-dom"; // Import useLocation
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 type SortDirection = "asc" | "desc";
 
 function CategoriesPage() {
+  const location = useLocation(); // Use useLocation to check for state
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -86,6 +88,15 @@ function CategoriesPage() {
     };
   }, [fetchCategories]);
 
+  // Open AddCategoryDialog if state indicates 'add-category'
+  useEffect(() => {
+    if (location.state?.action === 'add-category') {
+      setAddDialogOpen(true);
+      // Clear the state after use to prevent re-triggering on subsequent renders
+      window.history.replaceState({}, document.title); 
+    }
+  }, [location.state]);
+
   const handleSort = (column: keyof Category) => {
     const isAsc = sort.column === column && sort.direction === "asc";
     setSort({ column, direction: isAsc ? "desc" : "asc" });
@@ -107,12 +118,19 @@ function CategoriesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <span className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  <span>New</span>
-                </span>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => setAddDialogOpen(true)}>
+                    <span className="flex items-center">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      <span>New</span>
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add New Category (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -154,8 +172,22 @@ function CategoriesPage() {
                       <TableCell className="font-medium">{category.CategoryName}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <EditCategoryDialog category={category} onCategoryUpdated={fetchCategories} />
-                          <DeleteCategoryAlert category={category} onCategoryDeleted={fetchCategories} />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <EditCategoryDialog category={category} onCategoryUpdated={fetchCategories} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit Category (Ctrl+E)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DeleteCategoryAlert category={category} onCategoryDeleted={fetchCategories} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete Category (Ctrl+D)</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

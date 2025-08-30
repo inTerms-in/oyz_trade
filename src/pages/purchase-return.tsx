@@ -18,7 +18,7 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
 import { DeletePurchaseReturnAlert } from "@/components/delete-purchase-return-alert";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
@@ -51,7 +51,6 @@ function PurchaseReturnPage() {
       .select("*, PurchaseReturnItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), Purchase(ReferenceNo, SupplierMaster(SupplierName))", { count: "exact" });
 
     if (debouncedSearchTerm) {
-      // Search by ReferenceNo of the return or the original purchase's ReferenceNo or SupplierName
       const { data: matchingPurchases, error: purchaseError } = await supabase
         .from("Purchase")
         .select("PurchaseId, ReferenceNo, SupplierMaster(SupplierName)")
@@ -139,23 +138,21 @@ function PurchaseReturnPage() {
                 className="w-full sm:w-auto"
               />
               <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link to="/purchase-module/purchase-return/new">
-                      <Button className="w-full">
-                        <span className="flex items-center">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          <span>New Return</span>
-                        </span>
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Record New Purchase Return (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/purchase-module/purchase-return/new">
+                    <Button className="w-full">
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New Return</span>
+                      </span>
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Record New Purchase Return (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -226,30 +223,27 @@ function PurchaseReturnPage() {
                         <TableCell>{formatCurrency(purchaseReturn.TotalRefundAmount)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Link to={`/purchase-module/purchase-return/edit/${purchaseReturn.PurchaseReturnId}`}>
-                                    <Button variant="ghost" size="icon" aria-label="Edit purchase return">
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </Link>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edit Purchase Return (Ctrl+E)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DeletePurchaseReturnAlert purchaseReturn={purchaseReturn} onPurchaseReturnDeleted={fetchPurchaseReturns} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete Purchase Return (Ctrl+D)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            {/* Edit Purchase Return is not yet implemented, so no tooltip for it */}
+                            {/* <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link to={`/purchase-module/purchase-return/edit/${purchaseReturn.PurchaseReturnId}`}>
+                                  <Button variant="ghost" size="icon" aria-label="Edit purchase return">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit Purchase Return (Ctrl+E)</p>
+                              </TooltipContent>
+                            </Tooltip> */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DeletePurchaseReturnAlert purchaseReturn={purchaseReturn} onPurchaseReturnDeleted={fetchPurchaseReturns} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete Purchase Return (Ctrl+D)</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>

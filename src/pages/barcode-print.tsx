@@ -17,6 +17,7 @@ import { Printer, ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrintableBarcodes } from "@/components/printable-barcodes";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
@@ -141,6 +142,9 @@ function BarcodePrintPage() {
 
   return (
     <div className="flex-1 p-4 sm:p-6">
+      <div className="print-only">
+        <PrintableBarcodes itemsToPrint={selectedItems} ref={printRef} />
+      </div>
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -155,12 +159,19 @@ function BarcodePrintPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <Button onClick={handlePrint} disabled={selectedItems.length === 0 || totalLabelsToPrint === 0}>
-                <span className="flex items-center">
-                  <Printer className="mr-2 h-4 w-4" />
-                  <span>Print ({totalLabelsToPrint})</span>
-                </span>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handlePrint} disabled={selectedItems.length === 0 || totalLabelsToPrint === 0}>
+                    <span className="flex items-center">
+                      <Printer className="mr-2 h-4 w-4" />
+                      <span>Print ({totalLabelsToPrint})</span>
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Print Barcodes (Ctrl+P)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -262,10 +273,6 @@ function BarcodePrintPage() {
           />
         </CardContent>
       </Card>
-      {/* Hidden component for printing */}
-      <div className="print-only">
-        <PrintableBarcodes itemsToPrint={selectedItems} ref={printRef} />
-      </div>
     </div>
   );
 }

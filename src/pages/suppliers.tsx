@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Supplier } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
-// Removed useAuth import as user_id filtering is no longer applied
+import { useLocation } from "react-router-dom"; // Import useLocation
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,12 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function SuppliersPage() {
-  // Removed user from useAuth
+  const location = useLocation(); // Use useLocation to check for state
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -48,7 +48,6 @@ function SuppliersPage() {
     let query = supabase
       .from("SupplierMaster")
       .select("*", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.or(`SupplierName.ilike.%${debouncedSearchTerm}%,MobileNo.ilike.%${debouncedSearchTerm}%`);
@@ -68,7 +67,7 @@ function SuppliersPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
 
   useEffect(() => {
     fetchSuppliers();
@@ -88,6 +87,15 @@ function SuppliersPage() {
       supabase.removeChannel(channel);
     };
   }, [fetchSuppliers]);
+
+  // Open AddSupplierDialog if state indicates 'add-supplier'
+  useEffect(() => {
+    if (location.state?.action === 'add-supplier') {
+      setAddDialogOpen(true);
+      // Clear the state after use to prevent re-triggering on subsequent renders
+      window.history.replaceState({}, document.title); 
+    }
+  }, [location.state]);
 
   const handleSort = (column: keyof Supplier) => {
     const isAsc = sort.column === column && sort.direction === "asc";
@@ -110,21 +118,19 @@ function SuppliersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button onClick={() => setAddDialogOpen(true)}>
-                      <span className="flex items-center">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        <span>New</span>
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add New Supplier (Ctrl+N)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => setAddDialogOpen(true)}>
+                    <span className="flex items-center">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      <span>New</span>
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add New Supplier (Ctrl+N)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
@@ -175,26 +181,22 @@ function SuppliersPage() {
                       <TableCell>{supplier.MobileNo || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <EditSupplierDialog supplier={supplier} onSupplierUpdated={fetchSuppliers} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit Supplier (Ctrl+E)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <DeleteSupplierAlert supplier={supplier} onSupplierDeleted={fetchSuppliers} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete Supplier (Ctrl+D)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <EditSupplierDialog supplier={supplier} onSupplierUpdated={fetchSuppliers} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit Supplier (Ctrl+E)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DeleteSupplierAlert supplier={supplier} onSupplierDeleted={fetchSuppliers} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete Supplier (Ctrl+D)</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

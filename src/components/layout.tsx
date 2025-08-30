@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText,
-  ChevronDown, DollarSign, FileText, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Clock,
-  AlertCircle, Calendar, Settings, ArrowLeftRight, Search 
+  ChevronDown, DollarSign, FileText, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Calendar,
+  AlertCircle, Settings, ArrowLeftRight, Search, Clock 
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,11 +18,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { ChatbotTrigger } from "@/components/chatbot-trigger";
 import { ChatbotDialog } from "@/components/chatbot-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Define a type for navigation items, including nested children
 interface NavItem {
@@ -40,7 +40,8 @@ function Layout() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const searchInputRef = useRef<HTMLInputElement>(null); // Ref for the search input
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const newActionButtonRef = useRef<HTMLButtonElement>(null); // Ref for the "New" button
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -62,7 +63,7 @@ function Layout() {
 
   const closeSheet = () => setIsSheetOpen(false);
 
-  const navItems: NavItem[] = [
+  const navItems: NavItem[] = useMemo(() => [
     { to: "/", icon: LayoutDashboard, label: "Overview Dashboard", end: true },
     {
       to: "/sales-module/dashboard",
@@ -168,7 +169,24 @@ function Layout() {
       ],
     },
     { to: "/settings", icon: Settings, label: "Settings" },
-  ];
+  ], []);
+
+  // Function to find the current page title
+  const getCurrentPageTitle = useCallback((pathname: string, items: NavItem[]): string => {
+    for (const item of items) {
+      const match = item.end ? pathname === item.to : pathname.startsWith(item.to);
+      if (match) {
+        if (item.children) {
+          const childTitle = getCurrentPageTitle(pathname, item.children);
+          return childTitle || item.label; // If a child matches, use its title, otherwise use parent module title
+        }
+        return item.label;
+      }
+    }
+    return "Dashboard"; // Default title
+  }, []);
+
+  const currentPageTitle = useMemo(() => getCurrentPageTitle(location.pathname, navItems), [location.pathname, navItems, getCurrentPageTitle]);
 
   // Helper to render nav links, recursively for nested items
   const renderNavLinks = (items: NavItem[], isMobile: boolean) => {
@@ -220,15 +238,20 @@ function Layout() {
         }
       } else {
         return (
-          <NavLink key={item.label} to={item.to} className={isMobile ? mobileNavLinkClasses : navLinkClasses} onClick={isMobile ? closeSheet : undefined} end={item.end}>
-            <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
-            <span className={cn(
-              !isCollapsed && "truncate",
-              isCollapsed && "text-xs text-center break-words max-w-full"
-            )}>
-              {item.label}
-            </span>
-          </NavLink>
+          <Tooltip key={item.label}>
+            <TooltipTrigger asChild>
+              <NavLink to={item.to} className={isMobile ? mobileNavLinkClasses : navLinkClasses} onClick={isMobile ? closeSheet : undefined} end={item.end}>
+                <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
+                <span className={cn(
+                  !isCollapsed && "truncate",
+                  isCollapsed && "text-xs text-center break-words max-w-full hidden md:block" // Hide text on collapsed mobile
+                )}>
+                  {item.label}
+                </span>
+              </NavLink>
+            </TooltipTrigger>
+            {isCollapsed && !isMobile && <TooltipContent side="right">{item.label}</TooltipContent>}
+          </Tooltip>
         );
       }
     });
@@ -239,11 +262,7 @@ function Layout() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'n') {
         event.preventDefault();
-        // Simulate click on the "New" dropdown trigger
-        const newButton = document.getElementById('new-action-button');
-        if (newButton) {
-          newButton.click();
-        }
+        newActionButtonRef.current?.click();
       }
       if (event.ctrlKey && event.key === 'f') {
         event.preventDefault();
@@ -283,7 +302,7 @@ function Layout() {
               </TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex-1 py-4">
+          <div className="flex-1 py-4 overflow-y-auto"> {/* Added overflow-y-auto */}
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               {renderNavLinks(navItems, false)}
             </nav>
@@ -301,7 +320,7 @@ function Layout() {
                 <SheetHeader>
                   <SheetTitle>PurchaseTracker</SheetTitle>
                 </SheetHeader>
-                <nav className="grid gap-2 text-lg font-medium">
+                <nav className="grid gap-2 text-lg font-medium overflow-y-auto"> {/* Added overflow-y-auto */}
                   <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
                     <Package className="h-6 w-6 text-primary" />
                     <span>PurchaseTracker</span>
@@ -310,9 +329,9 @@ function Layout() {
                 </nav>
               </SheetContent>
             </Sheet>
-            <div className="w-full flex-1">
+            <h1 className="text-lg font-semibold md:text-xl mr-auto">{currentPageTitle}</h1> {/* Dynamic Page Title */}
+            <div className="w-full flex-1 max-w-xs hidden sm:block"> {/* Adjusted width and hid on small screens */}
               <div className="relative">
-                {/* Search Input */}
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   ref={searchInputRef}
@@ -326,7 +345,7 @@ function Layout() {
               <DropdownMenuTrigger asChild>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button id="new-action-button" size="sm">
+                    <Button ref={newActionButtonRef} size="sm" className="ml-auto sm:ml-4"> {/* Adjusted margin */}
                       <span className="flex items-center">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         <span>New</span>
@@ -341,13 +360,13 @@ function Layout() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-invoice/new')}>New Purchase</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-invoice/new')}>New Sale</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate('/inventory-module/item-master')}>New Item</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate('/inventory-module/categories')}>New Category</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate('/sales-module/customers')}>New Customer</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate('/purchase-module/suppliers')}>New Supplier</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/inventory-module/item-master', { state: { action: 'add-item' } })}>New Item</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/inventory-module/categories', { state: { action: 'add-category' } })}>New Category</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/sales-module/customers', { state: { action: 'add-customer' } })}>New Customer</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/purchase-module/suppliers', { state: { action: 'add-supplier' } })}>New Supplier</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate('/inventory-module/stock-adjustment')}>Stock Adjustment</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate('/accounts-module/expenses')}>New Expense</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/accounts-module/expenses', { state: { action: 'add-expense' } })}>New Expense</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-return/new')}>New Sales Return</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-return/new')}>New Purchase Return</DropdownMenuItem>
@@ -372,7 +391,7 @@ function Layout() {
               </DropdownMenu>
             )}
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20">
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20 overflow-y-auto"> {/* Added overflow-y-auto */}
             <Outlet key={location.pathname} />
           </main>
           <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />
