@@ -10,7 +10,7 @@ function Login() {
         <p className="text-center text-muted-foreground">Sign in to manage your purchases and sales.</p>
         <Auth
           supabaseClient={supabase}
-          providers={["magic_link"]}
+          providers={[]}
           appearance={{
             theme: ThemeSupa,
             // Removed custom variables and theme="light" to ensure view="sign_in" takes precedence

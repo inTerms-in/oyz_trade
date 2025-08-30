@@ -29,7 +29,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      // Removed: if (session?.user) { navigate('/'); } - Let ProtectedRoute handle initial authenticated redirect
     };
 
     getSession();
@@ -40,7 +39,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(session?.user ?? null);
         setLoading(false);
         if (event === 'SIGNED_IN') {
-          // Removed: navigate('/'); - Let ProtectedRoute handle redirect from /login to /
+          navigate('/'); // Re-enabled redirect to dashboard on successful sign-in
         }
         if (event === 'SIGNED_OUT') {
           navigate('/login');
