@@ -1,7 +1,8 @@
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+// Removed useNavigate as navigation will be handled by ProtectedRoute
+// import { useNavigate } from 'react-router-dom'; 
 import { Profile } from '@/types';
 
 interface AuthContextType {
@@ -22,9 +23,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const navigate = useNavigate();
+  // Removed useNavigate
+  // const navigate = useNavigate(); 
   
   const getOrCreateProfile = async (userId: string, email: string | undefined): Promise<Profile | null> => {
+    console.log(`[AuthProvider] Attempting to get or create profile for user: ${userId}`);
     // Try to get existing profile
     const { data, error } = await supabase
       .from('profiles')
@@ -33,11 +36,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       .single();
 
     if (data) {
+      console.log(`[AuthProvider] Profile found for user ${userId}:`, data);
       return data as Profile;
     }
 
     if (error && error.code === 'PGRST116') { // No rows found, create a new profile
-      console.log(`No profile found for user ${userId}, creating one.`);
+      console.log(`[AuthProvider] No profile found for user ${userId}, creating one.`);
       const { data: newProfileData, error: insertError } = await supabase
         .from('profiles')
         .insert({ 
@@ -49,15 +53,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         .single();
 
       if (insertError) {
-        console.error('Error creating new profile:', insertError);
+        console.error('[AuthProvider] Error creating new profile:', insertError);
         return null;
       }
+      console.log(`[AuthProvider] New profile created for user ${userId}:`, newProfileData);
       return newProfileData as Profile;
     }
 
     // Other errors during fetch
     if (error) {
-      console.error('Error fetching profile:', error);
+      console.error('[AuthProvider] Error fetching profile:', error);
     }
     return null;
   };
@@ -69,6 +74,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       async (event, currentSession) => {
         if (!isMounted) return;
 
+        console.log(`[AuthProvider] Auth state changed: ${event}`, currentSession);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
@@ -79,20 +85,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setProfile(userProfile);
         setLoading(false); // Set loading to false only after profile is handled
 
-        if (event === 'SIGNED_IN') {
-          navigate('/');
-        }
-        if (event === 'SIGNED_OUT') {
-          navigate('/login');
-        }
+        // Removed navigation logic from here
+        // if (event === 'SIGNED_IN') {
+        //   navigate('/');
+        // }
+        // if (event === 'SIGNED_OUT') {
+        //   navigate('/login');
+        // }
       }
     );
+
+    // Also fetch initial session on mount, in case onAuthStateChange doesn't fire immediately
+    // or if the component mounts after the initial onAuthStateChange event.
+    // This ensures `loading` is correctly set to false after the initial state is known.
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      if (!isMounted) return;
+      console.log("[AuthProvider] Initial session check:", initialSession);
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+
+      let userProfile: Profile | null = null;
+      if (initialSession?.user) {
+        userProfile = await getOrCreateProfile(initialSession.user.id, initialSession.user.email);
+      }
+      setProfile(userProfile);
+      setLoading(false);
+    });
+
 
     return () => {
       isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []); // Removed navigate from dependency array
 
   const value = {
     session,
