@@ -45,6 +45,7 @@ function SuppliersPage() {
     let query = supabase
       .from("SupplierMaster")
       .select("*", { count: "exact" });
+      // .eq("user_id", user.id); // Removed user_id filter
 
     if (debouncedSearchTerm) {
       query = query.or(`SupplierName.ilike.%${debouncedSearchTerm}%,MobileNo.ilike.%${debouncedSearchTerm}%`);

@@ -148,7 +148,7 @@ function EditSalePage() {
       .from("Sales")
       .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(*)")
       .eq("SaleId", saleId)
-      .eq("user_id", user.id)
+      // .eq("user_id", user.id) // Removed user_id filter
       .single();
 
     if (error || !data) {
@@ -183,10 +183,14 @@ function EditSalePage() {
     }));
     setAddedItems(loadedItems);
 
-    const { data: itemsData } = await supabase.from("ItemMaster").select("*, CategoryMaster(*)").eq("user_id", user.id).order("ItemName");
+    const { data: itemsData } = await supabase.from("ItemMaster").select("*, CategoryMaster(*)")
+    // .eq("user_id", user.id) // Removed user_id filter
+    .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo").eq("user_id", user.id);
+    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo")
+    // .eq("user_id", user.id) // Removed user_id filter
+    ;
     if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
     else setCustomerSuggestions(customersData || []);
 
@@ -243,7 +247,7 @@ function EditSalePage() {
       } else {
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
-          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null, user_id: user.id }])
+          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }]) // Removed user_id
           .select()
           .single();
 
@@ -280,7 +284,7 @@ function EditSalePage() {
         TotalAmount: itemsTotal - additionalDiscount,
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
-        user_id: user.id,
+        // user_id: user.id, // Removed user_id
       }).eq("SaleId", saleId);
 
     if (saleError) {
@@ -302,7 +306,7 @@ function EditSalePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      user_id: user.id,
+      // user_id: user.id, // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

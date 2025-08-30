@@ -40,6 +40,7 @@ function InventoryPage() {
     let query = supabase
       .from("item_stock_details")
       .select("*", { count: "exact" });
+      // .eq("user_id", user.id); // Removed user_id filter
 
     if (debouncedSearchTerm) {
       query = query.ilike("ItemName", `%${debouncedSearchTerm}%`);

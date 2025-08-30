@@ -46,6 +46,7 @@ function PurchasesPage() {
     let query = supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)", { count: "exact" });
+      // .eq("user_id", user.id); // Removed user_id filter
 
     if (debouncedSearchTerm) {
       // Search for suppliers matching the search term

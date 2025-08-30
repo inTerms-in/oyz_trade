@@ -75,7 +75,7 @@ export function AddCategoryDialog({ open, onOpenChange, initialValue = "", onCat
       .from("CategoryMaster")
       .insert([{ 
         CategoryName: values.CategoryName, 
-        user_id: user.id, // Added user_id
+        // user_id: user.id, // Removed user_id
       }])
       .select();
 

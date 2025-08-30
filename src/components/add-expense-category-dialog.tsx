@@ -78,7 +78,7 @@ export function AddExpenseCategoryDialog({ open, onOpenChange, initialValue = ""
       .insert([{ 
         CategoryName: values.CategoryName, 
         Description: values.Description || null,
-        user_id: user.id, // Added user_id
+        // user_id: user.id, // Removed user_id
       }])
       .select();
 

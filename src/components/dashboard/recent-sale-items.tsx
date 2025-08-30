@@ -26,6 +26,7 @@ export function RecentSaleItems() {
           ItemMaster (ItemName),
           Sales (CustomerMaster(CustomerName), SaleDate)
         `)
+        // .eq("user_id", user.id) // Removed user_id filter
         .order("SaleId", { ascending: false }) // Changed order column
         .limit(10);
 

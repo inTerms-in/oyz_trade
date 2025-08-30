@@ -45,6 +45,7 @@ function CustomersPage() {
     let query = supabase
       .from("CustomerMaster")
       .select("*", { count: "exact" });
+      // .eq("user_id", user.id); // Removed user_id filter
 
     if (debouncedSearchTerm) {
       query = query.or(`CustomerName.ilike.%${debouncedSearchTerm}%,MobileNo.ilike.%${debouncedSearchTerm}%`);

@@ -78,7 +78,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
-      .eq("user_id", user.id) // Filter by user_id
+      // .eq("user_id", user.id) // Removed user_id filter
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
@@ -121,7 +121,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         Description: values.Description || null,
         ExpenseCategoryId: values.ExpenseCategoryId,
         ReferenceNo: values.ReferenceNo || null,
-        user_id: user.id, // Added user_id
+        // user_id: user.id, // Removed user_id
       }])
       .select();
 

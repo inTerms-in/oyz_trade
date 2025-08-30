@@ -52,6 +52,7 @@ function BarcodePrintPage() {
     let query = supabase
       .from("item_stock_details")
       .select("ItemId, ItemName, CategoryId, CategoryName, SellPrice, Barcode, ItemCode, RackNo", { count: "exact" });
+      // .eq("user_id", user.id); // Removed user_id filter
 
     if (initialItemIds && initialItemIds.length > 0) {
       query = query.in("ItemId", initialItemIds);

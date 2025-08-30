@@ -141,12 +141,12 @@ function SettingsPage() {
       const { data: stockAdjustments } = await supabase.from("StockAdjustment").select("*");
       if (stockAdjustments) zip.file("stock_adjustments.csv", Papa.unparse(stockAdjustments));
 
-      // Fetch and add shop details
-      const { data: shopData } = await supabase.from("shop").select("*");
+      // Fetch and add shop details (user-specific)
+      const { data: shopData } = await supabase.from("shop").select("*").eq("user_id", user?.id);
       if (shopData) zip.file("shop_details.csv", Papa.unparse(shopData));
 
-      // Fetch and add reference number sequences
-      const { data: refSequences } = await supabase.from("reference_number_sequences").select("*");
+      // Fetch and add reference number sequences (user-specific)
+      const { data: refSequences } = await supabase.from("reference_number_sequences").select("*").eq("user_id", user?.id);
       if (refSequences) zip.file("reference_number_sequences.csv", Papa.unparse(refSequences));
 
 
@@ -215,7 +215,7 @@ function SettingsPage() {
         
         const newCategories = validData
           .filter((row: CategoryCsvRow) => !existingNames.has(row.CategoryName!.trim().toLowerCase()))
-          .map((row: CategoryCsvRow) => ({ CategoryName: row.CategoryName!.trim(), user_id: user?.id })); // Added user_id
+          .map((row: CategoryCsvRow) => ({ CategoryName: row.CategoryName!.trim() })); // Removed user_id
 
         const duplicateCount = validData.length - newCategories.length;
 
@@ -273,7 +273,7 @@ function SettingsPage() {
             toast.info(`Found ${newCategoryNames.length} new categories. Creating them now...`);
             const newCategoriesToInsert = newCategoryNames.map(name => ({
               CategoryName: (name as string).split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-              user_id: user?.id, // Added user_id
+              // user_id: user?.id, // Removed user_id
             }));
             const { data: insertedCategories, error: categoryInsertError } = await supabase.from("CategoryMaster").insert(newCategoriesToInsert).select();
             if (categoryInsertError) throw new Error(`Failed to create new categories: ${categoryInsertError.message}`);
@@ -304,7 +304,7 @@ function SettingsPage() {
               CategoryId: categoryId,
               SellPrice: row.SellPrice && !isNaN(parseFloat(row.SellPrice)) ? parseFloat(row.SellPrice) : null,
               Barcode: row.Barcode || null,
-              user_id: user?.id, // Added user_id
+              // user_id: user?.id, // Removed user_id
             });
             existingItemNames.add(itemNameLower);
           }

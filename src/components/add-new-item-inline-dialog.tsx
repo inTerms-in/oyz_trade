@@ -74,7 +74,9 @@ export function AddNewItemInlineDialog({
   useEffect(() => {
     async function fetchCategories() {
       if (!user) return;
-      const { data } = await supabase.from("CategoryMaster").select("*").eq("user_id", user.id).order("CategoryName");
+      const { data } = await supabase.from("CategoryMaster").select("*")
+      // .eq("user_id", user.id) // Removed user_id filter
+      .order("CategoryName");
       if (data) {
         setCategories(data);
         if (data.length > 0 && !form.getValues("CategoryId")) {
@@ -100,7 +102,7 @@ export function AddNewItemInlineDialog({
       .insert([{ 
         ItemName: values.ItemName, 
         CategoryId: values.CategoryId, 
-        user_id: user.id, // Added user_id
+        // user_id: user.id, // Removed user_id
       }])
       .select()
       .single();

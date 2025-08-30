@@ -46,6 +46,7 @@ function SalesPage() {
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)", { count: "exact" });
+      // .eq("user_id", user.id); // Removed user_id filter
 
     if (debouncedSearchTerm) {
       // Search for customers matching the search term

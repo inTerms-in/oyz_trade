@@ -26,6 +26,7 @@ export function RecentPurchaseItems() {
           ItemMaster (ItemName),
           Purchase (SupplierMaster(SupplierName), PurchaseDate)
         `)
+        // .eq("user_id", user.id) // Removed user_id filter
         .order("PurchaseId", { ascending: false }) // Changed order column
         .limit(10);
 

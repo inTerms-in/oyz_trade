@@ -84,7 +84,7 @@ export function AddCustomerDialog({ open, onOpenChange, initialValue, onCustomer
       .insert([{ 
         CustomerName: values.CustomerName, 
         MobileNo: values.MobileNo || null,
-        user_id: user.id, // Added user_id
+        // user_id: user.id, // Removed user_id
       }])
       .select();
 

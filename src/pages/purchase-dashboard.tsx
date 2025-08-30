@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
@@ -58,6 +58,7 @@ function PurchaseDashboardPage() {
       const { count, error: itemsError } = await supabase
         .from("ItemMaster")
         .select('*', { count: 'exact', head: true });
+        // .eq("user_id", user.id); // Removed user_id filter
       
       if (itemsError) toast.error("Failed to fetch item count", { description: itemsError.message });
       else setTotalItems(count || 0);
@@ -65,6 +66,7 @@ function PurchaseDashboardPage() {
       let query = supabase
         .from("Purchase")
         .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
+        // .eq("user_id", user.id) // Removed user_id filter
         .order("PurchaseDate", { ascending: false });
 
       if (dateRange?.from) query = query.gte("PurchaseDate", dateRange.from.toISOString());
@@ -122,6 +124,7 @@ function PurchaseDashboardPage() {
       const { data: allPurchaseItems, error: allItemsError } = await supabase
         .from("PurchaseItem")
         .select("ItemMaster(*)");
+        // .eq("user_id", user.id); // Removed user_id filter
 
       if (allItemsError) {
         toast.error("Failed to fetch top items", { description: allItemsError.message });

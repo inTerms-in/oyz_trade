@@ -89,6 +89,7 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
       .from("PurchaseItem")
       .select("UnitPrice, Purchase(SupplierMaster(SupplierName), PurchaseDate)")
       .eq("ItemId", item.ItemId)
+      // .eq("user_id", user.id) // Removed user_id filter
       .order("PurchaseId", { ascending: false })
       .limit(10);
     
@@ -157,7 +158,7 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
         // Determine if the previous context was a stock check or history request
         const lastBotMessage = messages[messages.length - 1];
         if (lastBotMessage?.text?.includes("stock of") || lastBotMessage?.text?.includes("stock:")) {
-          botResponse = { id: Date.now() + 1, sender: 'bot', text: `You have ${selectedItem.current_stock} of "${selectedItem.ItemName || 'Unknown Item'}" (Code: ${selectedItem.ItemCode || 'N/A'}) in stock.`, stock: selectedItem.current_stock, itemName: selectedItem.ItemName || 'Unknown Item', itemCode: selectedItem.ItemCode || 'N/A', rackNo: selectedItem.RackNo || undefined };
+          botResponse = { id: Date.now() + 1, sender: 'bot', text: `You have ${selectedItem.current_stock} of "${selectedItem.ItemName || 'Unknown Item'}" (Code: ${selectedItem.ItemCode || 'N/A'}${selectedItem.RackNo ? `, Rack: ${selectedItem.RackNo}` : ''}) in stock.`, stock: selectedItem.current_stock, itemName: selectedItem.ItemName || 'Unknown Item', itemCode: selectedItem.ItemCode || 'N/A', rackNo: selectedItem.RackNo || undefined };
         } else {
           // Default to full history and stock if not explicitly a stock query
           botResponse = await getHistoryAndStockForItem(selectedItem);
@@ -272,12 +273,14 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
           const { data, error } = await supabase
               .from('item_stock_details')
               .select('ItemId, ItemName, current_stock, ItemCode, RackNo') // Added RackNo
+              // .ilike('ItemName', `%${stockItemName}%`); // Removed user_id filter
               .ilike('ItemName', `%${stockItemName}%`);
           
           if (error || !data || data.length === 0) {
               const { data: broaderData } = await supabase
                 .from('item_stock_details')
                 .select('ItemId, ItemName, current_stock, ItemCode, RackNo') // Added RackNo
+                // .textSearch('ItemName', `'${stockItemName}'`); // Removed user_id filter
                 .textSearch('ItemName', `'${stockItemName}'`);
               
               if (broaderData && broaderData.length > 0) {
@@ -299,6 +302,7 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
         const { data: items, error: itemsError } = await supabase
           .from("item_stock_details") // Use item_stock_details to get stock too
           .select("ItemId, ItemName, current_stock, ItemCode, RackNo") // Added RackNo
+          // .ilike("ItemName", `%${historyItemName}%`) // Removed user_id filter
           .ilike("ItemName", `%${historyItemName}%`)
           .limit(5);
 
@@ -320,6 +324,7 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
         const { data: items, error: itemsError } = await supabase
           .from("item_stock_details") // Use item_stock_details to get stock too
           .select("ItemId, ItemName, current_stock, ItemCode, RackNo") // Added RackNo
+          // .ilike("ItemName", `%${searchTerm}%`) // Removed user_id filter
           .ilike("ItemName", `%${searchTerm}%`)
           .limit(5);
 

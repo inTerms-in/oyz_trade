@@ -124,6 +124,7 @@ function OverviewDashboardPage() {
 
       // Fetch Sales
       let salesQuery = supabase.from("Sales").select("TotalAmount, SaleDate");
+      // .eq("user_id", user.id); // Removed user_id filter
       if (dateRange?.from) salesQuery = salesQuery.gte("SaleDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
@@ -153,6 +154,7 @@ function OverviewDashboardPage() {
       let purchasesQuery = supabase
         .from("Purchase")
         .select("TotalAmount, PurchaseDate, PurchaseItem(Qty, UnitPrice, ItemMaster(CategoryMaster(CategoryName)))");
+        // .eq("user_id", user.id); // Removed user_id filter
       if (dateRange?.from) purchasesQuery = purchasesQuery.gte("PurchaseDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
@@ -193,6 +195,7 @@ function OverviewDashboardPage() {
 
       // Fetch Expenses
       let expensesQuery = supabase.from("Expenses").select("Amount, ExpenseDate");
+      // .eq("user_id", user.id); // Removed user_id filter
       if (dateRange?.from) expensesQuery = expensesQuery.gte("ExpenseDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);

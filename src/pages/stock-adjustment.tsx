@@ -61,7 +61,7 @@ function StockAdjustmentPage() {
     const { data, error } = await supabase
       .from("item_stock_details")
       .select("ItemId, ItemName, ItemCode, current_stock")
-      .eq("user_id", user.id); // Filter by user_id
+      // .eq("user_id", user.id); // Removed user_id filter
     if (error) {
       toast.error("Failed to fetch items", { description: error.message });
     } else {
@@ -77,7 +77,7 @@ function StockAdjustmentPage() {
       .from("StockAdjustment")
       .select("*, ItemMaster(ItemName, ItemCode)")
       .eq("ItemId", itemId)
-      .eq("user_id", user.id) // Filter by user_id
+      // .eq("user_id", user.id) // Removed user_id filter
       .order("AdjustmentDate", { ascending: false })
       .limit(5);
     if (error) {
@@ -141,7 +141,7 @@ function StockAdjustmentPage() {
         AdjustmentType: values.AdjustmentType,
         Quantity: values.Quantity,
         Reason: values.Reason,
-        user_id: user.id, // Added user_id
+        // user_id: user.id, // Removed user_id
       });
 
     setIsSubmitting(false);

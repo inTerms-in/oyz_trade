@@ -126,7 +126,7 @@ function SalesDashboardPage() {
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*), CustomerMaster(CustomerName)")
-      .eq("user_id", user.id)
+      // .eq("user_id", user.id) // Removed user_id filter
       .order("SaleDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("SaleDate", dateRange.from.toISOString());
@@ -157,8 +157,8 @@ function SalesDashboardPage() {
     // Calculate Top Sold Items
     const { data: allSaleItems, error: allItemsError } = await supabase
       .from("SalesItem")
-      .select("ItemId, Qty, ItemMaster(ItemName)")
-      .eq("user_id", user.id);
+      .select("ItemId, Qty, ItemMaster(ItemName)");
+      // .eq("user_id", user.id); // Removed user_id filter
 
     if (allItemsError) {
       toast.error("Failed to fetch top sold items", { description: allItemsError.message });
