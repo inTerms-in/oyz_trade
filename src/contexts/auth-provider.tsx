@@ -1,6 +1,8 @@
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+// Removed useNavigate as navigation will be handled by ProtectedRoute
+// import { useNavigate } from 'react-router-dom'; 
 import { Profile } from '@/types';
 
 interface AuthContextType {
@@ -21,9 +23,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  // Removed useNavigate
+  // const navigate = useNavigate(); 
   
   const getOrCreateProfile = async (userId: string, email: string | undefined): Promise<Profile | null> => {
     console.log(`[AuthProvider] Attempting to get or create profile for user: ${userId}`);
+    // Try to get existing profile
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -35,14 +40,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return data as Profile;
     }
 
-    if (error && error.code === 'PGRST116') {
+    if (error && error.code === 'PGRST116') { // No rows found, create a new profile
       console.log(`[AuthProvider] No profile found for user ${userId}, creating one.`);
       const { data: newProfileData, error: insertError } = await supabase
         .from('profiles')
         .insert({ 
           id: userId, 
-          first_name: email ? email.split('@')[0] : 'User',
-          role: 'user'
+          first_name: email ? email.split('@')[0] : 'User', // Use email part as default name
+          role: 'user' // Default role
         })
         .select('*')
         .single();
@@ -55,6 +60,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return newProfileData as Profile;
     }
 
+    // Other errors during fetch
     if (error) {
       console.error('[AuthProvider] Error fetching profile:', error);
     }
@@ -64,46 +70,54 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let isMounted = true;
 
-    const handleAuthEvent = async (currentSession: Session | null) => {
-      if (!isMounted) return;
-
-      console.log(`[AuthProvider] Processing session:`, currentSession);
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-
-      let userProfile: Profile | null = null;
-      if (currentSession?.user) {
-        userProfile = await getOrCreateProfile(currentSession.user.id, currentSession.user.email);
-      }
-      setProfile(userProfile);
-      setLoading(false); // Ensure loading is set to false ONLY after profile is handled
-    };
-
-    // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
-      console.log("[AuthProvider] Initial getSession result:", initialSession);
-      await handleAuthEvent(initialSession);
-    });
-
-    // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         if (!isMounted) return;
-        console.log(`[AuthProvider] Auth state changed via listener: ${event}`, currentSession);
-        // Only re-process if the session actually changed or if it's a relevant event
-        // This prevents redundant calls if handleAuthEvent already processed the initial state.
-        // For SIGNED_IN/SIGNED_OUT/USER_UPDATED, we want to ensure state is fresh.
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-          await handleAuthEvent(currentSession);
+
+        console.log(`[AuthProvider] Auth state changed: ${event}`, currentSession);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+
+        let userProfile: Profile | null = null;
+        if (currentSession?.user) {
+          userProfile = await getOrCreateProfile(currentSession.user.id, currentSession.user.email);
         }
+        setProfile(userProfile);
+        setLoading(false); // Set loading to false only after profile is handled
+
+        // Removed navigation logic from here
+        // if (event === 'SIGNED_IN') {
+        //   navigate('/');
+        // }
+        // if (event === 'SIGNED_OUT') {
+        //   navigate('/login');
+        // }
       }
     );
+
+    // Also fetch initial session on mount, in case onAuthStateChange doesn't fire immediately
+    // or if the component mounts after the initial onAuthStateChange event.
+    // This ensures `loading` is correctly set to false after the initial state is known.
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      if (!isMounted) return;
+      console.log("[AuthProvider] Initial session check:", initialSession);
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+
+      let userProfile: Profile | null = null;
+      if (initialSession?.user) {
+        userProfile = await getOrCreateProfile(initialSession.user.id, initialSession.user.email);
+      }
+      setProfile(userProfile);
+      setLoading(false);
+    });
+
 
     return () => {
       isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to run once on mount
+  }, []); // Removed navigate from dependency array
 
   const value = {
     session,
