@@ -179,3 +179,17 @@ export interface HourlySales {
   hour: number;
   total_sales: number;
 }
+
+export interface ShopDetails {
+  shop_name: string;
+  mobile_no: string | null;
+  address: string | null;
+}
+
+export interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  updated_at: string;
+}

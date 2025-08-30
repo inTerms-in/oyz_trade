@@ -53,7 +53,7 @@ function LowStockItems({ items }: { items: ItemWithStock[] }) {
         ) : (
           <p className="text-sm text-muted-foreground">No items are currently low on stock. Great job!</p>
         )}
-        <Link to="/inventory">
+        <Link to="/inventory-module/dashboard"> {/* Updated path */}
             <Button variant="link" className="mt-4 px-0">View Full Inventory &rarr;</Button>
         </Link>
       </CardContent>
@@ -90,8 +90,16 @@ function OverviewDashboardPage() {
   const [monthlyComparison, setMonthlyComparison] = useState<MonthlyComparison[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [itemsInStock, setItemsInStock] = useState(0);
-  const [showSales, setShowSales] = useState(true); // New state for sales visibility
-  const [showPurchases, setShowPurchases] = useState(true); // New state for purchases visibility
+  const [showSales, setShowSales] = useState(true);
+  const [showPurchases, setShowPurchases] = useState(true);
+
+  // New states for KPIs
+  const [salesToday, setSalesToday] = useState(0);
+  const [purchasesToday, setPurchasesToday] = useState(0);
+  const [lowStockAlerts, setLowStockAlerts] = useState(0);
+  const [customerReceivables, setCustomerReceivables] = useState(0);
+  const [supplierPayables, setSupplierPayables] = useState(0);
+
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Default to 1st of current month
@@ -103,6 +111,11 @@ function OverviewDashboardPage() {
       setLoading(true);
       let currentTotalPurchaseSpending = 0;
       let currentTotalExpenses = 0;
+
+      const today = format(new Date(), 'yyyy-MM-dd');
+      // Removed unused 'startOfToday' variable
+      const endOfToday = new Date(today);
+      endOfToday.setHours(23, 59, 59, 999);
 
       // Declare maps for monthly data aggregation at a higher scope
       const salesByMonth: Record<string, number> = {};
@@ -122,9 +135,17 @@ function OverviewDashboardPage() {
       if (itemsInStockError) toast.error("Failed to fetch items in stock count", { description: itemsInStockError.message });
       else setItemsInStock(itemsInStockCount || 0);
 
+      // Fetch Low Stock Alerts count
+      const { count: lowStockCount, error: lowStockCountError } = await supabase
+        .from("item_stock_details")
+        .select('*', { count: 'exact', head: true })
+        .lte("current_stock", 5); // Threshold for low stock
+      if (lowStockCountError) toast.error("Failed to fetch low stock count", { description: lowStockCountError.message });
+      else setLowStockAlerts(lowStockCount || 0);
+
 
       // Fetch Sales
-      let salesQuery = supabase.from("Sales").select("TotalAmount, SaleDate");
+      let salesQuery = supabase.from("Sales").select("TotalAmount, SaleDate, CustomerId");
       if (dateRange?.from) salesQuery = salesQuery.gte("SaleDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
@@ -137,13 +158,27 @@ function OverviewDashboardPage() {
         setTotalRevenue(sales.reduce((acc, s) => acc + s.TotalAmount, 0));
         
         const salesByDate: { [key: string]: number } = {};
+        let currentSalesToday = 0;
+        let currentCustomerReceivables = 0;
+
         sales.forEach(sale => {
-          const dateKey = format(parseISO(sale.SaleDate), 'yyyy-MM-dd');
+          const saleDate = parseISO(sale.SaleDate);
+          const dateKey = format(saleDate, 'yyyy-MM-dd');
           salesByDate[dateKey] = (salesByDate[dateKey] || 0) + sale.TotalAmount;
 
-          const monthKey = format(parseISO(sale.SaleDate), 'yyyy-MM'); // Use yyyy-MM for internal key
+          const monthKey = format(saleDate, 'yyyy-MM'); // Use yyyy-MM for internal key
           salesByMonth[monthKey] = (salesByMonth[monthKey] || 0) + sale.TotalAmount;
+
+          if (dateKey === today) {
+            currentSalesToday += sale.TotalAmount;
+          }
+          if (sale.CustomerId !== null) { // Only count sales to specific customers for receivables
+            currentCustomerReceivables += sale.TotalAmount;
+          }
         });
+        setSalesToday(currentSalesToday);
+        setCustomerReceivables(currentCustomerReceivables);
+
         const sortedSalesOverTime = Object.entries(salesByDate)
           .map(([date, total]) => ({ date, total }))
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -153,7 +188,7 @@ function OverviewDashboardPage() {
       // Fetch Purchases and aggregate by category for pie chart
       let purchasesQuery = supabase
         .from("Purchase")
-        .select("TotalAmount, PurchaseDate, PurchaseItem(Qty, UnitPrice, ItemMaster(CategoryMaster(CategoryName)))");
+        .select("TotalAmount, PurchaseDate, SupplierId, PurchaseItem(Qty, UnitPrice, ItemMaster(CategoryMaster(CategoryName)))");
       if (dateRange?.from) purchasesQuery = purchasesQuery.gte("PurchaseDate", dateRange.from.toISOString());
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
@@ -168,13 +203,23 @@ function OverviewDashboardPage() {
         
         const purchasesByDate: { [key: string]: number } = {};
         const spendingMap: { [key: string]: number } = {};
+        let currentPurchasesToday = 0;
+        let currentSupplierPayables = 0;
 
         purchases.forEach(purchase => {
-          const dateKey = format(parseISO(purchase.PurchaseDate), 'yyyy-MM-dd');
+          const purchaseDate = parseISO(purchase.PurchaseDate);
+          const dateKey = format(purchaseDate, 'yyyy-MM-dd');
           purchasesByDate[dateKey] = (purchasesByDate[dateKey] || 0) + purchase.TotalAmount;
 
-          const monthKey = format(parseISO(purchase.PurchaseDate), 'yyyy-MM'); // Use yyyy-MM for internal key
+          const monthKey = format(purchaseDate, 'yyyy-MM'); // Use yyyy-MM for internal key
           purchasesByMonth[monthKey] = (purchasesByMonth[monthKey] || 0) + purchase.TotalAmount;
+
+          if (dateKey === today) {
+            currentPurchasesToday += purchase.TotalAmount;
+          }
+          if (purchase.SupplierId !== null) { // Only count purchases from specific suppliers for payables
+            currentSupplierPayables += purchase.TotalAmount;
+          }
 
           // Aggregate spending by category
           purchase.PurchaseItem.forEach((item: any) => {
@@ -184,6 +229,8 @@ function OverviewDashboardPage() {
             else spendingMap[categoryName] = cost;
           });
         });
+        setPurchasesToday(currentPurchasesToday);
+        setSupplierPayables(currentSupplierPayables);
         setCategorySpending(Object.entries(spendingMap).map(([name, value]) => ({ name, value })));
 
         const sortedPurchaseSpendingOverTime = Object.entries(purchasesByDate)
@@ -237,7 +284,7 @@ function OverviewDashboardPage() {
       setMonthlyComparison(sortedMonthlyComparison);
 
 
-      // Fetch Low Stock Items
+      // Fetch Low Stock Items for the table
       const { data: stockData, error: stockError } = await supabase
         .from("item_stock_details")
         .select("*")
@@ -308,6 +355,11 @@ function OverviewDashboardPage() {
         totalPurchaseSpending={totalPurchaseSpending}
         totalExpenses={totalExpenses}
         netProfit={netProfit}
+        salesToday={salesToday}
+        purchasesToday={purchasesToday}
+        lowStockAlerts={lowStockAlerts}
+        customerReceivables={customerReceivables}
+        supplierPayables={supplierPayables}
         onCardClick={handleCardClick}
         showSales={showSales}
         showPurchases={showPurchases}
@@ -317,14 +369,14 @@ function OverviewDashboardPage() {
         <SpendingOverTimeChart data={purchaseSpendingOverTime} />
         <ExpensesOverTimeChart data={expensesOverTime} />
       </div>
-      <div className="grid gap-4 grid-cols-1"> {/* Full width for comparison chart */}
+      <div className="grid gap-4 grid-cols-1">
         <SalesPurchaseComparisonChart data={monthlyComparison} showSales={showSales} showPurchases={showPurchases} />
       </div>
-      <div className="grid gap-4 md:grid-cols-2"> {/* Grouping related charts */}
+      <div className="grid gap-4 md:grid-cols-2">
         <CategorySpendingChart data={categorySpending} />
         <StockHealthGauge totalItems={totalItems} itemsInStock={itemsInStock} />
       </div>
-      <div className="grid gap-4 grid-cols-1"> {/* Full width for low stock items table */}
+      <div className="grid gap-4 grid-cols-1">
         <LowStockItems items={lowStockItems} />
       </div>
     </div>
