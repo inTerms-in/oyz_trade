@@ -20,22 +20,46 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true); // Start loading as true
+  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const navigate = useNavigate();
   
-  const getProfile = async (userId: string) => {
+  const getOrCreateProfile = async (userId: string, email: string | undefined): Promise<Profile | null> => {
+    // Try to get existing profile
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-      console.error('Error fetching profile:', error);
-      return null;
+    if (data) {
+      return data as Profile;
     }
-    return data as Profile;
+
+    if (error && error.code === 'PGRST116') { // No rows found, create a new profile
+      console.log(`No profile found for user ${userId}, creating one.`);
+      const { data: newProfileData, error: insertError } = await supabase
+        .from('profiles')
+        .insert({ 
+          id: userId, 
+          first_name: email ? email.split('@')[0] : 'User', // Use email part as default name
+          role: 'user' // Default role
+        })
+        .select('*')
+        .single();
+
+      if (insertError) {
+        console.error('Error creating new profile:', insertError);
+        return null;
+      }
+      return newProfileData as Profile;
+    }
+
+    // Other errors during fetch
+    if (error) {
+      console.error('Error fetching profile:', error);
+    }
+    return null;
   };
 
   useEffect(() => {
@@ -50,10 +74,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         let userProfile: Profile | null = null;
         if (currentSession?.user) {
-          userProfile = await getProfile(currentSession.user.id);
+          userProfile = await getOrCreateProfile(currentSession.user.id, currentSession.user.email);
         }
         setProfile(userProfile);
-        setLoading(false); // Set loading to false only after the first auth state change and profile fetch
+        setLoading(false); // Set loading to false only after profile is handled
 
         if (event === 'SIGNED_IN') {
           navigate('/');
@@ -68,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, [navigate]); // Only navigate is a dependency
+  }, [navigate]);
 
   const value = {
     session,
