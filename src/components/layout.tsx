@@ -1,9 +1,9 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom"; // Added useLocation
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-provider.tsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText } from "lucide-react"; // Added ReceiptText for Expenses
+import { Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,9 +21,10 @@ import { ChatbotDialog } from "@/components/chatbot-dialog";
 function Layout() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Initialize useLocation hook
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true); // Changed to true for default collapsed state
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -55,9 +56,8 @@ function Layout() {
     { to: "/customers", icon: UserRound, label: "Customers" },
     { to: "/suppliers", icon: Truck, label: "Suppliers" },
     { to: "/stock-adjustment", icon: TrendingUp, label: "Stock Adjustment" },
-    { to: "/expenses", icon: ReceiptText, label: "Expenses" }, // New navigation item
+    { to: "/expenses", icon: ReceiptText, label: "Expenses" },
     { to: "/barcode-print", icon: ScanBarcode, label: "Print Barcodes" },
-    // { to: "/sample-print", icon: Printer, label: "Sample Print" }, Removed Sample Print
   ];
 
   const desktopNav = (
@@ -169,7 +169,7 @@ function Layout() {
               <DropdownMenuItem onSelect={() => navigate('/suppliers')}>New Supplier</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => navigate('/stock-adjustment')}>Stock Adjustment</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/expenses')}>New Expense</DropdownMenuItem> {/* Added to New dropdown */}
+              <DropdownMenuItem onSelect={() => navigate('/expenses')}>New Expense</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {user && (
@@ -192,7 +192,7 @@ function Layout() {
           )}
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20">
-          <Outlet />
+          <Outlet key={location.pathname} /> {/* Added key prop here */}
         </main>
         <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />
         <ChatbotDialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen} />
