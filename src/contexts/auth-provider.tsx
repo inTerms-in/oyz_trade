@@ -2,13 +2,13 @@ import { createContext, useState, useEffect, useContext, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Profile } from '@/types'; // Import Profile type
+import { Profile } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  loading: boolean; // This will be true only during initial load
-  profile: Profile | null; // Added profile to context
+  loading: boolean;
+  profile: Profile | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,8 +20,8 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true); // Initial loading state
-  const [profile, setProfile] = useState<Profile | null>(null); // New state for profile
+  const [loading, setLoading] = useState(true); // Start loading as true
+  const [profile, setProfile] = useState<Profile | null>(null);
   const navigate = useNavigate();
   
   const getProfile = async (userId: string) => {
@@ -39,65 +39,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   useEffect(() => {
-    let isMounted = true; // To prevent state updates on unmounted component
+    let isMounted = true;
 
-    const setupAuth = async () => {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      
-      let fetchedProfile: Profile | null = null;
-      if (initialSession?.user) {
-        fetchedProfile = await getProfile(initialSession.user.id);
-        if (isMounted) {
-          setProfile(fetchedProfile);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        if (!isMounted) return;
+
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+
+        let userProfile: Profile | null = null;
+        if (currentSession?.user) {
+          userProfile = await getProfile(currentSession.user.id);
         }
-      } else {
-        if (isMounted) setProfile(null);
-      }
+        setProfile(userProfile);
+        setLoading(false); // Set loading to false only after the first auth state change and profile fetch
 
-      if (isMounted) {
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
-        setLoading(false); // Set loading to false AFTER profile is attempted to be fetched
-      }
-
-      const { data: authListener } = supabase.auth.onAuthStateChange(
-        async (event, currentSession) => {
-          if (!isMounted) return;
-
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-
-          if (currentSession?.user) {
-            const userProfile = await getProfile(currentSession.user.id);
-            setProfile(userProfile);
-          } else {
-            setProfile(null);
-          }
-
-          if (event === 'SIGNED_IN') {
-            navigate('/');
-          }
-          if (event === 'SIGNED_OUT') {
-            navigate('/login');
-          }
+        if (event === 'SIGNED_IN') {
+          navigate('/');
         }
-      );
+        if (event === 'SIGNED_OUT') {
+          navigate('/login');
+        }
+      }
+    );
 
     return () => {
-        isMounted = false;
-        authListener.subscription.unsubscribe();
-      };
+      isMounted = false;
+      authListener.subscription.unsubscribe();
     };
-
-    setupAuth();
-
-  }, [navigate]);
+  }, [navigate]); // Only navigate is a dependency
 
   const value = {
     session,
     user,
     loading,
-    profile, // Provide profile in context
+    profile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
