@@ -145,7 +145,7 @@ export default function EditSalePage() { // Exported as default
     
     const { data, error } = await supabase
       .from("Sales")
-      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo, user_id)") // Fixed: Added user_id
+      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo, user_id)")
       .eq("SaleId", saleId)
       .single();
 
@@ -185,7 +185,7 @@ export default function EditSalePage() { // Exported as default
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo, user_id"); // Fixed: Added user_id
+    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo, user_id");
     if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
     else setCustomerSuggestions(customersData || []);
 
@@ -243,7 +243,7 @@ export default function EditSalePage() { // Exported as default
       } else {
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
-          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }])
+          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null, user_id: user.id }])
           .select()
           .single();
 
@@ -261,7 +261,8 @@ export default function EditSalePage() { // Exported as default
         const { error: updateMobileError } = await supabase
           .from("CustomerMaster")
           .update({ MobileNo: values.customerMobileNo || null })
-          .eq("CustomerId", customerToUpdate.CustomerId);
+          .eq("CustomerId", customerToUpdate.CustomerId)
+          .eq("user_id", user.id);
         if (updateMobileError) {
           toast.error("Failed to update customer mobile number", { description: updateMobileError.message });
           setIsSubmitting(false);
@@ -301,6 +302,7 @@ export default function EditSalePage() { // Exported as default
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
+      user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
