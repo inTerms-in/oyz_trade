@@ -191,16 +191,18 @@ function EditSalePage() {
     else setCustomerSuggestions(customersData || []);
 
     // Fetch shop details for WhatsApp message
-    const { data: shopData, error: shopError } = await supabase
-      .from("shop")
-      .select("shop_name, mobile_no, address")
-      .eq("user_id", user.id)
-      .single();
+    if (user?.id) { // Added null check for user
+      const { data: shopData, error: shopError } = await supabase
+        .from("shop")
+        .select("shop_name, mobile_no, address")
+        .eq("user_id", user.id)
+        .single();
 
-    if (shopError && shopError.code !== 'PGRST116') { // PGRST116 means no rows found
-      toast.error("Failed to fetch shop details", { description: shopError.message });
-    } else if (data) {
-      setShopDetails(shopData);
+      if (shopError && shopError.code !== 'PGRST116') { // PGRST116 means no rows found
+        toast.error("Failed to fetch shop details", { description: shopError.message });
+      } else if (shopData) {
+        setShopDetails(shopData);
+      }
     }
     
     setLoading(false);
