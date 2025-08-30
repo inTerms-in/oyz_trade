@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 type SortDirection = "asc" | "desc";
 
@@ -109,12 +110,21 @@ function SuppliersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <span className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  <span>New</span>
-                </span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => setAddDialogOpen(true)}>
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New</span>
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add New Supplier (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -165,8 +175,26 @@ function SuppliersPage() {
                       <TableCell>{supplier.MobileNo || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <EditSupplierDialog supplier={supplier} onSupplierUpdated={fetchSuppliers} />
-                          <DeleteSupplierAlert supplier={supplier} onSupplierDeleted={fetchSuppliers} />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <EditSupplierDialog supplier={supplier} onSupplierUpdated={fetchSuppliers} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit Supplier (Ctrl+E)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DeleteSupplierAlert supplier={supplier} onSupplierDeleted={fetchSuppliers} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete Supplier (Ctrl+D)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>

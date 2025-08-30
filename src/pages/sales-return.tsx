@@ -18,6 +18,7 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
 import { DeleteSalesReturnAlert } from "@/components/delete-sales-return-alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 type SortDirection = "asc" | "desc";
 
@@ -138,14 +139,23 @@ function SalesReturnPage() {
                 className="w-full sm:w-auto"
               />
               <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-              <Link to="/sales-module/sales-return/new">
-                <Button className="w-full">
-                  <span className="flex items-center">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>New Return</span>
-                  </span>
-                </Button>
-              </Link>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/sales-module/sales-return/new">
+                      <Button className="w-full">
+                        <span className="flex items-center">
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          <span>New Return</span>
+                        </span>
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Record New Sales Return (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -216,12 +226,30 @@ function SalesReturnPage() {
                         <TableCell>{formatCurrency(salesReturn.TotalRefundAmount)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end">
-                            <Link to={`/sales-module/sales-return/edit/${salesReturn.SalesReturnId}`}>
-                              <Button variant="ghost" size="icon" aria-label="Edit sales return">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                            <DeleteSalesReturnAlert salesReturn={salesReturn} onSalesReturnDeleted={fetchSalesReturns} />
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Link to={`/sales-module/sales-return/edit/${salesReturn.SalesReturnId}`}>
+                                    <Button variant="ghost" size="icon" aria-label="Edit sales return">
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit Sales Return (Ctrl+E)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <DeleteSalesReturnAlert salesReturn={salesReturn} onSalesReturnDeleted={fetchSalesReturns} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete Sales Return (Ctrl+D)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         </TableCell>
                       </TableRow>

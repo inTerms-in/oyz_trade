@@ -18,6 +18,7 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
 import { DeletePurchaseReturnAlert } from "@/components/delete-purchase-return-alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 type SortDirection = "asc" | "desc";
 
@@ -138,14 +139,23 @@ function PurchaseReturnPage() {
                 className="w-full sm:w-auto"
               />
               <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-              <Link to="/purchase-module/purchase-return/new">
-                <Button className="w-full">
-                  <span className="flex items-center">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>New Return</span>
-                  </span>
-                </Button>
-              </Link>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/purchase-module/purchase-return/new">
+                      <Button className="w-full">
+                        <span className="flex items-center">
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          <span>New Return</span>
+                        </span>
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Record New Purchase Return (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -216,12 +226,30 @@ function PurchaseReturnPage() {
                         <TableCell>{formatCurrency(purchaseReturn.TotalRefundAmount)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end">
-                            <Link to={`/purchase-module/purchase-return/edit/${purchaseReturn.PurchaseReturnId}`}>
-                              <Button variant="ghost" size="icon" aria-label="Edit purchase return">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                            <DeletePurchaseReturnAlert purchaseReturn={purchaseReturn} onPurchaseReturnDeleted={fetchPurchaseReturns} />
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Link to={`/purchase-module/purchase-return/edit/${purchaseReturn.PurchaseReturnId}`}>
+                                    <Button variant="ghost" size="icon" aria-label="Edit purchase return">
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit Purchase Return (Ctrl+E)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <DeletePurchaseReturnAlert purchaseReturn={purchaseReturn} onPurchaseReturnDeleted={fetchPurchaseReturns} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete Purchase Return (Ctrl+D)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         </TableCell>
                       </TableRow>

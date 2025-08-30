@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 type SortDirection = "asc" | "desc";
 
@@ -148,14 +149,23 @@ function PurchasesPage() {
                 className="w-full sm:w-auto"
               />
               <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-              <Link to="/purchases/new">
-                <Button className="w-full">
-                  <span className="flex items-center"> {/* Single child for Button */}
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>New</span> {/* Wrap text in span */}
-                  </span>
-                </Button>
-              </Link>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/purchase-module/purchase-invoice/new">
+                      <Button className="w-full">
+                        <span className="flex items-center"> {/* Single child for Button */}
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          <span>New</span> {/* Wrap text in span */}
+                        </span>
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add New Purchase (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -226,12 +236,30 @@ function PurchasesPage() {
                         <TableCell>{formatCurrency(purchase.TotalAmount)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end">
-                            <Link to={`/purchases/edit/${purchase.PurchaseId}`}>
-                              <Button variant="ghost" size="icon" aria-label="Edit purchase">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                            <DeletePurchaseAlert purchase={purchase} onPurchaseDeleted={fetchPurchases} />
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Link to={`/purchase-module/purchase-invoice/edit/${purchase.PurchaseId}`}>
+                                    <Button variant="ghost" size="icon" aria-label="Edit purchase">
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit Purchase (Ctrl+E)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <DeletePurchaseAlert purchase={purchase} onPurchaseDeleted={fetchPurchases} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete Purchase (Ctrl+D)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         </TableCell>
                       </TableRow>

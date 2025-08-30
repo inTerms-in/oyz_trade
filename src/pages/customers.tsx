@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 type SortDirection = "asc" | "desc";
 
@@ -109,12 +110,21 @@ function CustomersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <span className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  <span>New</span>
-                </span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => setAddDialogOpen(true)}>
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New</span>
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add New Customer (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -165,8 +175,26 @@ function CustomersPage() {
                       <TableCell>{customer.MobileNo || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <EditCustomerDialog customer={customer} onCustomerUpdated={fetchCustomers} />
-                          <DeleteCustomerAlert customer={customer} onCustomerDeleted={fetchCustomers} />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <EditCustomerDialog customer={customer} onCustomerUpdated={fetchCustomers} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit Customer (Ctrl+E)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DeleteCustomerAlert customer={customer} onCustomerDeleted={fetchCustomers} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete Customer (Ctrl+D)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>

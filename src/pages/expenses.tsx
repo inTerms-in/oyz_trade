@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 type SortDirection = "asc" | "desc";
 
@@ -87,6 +88,7 @@ function ExpensesPage() {
   }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory]); // Removed user.id from dependencies
 
   const fetchExpenseCategories = useCallback(async () => {
+    // Removed user check
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
@@ -183,12 +185,21 @@ function ExpensesPage() {
                   </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={() => setAddDialogOpen(true)} className="w-full sm:w-auto">
-                <span className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  <span>New Expense</span>
-                </span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => setAddDialogOpen(true)} className="w-full sm:w-auto">
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New Expense</span>
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add New Expense (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -257,8 +268,26 @@ function ExpensesPage() {
                       <TableCell className="text-right">{formatCurrency(expense.Amount)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <EditExpenseDialog expense={expense} onExpenseUpdated={fetchExpenses} />
-                          <DeleteExpenseAlert expense={expense} onExpenseDeleted={fetchExpenses} />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <EditExpenseDialog expense={expense} onExpenseUpdated={fetchExpenses} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit Expense (Ctrl+E)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DeleteExpenseAlert expense={expense} onExpenseDeleted={fetchExpenses} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete Expense (Ctrl+D)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>

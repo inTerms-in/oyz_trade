@@ -20,6 +20,7 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 type SortDirection = "asc" | "desc";
 
@@ -131,22 +132,40 @@ function ItemsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-[250px]"
               />
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <span className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  <span>New Item</span>
-                </span>
-              </Button>
-              <Button 
-                onClick={handlePrintSelectedBarcodes} 
-                disabled={selectedItemIds.length === 0}
-                variant="outline"
-              >
-                <span className="flex items-center">
-                  <Printer className="mr-2 h-4 w-4" />
-                  <span>Print Barcodes ({selectedItemIds.length})</span>
-                </span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => setAddDialogOpen(true)}>
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New Item</span>
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add New Item (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={handlePrintSelectedBarcodes} 
+                      disabled={selectedItemIds.length === 0}
+                      variant="outline"
+                    >
+                      <span className="flex items-center">
+                        <Printer className="mr-2 h-4 w-4" />
+                        <span>Print Barcodes ({selectedItemIds.length})</span>
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Print Selected Barcodes</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -241,8 +260,26 @@ function ItemsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <EditItemDialog item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemUpdated={fetchItems} />
-                          <DeleteItemAlert item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemDeleted={fetchItems} />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <EditItemDialog item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemUpdated={fetchItems} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit Item (Ctrl+E)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DeleteItemAlert item={{...item, CategoryMaster: { CategoryName: item.CategoryName || '' }}} onItemDeleted={fetchItems} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete Item (Ctrl+D)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>
