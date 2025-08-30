@@ -23,8 +23,12 @@ import ExpensesPage from "@/pages/expenses";
 
 // New page imports for module-wise structure
 import SalesReturnPage from "@/pages/sales-return";
+import NewSalesReturnPage from "@/pages/new-sales-return";
+// import EditSalesReturnPage from "@/pages/edit-sales-return"; // Will add this later if needed
 import CustomerReceivablesPage from "@/pages/customer-receivables";
 import PurchaseReturnPage from "@/pages/purchase-return";
+import NewPurchaseReturnPage from "@/pages/new-purchase-return";
+// import EditPurchaseReturnPage from "@/pages/edit-purchase-return"; // Will add this later if needed
 import SupplierPayablesPage from "@/pages/supplier-payables";
 import StockLedgerPage from "@/pages/stock-ledger";
 import ReorderLevelAlertsPage from "@/pages/reorder-level-alerts";
@@ -71,6 +75,8 @@ function App() {
           <Route path="sales-module/sales-invoice/new" element={<NewSalePage />} />
           <Route path="sales-module/sales-invoice/edit/:saleId" element={<EditSalePage />} />
           <Route path="sales-module/sales-return" element={<SalesReturnPage />} />
+          <Route path="sales-module/sales-return/new" element={<NewSalesReturnPage />} />
+          {/* <Route path="sales-module/sales-return/edit/:salesReturnId" element={<EditSalesReturnPage />} /> */}
           <Route path="sales-module/customer-receivables" element={<CustomerReceivablesPage />} />
           <Route path="sales-module/customers" element={<CustomersPage />} /> {/* Existing Customers page */}
 
@@ -80,6 +86,8 @@ function App() {
           <Route path="purchase-module/purchase-invoice/new" element={<NewPurchasePage />} />
           <Route path="purchase-module/purchase-invoice/edit/:purchaseId" element={<EditPurchasePage />} />
           <Route path="purchase-module/purchase-return" element={<PurchaseReturnPage />} />
+          <Route path="purchase-module/purchase-return/new" element={<NewPurchaseReturnPage />} />
+          {/* <Route path="purchase-module/purchase-return/edit/:purchaseReturnId" element={<EditPurchaseReturnPage />} /> */}
           <Route path="purchase-module/supplier-payables" element={<SupplierPayablesPage />} />
           <Route path="purchase-module/suppliers" element={<SuppliersPage />} /> {/* Existing Suppliers page */}
 

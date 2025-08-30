@@ -195,3 +195,69 @@ export interface Profile {
   updated_at: string;
   role: string; // Added role
 }
+
+// New types for Sales Return
+export interface SalesReturn {
+  SalesReturnId: number;
+  SaleId: number;
+  ReturnDate: string;
+  TotalRefundAmount: number;
+  Reason: string | null;
+  ReferenceNo: string;
+  created_at: string;
+}
+
+export interface SalesReturnItem {
+  SalesReturnItemId: number;
+  SalesReturnId: number;
+  ItemId: number;
+  Qty: number;
+  Unit: string;
+  UnitPrice: number;
+  created_at: string;
+  ItemMaster?: {
+    ItemName: string | null;
+    ItemCode: string | null;
+    CategoryMaster?: {
+      CategoryName: string;
+    } | null;
+  } | null;
+}
+
+export interface SalesReturnWithItems extends SalesReturn {
+  SalesReturnItem: SalesReturnItem[];
+  Sales?: SaleWithItems | null; // Link to the original sale
+}
+
+// New types for Purchase Return
+export interface PurchaseReturn {
+  PurchaseReturnId: number;
+  PurchaseId: number;
+  ReturnDate: string;
+  TotalRefundAmount: number;
+  Reason: string | null;
+  ReferenceNo: string;
+  created_at: string;
+}
+
+export interface PurchaseReturnItem {
+  PurchaseReturnItemId: number;
+  PurchaseReturnId: number;
+  ItemId: number;
+  Qty: number;
+  Unit: string;
+  UnitPrice: number;
+  created_at: string;
+  ItemMaster?: {
+    ItemName: string | null;
+    ItemCode: string | null;
+    CategoryMaster?: {
+      CategoryName: string;
+    } | null;
+  } | null;
+}
+
+export interface PurchaseReturnWithItems extends PurchaseReturn {
+  PurchaseReturnItem: PurchaseReturnItem[];
+  Purchase?: PurchaseWithItems | null; // Link to the original purchase
+}

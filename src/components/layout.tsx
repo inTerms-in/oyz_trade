@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText,
   ChevronDown, DollarSign, FileText, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Clock,
-  RefreshCcw, AlertCircle, Calendar, Settings // Added missing imports and removed unused 'Factory'
+  AlertCircle, Calendar, Settings, ArrowLeftRight 
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -68,7 +68,7 @@ function Layout() {
       label: "Sales Module",
       children: [
         { to: "/sales-module/sales-invoice", icon: FileText, label: "Sales Invoice" },
-        { to: "/sales-module/sales-return", icon: RefreshCcw, label: "Sales Return" },
+        { to: "/sales-module/sales-return", icon: ArrowLeftRight, label: "Sales Return" },
         { to: "/sales-module/customer-receivables", icon: DollarSign, label: "Customer Receivables" },
         { to: "/sales-module/customers", icon: UserRound, label: "Customer Master" },
       ],
@@ -79,7 +79,7 @@ function Layout() {
       label: "Purchase Module",
       children: [
         { to: "/purchase-module/purchase-invoice", icon: FileText, label: "Purchase Invoice" },
-        { to: "/purchase-module/purchase-return", icon: RefreshCcw, label: "Purchase Return" },
+        { to: "/purchase-module/purchase-return", icon: ArrowLeftRight, label: "Purchase Return" },
         { to: "/purchase-module/supplier-payables", icon: Banknote, label: "Supplier Payables" },
         { to: "/purchase-module/suppliers", icon: Truck, label: "Supplier Master" },
       ],
@@ -319,6 +319,9 @@ function Layout() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => navigate('/inventory-module/stock-adjustment')}>Stock Adjustment</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => navigate('/accounts-module/expenses')}>New Expense</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-return/new')}>New Sales Return</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-return/new')}>New Purchase Return</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {user && (
