@@ -145,7 +145,7 @@ export default function EditSalePage() { // Exported as default
     
     const { data, error } = await supabase
       .from("Sales")
-      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)")
+      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo)") // Ensure MobileNo is selected
       .eq("SaleId", saleId)
       .single();
 
@@ -354,7 +354,8 @@ export default function EditSalePage() { // Exported as default
       return;
     }
 
-    const customerMobileNo = form.getValues("customerMobileNo");
+    // Get customer mobile number directly from saleData, which is guaranteed to be loaded
+    const customerMobileNo = saleData.CustomerMaster?.MobileNo; 
     if (!customerMobileNo) {
       toast.error("Customer mobile number is required to send via WhatsApp.");
       return;
@@ -584,7 +585,7 @@ export default function EditSalePage() { // Exported as default
     const success = await saveSale(values);
     if (success) {
       // No post-save dialog for edit page, just navigate back to sales list
-      navigate("/sales");
+      navigate("/sales-module/sales-invoice");
     }
   };
 
@@ -615,7 +616,7 @@ export default function EditSalePage() { // Exported as default
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Edit Sale</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleSendWhatsApp(Number(saleId))} disabled={isSubmitting || loading || !saleData || !form.getValues("customerMobileNo")}>
+            <Button variant="outline" onClick={() => handleSendWhatsApp(Number(saleId))} disabled={isSubmitting || loading || !saleData || !saleData.CustomerMaster?.MobileNo}>
               <span className="flex items-center">
                 <MessageCircleMore className="mr-2 h-4 w-4" />
                 <span>WhatsApp Message</span>
@@ -801,7 +802,7 @@ export default function EditSalePage() { // Exported as default
 
               <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 pt-4">
                 <div className="flex space-x-2 w-full sm:w-auto">
-                  <Link to="/sales" className="flex-1 sm:flex-none"><Button type="button" variant="outline" className="w-full">Cancel</Button></Link>
+                  <Link to="/sales-module/sales-invoice" className="flex-1 sm:flex-none"><Button type="button" variant="outline" className="w-full">Cancel</Button></Link>
                   <Button type="submit" disabled={isSubmitting || !isValid || addedItems.length === 0} className="flex-1 sm:flex-none">{isSubmitting ? "Saving..." : "Save Sale"}</Button>
                 </div>
                 <div className="w-full sm:w-auto sm:max-w-xs space-y-1 text-sm self-end">

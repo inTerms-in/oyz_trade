@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ItemWithStock } from "@/types";
+import { ItemWithStock } from "@/types"; // Removed PrintableItem as it's not directly used here
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generateItemCode } from "@/lib/utils";
@@ -20,6 +20,8 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+// Removed import for PrintableBarcodes as it's not directly used here
+// Removed import for FloatingLabelInput as it's not directly used here
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
@@ -79,12 +81,8 @@ function ItemsPage() {
 
       if (initialItemIds && initialItemIds.length > 0) {
         // Pre-select items that were passed via state
-        const preSelected = fetchedItems.map(item => ({
-          ...item,
-          CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
-          quantityToPrint: 1,
-        }));
-        setSelectedItems(preSelected);
+        const preSelected = fetchedItems.map(item => item.ItemId);
+        setSelectedItemIds(preSelected);
       }
     }
     setLoading(false);
@@ -111,12 +109,8 @@ function ItemsPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allItemsAsPrintable = items.map(item => ({
-        ...item,
-        CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
-        quantityToPrint: 1, // Default quantity
-      }));
-      setSelectedItems(allItemsAsPrintable);
+      const allItemIds = items.map(item => item.ItemId);
+      setSelectedItemIds(allItemIds);
     } else {
       setSelectedItemIds([]);
     }
