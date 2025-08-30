@@ -26,7 +26,8 @@ export interface ItemWithCategory extends Item {
 export interface ItemWithStock extends Item {
   CategoryName: string | null;
   total_purchased: number;
-  total_sold: number;
+  total_sold:
+  number;
   total_adjusted_in: number; // Added for stock adjustments
   total_adjusted_out: number; // Added for stock adjustments
   current_stock: number;
@@ -192,4 +193,5 @@ export interface Profile {
   last_name: string | null;
   avatar_url: string | null;
   updated_at: string;
+  role: string; // Added role
 }

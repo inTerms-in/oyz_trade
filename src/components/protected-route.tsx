@@ -3,7 +3,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProtectedRoute() {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth(); // Destructure profile
 
   if (loading) {
     return (
@@ -16,7 +16,8 @@ export function ProtectedRoute() {
     );
   }
 
-  if (!user) {
+  // If user is not logged in OR user is logged in but no profile (and thus no role) is found, redirect to login
+  if (!user || !profile?.role) {
     return <Navigate to="/login" replace />;
   }
 
