@@ -115,7 +115,7 @@ function EditPurchasePage() {
     
     const { data, error } = await supabase
       .from("Purchase")
-      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
+      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName, MobileNo, user_id)") // Fixed: Added MobileNo, user_id
       .eq("PurchaseId", purchaseId)
       .single();
 
@@ -154,12 +154,12 @@ function EditPurchasePage() {
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo");
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo, user_id"); // Fixed: Added user_id
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []);
     
     setLoading(false);
-  }, [purchaseId, navigate, form]);
+  }, [purchaseId, navigate, form, user]); // Added user to dependencies
 
   useEffect(() => {
     fetchData();

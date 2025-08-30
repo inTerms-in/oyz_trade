@@ -4,7 +4,7 @@ import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider"; // Re-import useAuth
+import { useAuth } from "@/contexts/auth-provider"; // Re-add useAuth import
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -37,7 +37,7 @@ interface MonthlyTotal {
 }
 
 function PurchaseDashboardPage() {
-  const { user } = useAuth(); // Re-import useAuth
+  const { user } = useAuth(); // Re-add user from useAuth
   const [loading, setLoading] = useState(true);
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalPurchases, setTotalPurchases] = useState(0);
@@ -49,18 +49,18 @@ function PurchaseDashboardPage() {
   const [monthlyPurchases, setMonthlyPurchases] = useState<MonthlyTotal[]>([]);
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Default to 1st of current month
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date(),
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) return; // Ensure user is logged in
+    if (!user?.id) return; // Add user check
     setLoading(true);
 
     const { count, error: itemsError } = await supabase
       .from("ItemMaster")
       .select('*', { count: 'exact', head: true })
-      .eq("user_id", user.id); // Filter by user_id
+      .eq("user_id", user.id); // Re-add user.id filter
     
     if (itemsError) toast.error("Failed to fetch item count", { description: itemsError.message });
     else setTotalItems(count || 0);
@@ -68,7 +68,7 @@ function PurchaseDashboardPage() {
     let query = supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
-      .eq("user_id", user.id) // Filter by user_id
+      .eq("user_id", user.id) // Re-add user.id filter
       .order("PurchaseDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("PurchaseDate", dateRange.from.toISOString());
@@ -94,8 +94,8 @@ function PurchaseDashboardPage() {
     setRecentPurchases(typedPurchases.slice(0, 10));
 
     const spendingMap: { [key: string]: number } = {};
-    const dailySpending: { [key: string]: number } = {}; // For SpendingOverTimeChart
-    const monthlySpending: { [key: string]: number } = {}; // For MonthlyPurchasesChart
+    const dailySpending: { [key: string]: number } = {};
+    const monthlySpending: { [key: string]: number } = {};
 
     typedPurchases.forEach((p) => {
       const dateKey = format(parseISO(p.PurchaseDate), 'yyyy-MM-dd');
@@ -126,7 +126,7 @@ function PurchaseDashboardPage() {
     const { data: allPurchaseItems, error: allItemsError } = await supabase
       .from("PurchaseItem")
       .select("ItemMaster(*)")
-      .eq("user_id", user.id); // Filter by user_id
+      .eq("user_id", user.id); // Re-add user.id filter
 
     if (allItemsError) {
       toast.error("Failed to fetch top items", { description: allItemsError.message });

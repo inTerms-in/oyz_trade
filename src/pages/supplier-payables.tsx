@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Supplier } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 interface SupplierPayable extends Supplier {
   total_purchase_amount: number;
@@ -15,11 +16,13 @@ interface SupplierPayable extends Supplier {
 }
 
 export default function SupplierPayablesPage() {
+  const { user } = useAuth(); // Use useAuth
   const [payables, setPayables] = useState<SupplierPayable[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSupplierPayables = async () => {
+      if (!user?.id) return; // Ensure user is logged in
       setLoading(true);
       const { data, error } = await supabase
         .from('SupplierMaster')
@@ -27,9 +30,11 @@ export default function SupplierPayablesPage() {
           SupplierId,
           SupplierName,
           MobileNo,
+          user_id,
           Purchase(TotalAmount),
           PurchaseReturn(TotalRefundAmount)
-        `);
+        `)
+        .eq("user_id", user.id); // Filter by user_id
 
       if (error) {
         toast.error("Failed to fetch supplier payables", { description: error.message });
@@ -45,6 +50,7 @@ export default function SupplierPayablesPage() {
           SupplierId: supplier.SupplierId,
           SupplierName: supplier.SupplierName,
           MobileNo: supplier.MobileNo,
+          user_id: supplier.user_id, // Fixed: Add user_id
           total_purchase_amount: 0,
           total_return_amount: 0,
           net_payable: 0,
@@ -72,7 +78,7 @@ export default function SupplierPayablesPage() {
     };
 
     fetchSupplierPayables();
-  }, []);
+  }, [user?.id]); // Add user.id to dependencies
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

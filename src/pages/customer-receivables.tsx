@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Customer } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 interface CustomerReceivable extends Customer {
   total_sales_amount: number;
@@ -15,11 +16,13 @@ interface CustomerReceivable extends Customer {
 }
 
 export default function CustomerReceivablesPage() {
+  const { user } = useAuth(); // Use useAuth
   const [receivables, setReceivables] = useState<CustomerReceivable[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCustomerReceivables = async () => {
+      if (!user?.id) return; // Ensure user is logged in
       setLoading(true);
       const { data, error } = await supabase
         .from('CustomerMaster')
@@ -27,9 +30,11 @@ export default function CustomerReceivablesPage() {
           CustomerId,
           CustomerName,
           MobileNo,
+          user_id,
           Sales(TotalAmount),
           SalesReturn(TotalRefundAmount)
-        `);
+        `)
+        .eq("user_id", user.id); // Filter by user_id
 
       if (error) {
         toast.error("Failed to fetch customer receivables", { description: error.message });
@@ -45,6 +50,7 @@ export default function CustomerReceivablesPage() {
           CustomerId: customer.CustomerId,
           CustomerName: customer.CustomerName,
           MobileNo: customer.MobileNo,
+          user_id: customer.user_id, // Fixed: Add user_id
           total_sales_amount: 0,
           total_return_amount: 0,
           net_receivable: 0,
@@ -72,7 +78,7 @@ export default function CustomerReceivablesPage() {
     };
 
     fetchCustomerReceivables();
-  }, []);
+  }, [user?.id]); // Add user.id to dependencies
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

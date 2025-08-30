@@ -66,7 +66,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Function to create default settings and shop for a new user
   const createDefaultUserSettings = async (userId: string) => {
     // Check if settings already exist
-    const { data: existingSettings, error: settingsError } = await supabase
+    const { data: _existingSettings, error: settingsError } = await supabase // Fixed: _existingSettings
       .from('settings')
       .select('id')
       .eq('user_id', userId)
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     // Check if shop details already exist
-    const { data: existingShop, error: shopError } = await supabase
+    const { data: _existingShop, error: shopError } = await supabase // Fixed: _existingShop
       .from('shop')
       .select('id')
       .eq('user_id', userId)

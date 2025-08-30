@@ -4,7 +4,7 @@ import { SaleWithItems, HourlySales } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider"; // Re-import useAuth
+import { useAuth } from "@/contexts/auth-provider"; // Re-add useAuth import
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -81,15 +81,14 @@ interface MonthlyTotal {
   total: number;
 }
 
-// New interface for raw hourly sales data
 interface RawHourlySale {
-  date: string; // YYYY-MM-DD
-  hour: number; // 0-23
+  date: string;
+  hour: number;
   amount: number;
 }
 
 function SalesDashboardPage() {
-  const { user } = useAuth(); // Re-import useAuth
+  const { user } = useAuth(); // Re-add user from useAuth
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -99,15 +98,13 @@ function SalesDashboardPage() {
   const [salesOverTime, setSalesOverTime] = useState<SalesOverTime[]>([]);
   const [monthlySales, setMonthlySales] = useState<MonthlyTotal[]>([]);
   
-  // New states for hourly sales filtering
   const [allRawHourlySales, setAllRawHourlySales] = useState<RawHourlySale[]>([]);
   const [filterHourlyType, setFilterHourlyType] = useState<'all' | 'day' | 'month'>('all');
   const [selectedHourlyDate, setSelectedHourlyDate] = useState<Date | undefined>(undefined);
-  const [selectedHourlyMonth, setSelectedHourlyMonth] = useState<string | undefined>(undefined); // YYYY-MM format
-  const [displayHourlySales, setDisplayHourlySales] = useState<HourlySales[]>([]); // Data for the chart
-  const [availableHourlyMonths, setAvailableHourlyMonths] = useState<string[]>([]); // YYYY-MM
+  const [selectedHourlyMonth, setSelectedHourlyMonth] = useState<string | undefined>(undefined);
+  const [displayHourlySales, setDisplayHourlySales] = useState<HourlySales[]>([]);
+  const [availableHourlyMonths, setAvailableHourlyMonths] = useState<string[]>([]);
 
-  // State to control the open/close of the filter dropdown and date picker popover
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -117,13 +114,13 @@ function SalesDashboardPage() {
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) return; // Ensure user is logged in
+    if (!user?.id) return; // Add user check
     setLoading(true);
 
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*), CustomerMaster(CustomerName)")
-      .eq("user_id", user.id) // Filter by user_id
+      .eq("user_id", user.id) // Re-add user.id filter
       .order("SaleDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("SaleDate", dateRange.from.toISOString());
@@ -151,11 +148,10 @@ function SalesDashboardPage() {
     setTotalItemsSold(totalItems);
     setRecentSales(typedSales.slice(0, 10));
 
-    // Calculate Top Sold Items
     const { data: allSaleItems, error: allItemsError } = await supabase
       .from("SalesItem")
       .select("ItemId, Qty, ItemMaster(ItemName)")
-      .eq("user_id", user.id); // Filter by user_id
+      .eq("user_id", user.id); // Re-add user.id filter
 
     if (allItemsError) {
       toast.error("Failed to fetch top sold items", { description: allItemsError.message });
@@ -173,7 +169,6 @@ function SalesDashboardPage() {
       setTopSoldItems(sortedItems);
     }
 
-    // Calculate Sales Over Time and Monthly Sales
     const salesByDate: { [key: string]: number } = {};
     const salesByMonth: { [key: string]: number } = {};
     const rawHourlySalesData: RawHourlySale[] = [];
@@ -214,7 +209,6 @@ function SalesDashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  // Effect to process hourly sales data based on filters
   useEffect(() => {
     const hourlyAggregated: { [hour: number]: number } = {};
     let filteredRawSales = allRawHourlySales;
@@ -227,7 +221,7 @@ function SalesDashboardPage() {
     }
 
     for (let i = 0; i < 24; i++) {
-      hourlyAggregated[i] = 0; // Initialize all hours to 0
+      hourlyAggregated[i] = 0;
     }
 
     filteredRawSales.forEach(sale => {
@@ -302,7 +296,7 @@ function SalesDashboardPage() {
                     setSelectedHourlyDate(undefined);
                     setSelectedHourlyMonth(undefined);
                     if (value === 'day' && !selectedHourlyDate) {
-                      setSelectedHourlyDate(new Date()); // Default to current day
+                      setSelectedHourlyDate(new Date());
                     }
                   }}>
                     <DropdownMenuRadioItem value="all">All Days</DropdownMenuRadioItem>
@@ -332,8 +326,8 @@ function SalesDashboardPage() {
                               selected={selectedHourlyDate}
                               onSelect={(date) => {
                                 setSelectedHourlyDate(date || undefined);
-                                setIsDatePickerOpen(false); // Close date picker popover
-                                setIsFilterDropdownOpen(false); // Close main filter dropdown directly
+                                setIsDatePickerOpen(false);
+                                setIsFilterDropdownOpen(false);
                               }}
                               initialFocus
                               captionLayout="dropdown-buttons"
@@ -353,7 +347,7 @@ function SalesDashboardPage() {
                           value={selectedHourlyMonth}
                           onValueChange={(value) => {
                             setSelectedHourlyMonth(value);
-                            setIsFilterDropdownOpen(false); // Close main filter dropdown directly
+                            setIsFilterDropdownOpen(false);
                           }}
                         >
                           <SelectTrigger className="w-full">

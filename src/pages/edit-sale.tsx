@@ -145,7 +145,7 @@ export default function EditSalePage() { // Exported as default
     
     const { data, error } = await supabase
       .from("Sales")
-      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo)") // Ensure MobileNo is selected
+      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo, user_id)") // Fixed: Added user_id
       .eq("SaleId", saleId)
       .single();
 
@@ -185,7 +185,7 @@ export default function EditSalePage() { // Exported as default
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
+    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo, user_id"); // Fixed: Added user_id
     if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
     else setCustomerSuggestions(customersData || []);
 
@@ -199,7 +199,7 @@ export default function EditSalePage() { // Exported as default
 
       if (shopError && shopError.code !== 'PGRST116') {
         toast.error("Failed to fetch shop details", { description: shopError.message });
-      } else if (shopData) {
+      } else if (data) {
         setShopDetails(shopData);
       }
     }

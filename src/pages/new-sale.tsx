@@ -143,7 +143,7 @@ function NewSalePage() {
       if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
       else setItemSuggestions(itemsData as ItemWithCategory[]);
 
-      const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
+      const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo, user_id"); // Fixed: Added user_id
       if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
       else setCustomerSuggestions(customersData || []);
     }
@@ -591,7 +591,7 @@ function NewSalePage() {
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.ItemName}</TableCell>
                           <TableCell className="text-right">{item.Qty}</TableCell>
-                          <TableCell>{item.Unit}</TableCell>
+                          <TableCell>{item.HUnit}</TableCell>
                           <TableCell className="text-right">{item.UnitPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right">{item.TotalPrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
