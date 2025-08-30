@@ -179,14 +179,7 @@ function BarcodePrintPage() {
                       aria-label="Select all items"
                     />
                   </TableHead>
-                  <TableHead>
-                    <Button variant="ghost" onClick={() => handleSort("ItemCode")}>
-                      <span className="flex items-center">
-                        <span>Item Code</span>
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </span>
-                    </Button>
-                  </TableHead>
+                  <TableHead>Item Code</TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("ItemName")}>
                       <span className="flex items-center">

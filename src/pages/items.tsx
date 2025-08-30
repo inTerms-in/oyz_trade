@@ -53,7 +53,7 @@ function ItemsPage() {
 
     let query = supabase
       .from("item_stock_details")
-      .select("*", { count: "exact" });
+      .select("ItemId, ItemName, CategoryId, CategoryName, SellPrice, Barcode, ItemCode, RackNo", { count: "exact" });
       // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
@@ -61,7 +61,9 @@ function ItemsPage() {
     }
 
     query = query.order(sort.column, { ascending: sort.direction === "asc" });
-    query = query.range(from, to);
+    if (!initialItemIds) { // Only apply range if not fetching specific initial items
+      query = query.range(from, to);
+    }
 
     const { data, error, count } = await query;
 
@@ -69,9 +71,20 @@ function ItemsPage() {
       toast.error("Failed to fetch items", { description: error.message });
       setItems([]);
     } else {
-      setItems(data as ItemWithStock[]);
+      const fetchedItems = data as ItemWithStock[];
+      setItems(fetchedItems);
       setItemCount(count ?? 0);
       setPageCount(Math.ceil((count ?? 0) / pageSize));
+
+      if (initialItemIds && initialItemIds.length > 0) {
+        // Pre-select items that were passed via state
+        const preSelected = fetchedItems.map(item => ({
+          ...item,
+          CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
+          quantityToPrint: 1,
+        }));
+        setSelectedItems(preSelected);
+      }
     }
     setLoading(false);
   }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies

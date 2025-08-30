@@ -60,7 +60,6 @@ function PurchaseDashboardPage() {
       const { count, error: itemsError } = await supabase
         .from("ItemMaster")
         .select('*', { count: 'exact', head: true });
-        // Removed .eq("user_id", user.id)
       
       if (itemsError) toast.error("Failed to fetch item count", { description: itemsError.message });
       else setTotalItems(count || 0);
@@ -68,7 +67,6 @@ function PurchaseDashboardPage() {
       let query = supabase
         .from("Purchase")
         .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
-        // Removed .eq("user_id", user.id)
         .order("PurchaseDate", { ascending: false });
 
       if (dateRange?.from) query = query.gte("PurchaseDate", dateRange.from.toISOString());
@@ -126,7 +124,6 @@ function PurchaseDashboardPage() {
       const { data: allPurchaseItems, error: allItemsError } = await supabase
         .from("PurchaseItem")
         .select("ItemMaster(*)");
-        // Removed .eq("user_id", user.id)
 
       if (allItemsError) {
         toast.error("Failed to fetch top items", { description: allItemsError.message });
@@ -148,7 +145,7 @@ function PurchaseDashboardPage() {
     }
 
     fetchData();
-  }, [dateRange]); // Removed user.id from dependencies
+  }, [dateRange]);
 
   if (loading) {
     return (

@@ -6,6 +6,7 @@ import { Expense, ExpenseCategory } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { format } from "date-fns";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,6 +31,7 @@ import {
 type SortDirection = "asc" | "desc";
 
 function ExpensesPage() {
+  // Removed user from useAuth
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -58,6 +60,7 @@ function ExpensesPage() {
     let query = supabase
       .from("Expenses")
       .select("*, ExpenseCategoryMaster(CategoryName)", { count: "exact" });
+      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.or(`Description.ilike.%${debouncedSearchTerm}%,ReferenceNo.ilike.%${debouncedSearchTerm}%`);
@@ -81,19 +84,20 @@ function ExpensesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory]); // Removed user.id from dependencies
 
   const fetchExpenseCategories = useCallback(async () => {
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
+      // Removed .eq("user_id", user.id)
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
     } else {
       setExpenseCategories(data || []);
     }
-  }, []);
+  }, []); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchExpenses();

@@ -99,57 +99,46 @@ function SettingsPage() {
 
       // Fetch and add categories
       const { data: categories } = await supabase.from("CategoryMaster").select("*");
-      // Removed .eq("user_id", user.id)
       if (categories) zip.file("categories.csv", Papa.unparse(categories));
 
       // Fetch and add items
       const { data: items } = await supabase.from("ItemMaster").select("*");
-      // Removed .eq("user_id", user.id)
       if (items) zip.file("items.csv", Papa.unparse(items));
 
       // Fetch and add purchases
       const { data: purchases } = await supabase.from("Purchase").select("*");
-      // Removed .eq("user_id", user.id)
       if (purchases) zip.file("purchases.csv", Papa.unparse(purchases));
 
       // Fetch and add purchase items
       const { data: purchaseItems } = await supabase.from("PurchaseItem").select("*");
-      // Removed .eq("user_id", user.id)
       if (purchaseItems) zip.file("purchase_items.csv", Papa.unparse(purchaseItems));
 
       // Fetch and add sales
       const { data: sales } = await supabase.from("Sales").select("*");
-      // Removed .eq("user_id", user.id)
       if (sales) zip.file("sales.csv", Papa.unparse(sales));
 
       // Fetch and add sales items
       const { data: salesItems } = await supabase.from("SalesItem").select("*");
-      // Removed .eq("user_id", user.id)
       if (salesItems) zip.file("sales_items.csv", Papa.unparse(salesItems));
 
       // Fetch and add customers
       const { data: customers } = await supabase.from("CustomerMaster").select("*");
-      // Removed .eq("user_id", user.id)
       if (customers) zip.file("customers.csv", Papa.unparse(customers));
 
       // Fetch and add suppliers
       const { data: suppliers } = await supabase.from("SupplierMaster").select("*");
-      // Removed .eq("user_id", user.id)
       if (suppliers) zip.file("suppliers.csv", Papa.unparse(suppliers));
 
       // Fetch and add expenses
       const { data: expenses } = await supabase.from("Expenses").select("*");
-      // Removed .eq("user_id", user.id)
       if (expenses) zip.file("expenses.csv", Papa.unparse(expenses));
 
       // Fetch and add expense categories
       const { data: expenseCategories } = await supabase.from("ExpenseCategoryMaster").select("*");
-      // Removed .eq("user_id", user.id)
       if (expenseCategories) zip.file("expense_categories.csv", Papa.unparse(expenseCategories));
 
       // Fetch and add stock adjustments
       const { data: stockAdjustments } = await supabase.from("StockAdjustment").select("*");
-      // Removed .eq("user_id", user.id)
       if (stockAdjustments) zip.file("stock_adjustments.csv", Papa.unparse(stockAdjustments));
 
       // Fetch and add shop details (user-specific)
@@ -217,7 +206,6 @@ function SettingsPage() {
         }
 
         const { data: existingCategories, error: fetchError } = await supabase.from("CategoryMaster").select("CategoryName");
-        // Removed .eq("user_id", user.id)
         if (fetchError) {
           toast.error("Failed to check for existing categories.", { description: fetchError.message });
           setIsImportingCategories(false);
@@ -239,7 +227,6 @@ function SettingsPage() {
         }
 
         const { error: insertError } = await supabase.from("CategoryMaster").insert(newCategories);
-        // Removed .eq("user_id", user.id)
 
         if (insertError) {
           toast.error("Failed to import categories.", { description: insertError.message });
@@ -274,11 +261,9 @@ function SettingsPage() {
           }
 
           const { data: existingItemsData } = await supabase.from("ItemMaster").select("ItemName");
-          // Removed .eq("user_id", user.id)
           const existingItemNames = new Set(existingItemsData?.map(i => i.ItemName.toLowerCase()));
 
           const { data: existingCategoriesData } = await supabase.from("CategoryMaster").select("CategoryId, CategoryName");
-          // Removed .eq("user_id", user.id)
           const categoryMap = new Map(existingCategoriesData?.map(c => [c.CategoryName.toLowerCase(), c.CategoryId]));
 
           const uniqueCategoryNames = new Set(validData.map((row: ItemCsvRow) => row.CategoryName!.trim().toLowerCase()));
@@ -291,7 +276,6 @@ function SettingsPage() {
               // user_id: user?.id, // Removed user_id
             }));
             const { data: insertedCategories, error: categoryInsertError } = await supabase.from("CategoryMaster").insert(newCategoriesToInsert).select();
-            // Removed .eq("user_id", user.id)
             if (categoryInsertError) throw new Error(`Failed to create new categories: ${categoryInsertError.message}`);
             
             insertedCategories?.forEach(c => categoryMap.set(c.CategoryName.toLowerCase(), c.CategoryId));
@@ -326,7 +310,6 @@ function SettingsPage() {
           }
 
           const { error: itemInsertError } = await supabase.from("ItemMaster").insert(newItemsToInsert);
-          // Removed .eq("user_id", user.id)
           if (itemInsertError) throw new Error(`Failed to import items: ${itemInsertError.message}`);
 
           toast.success("Items imported successfully!", { description: `${newItemsToInsert.length} new items added. ${duplicateCount} duplicates were skipped.` });

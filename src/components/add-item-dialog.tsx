@@ -104,6 +104,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
   }, [open, form, initialValues]); // Removed user from dependencies
 
   const handleGenerateBarcode = async () => {
+    // Barcode generation is a server-side RPC, so it requires online status
     // Removed user check
     
     const { data, error } = await supabase.rpc('generate_unique_barcode');

@@ -156,35 +156,35 @@ export function AddNewItemInlineDialog({
               control={form.control}
               name="ItemName"
               render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <FloatingLabelInput id="ItemName" label="Item Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  <FormItem>
+                    <FormControl>
+                      <FloatingLabelInput id="ItemName" label="Item Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
               )}
             />
             <FormField
               control={form.control}
               name="CategoryId"
               render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <FloatingLabelSelect 
-                      label="Category" 
-                      value={String(field.value)} 
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      id="category-select-inline"
-                    >
-                      {categories.map((category) => (
-                        <SelectItem key={category.CategoryId} value={String(category.CategoryId)}>
-                          {category.CategoryName}
-                        </SelectItem>
-                      ))}
-                    </FloatingLabelSelect>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  <FormItem>
+                    <FormControl>
+                      <FloatingLabelSelect 
+                        label="Category" 
+                        value={String(field.value)} 
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        id="category-select-inline"
+                      >
+                        {categories.map((category) => (
+                          <SelectItem key={category.CategoryId} value={String(category.CategoryId)}>
+                            {category.CategoryName}
+                          </SelectItem>
+                        ))}
+                      </FloatingLabelSelect>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
               )}
             />
             <DialogFooter>
