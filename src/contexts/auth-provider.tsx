@@ -7,7 +7,7 @@ import { Profile } from '@/types'; // Import Profile type
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  loading: boolean;
+  loading: boolean; // This will be true only during initial load
   profile: Profile | null; // Added profile to context
 }
 
@@ -20,7 +20,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Initial loading state
   const [profile, setProfile] = useState<Profile | null>(null); // New state for profile
   const navigate = useNavigate();
   
@@ -39,46 +39,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   useEffect(() => {
-    const getSessionAndProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
+    let isMounted = true; // To prevent state updates on unmounted component
 
-      if (session?.user) {
-        const userProfile = await getProfile(session.user.id);
-        setProfile(userProfile);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    };
-
-    getSessionAndProfile();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const userProfile = await getProfile(session.user.id);
-          setProfile(userProfile);
+    const setupAuth = async () => {
+      // 1. Initial session and profile fetch
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
+      if (isMounted) {
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        if (initialSession?.user) {
+          const userProfile = await getProfile(initialSession.user.id);
+          if (isMounted) setProfile(userProfile);
         } else {
-          setProfile(null);
+          if (isMounted) setProfile(null);
         }
-        setLoading(false);
-        if (event === 'SIGNED_IN') {
-          navigate('/');
-        }
-        if (event === 'SIGNED_OUT') {
-          navigate('/login');
-        }
+        if (isMounted) setLoading(false); // Set loading to false after initial fetch
       }
-    );
+
+      // 2. Set up auth state change listener
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (event, currentSession) => {
+          if (!isMounted) return;
+
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+
+          if (currentSession?.user) {
+            const userProfile = await getProfile(currentSession.user.id);
+            setProfile(userProfile);
+          } else {
+            setProfile(null);
+          }
+          // Removed setLoading(false) from here.
+          // The `loading` state is now only for the initial check.
+
+          if (event === 'SIGNED_IN') {
+            navigate('/');
+          }
+          if (event === 'SIGNED_OUT') {
+            navigate('/login');
+          }
+        }
+      );
 
     return () => {
-      authListener.subscription.unsubscribe();
+        isMounted = false;
+        authListener.subscription.unsubscribe();
+      };
     };
+
+    setupAuth();
+
   }, [navigate]);
 
   const value = {
