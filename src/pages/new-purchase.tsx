@@ -113,20 +113,16 @@ function NewPurchasePage() {
   const displayGrandTotal = parseFloat((itemsTotalRaw + numericAdditionalCost).toFixed(2));
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
     const { data: itemsData, error: itemsError } = await supabase
       .from("ItemMaster").select("*, CategoryMaster(*)")
-      // .eq("user_id", user.id) // Removed user_id filter
       .order("ItemName");
     if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
     else setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo")
-    // .eq("user_id", user.id) // Removed user_id filter
-    ;
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo");
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []); // Store raw supplier data
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -338,7 +334,6 @@ function NewPurchasePage() {
       toast.success(`Sell price for "${itemToUpdateSellPrice.ItemName}" updated to ${formatCurrency(newSellPrice)}!`);
       const { data: itemsData, error: itemsError } = await supabase
         .from("ItemMaster").select("*, CategoryMaster(*)")
-        // .eq("user_id", user.id) // Removed user_id filter
         .order("ItemName");
       if (!itemsError) setItemSuggestions(itemsData as ItemWithCategory[]);
       setIsUpdateSellPriceDialogOpen(false);
@@ -367,7 +362,7 @@ function NewPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }]) // Removed user_id
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
         .select()
         .single();
 
@@ -411,7 +406,6 @@ function NewPurchasePage() {
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
         ReferenceNo: refNoData,
-        // user_id: user.id, // Removed user_id
       }).select().single();
 
     if (purchaseError || !purchaseData) {
@@ -426,7 +420,6 @@ function NewPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

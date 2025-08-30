@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ItemWithStock } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 type SortDirection = "asc" | "desc";
 
 function InventoryPage() {
-  // Removed user from useAuth
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -42,7 +40,6 @@ function InventoryPage() {
     let query = supabase
       .from("item_stock_details")
       .select("*", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.ilike("ItemName", `%${debouncedSearchTerm}%`);
@@ -62,7 +59,7 @@ function InventoryPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
 
   useEffect(() => {
     fetchInventory();

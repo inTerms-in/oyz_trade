@@ -5,7 +5,6 @@ import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,6 @@ import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
 type SortDirection = "asc" | "desc";
 
 function PurchasesPage() {
-  // Removed user from useAuth
   const [purchases, setPurchases] = useState<PurchaseWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -48,7 +46,6 @@ function PurchasesPage() {
     let query = supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       // Search for suppliers matching the search term
@@ -101,7 +98,7 @@ function PurchasesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
 
   useEffect(() => {
     fetchPurchases();

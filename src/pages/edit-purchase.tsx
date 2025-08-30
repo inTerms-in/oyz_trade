@@ -110,13 +110,12 @@ function EditPurchasePage() {
   const displayGrandTotal = parseFloat((itemsTotalRaw + numericAdditionalCost).toFixed(2));
 
   const fetchData = useCallback(async () => {
-    if (!purchaseId || !user) return;
+    if (!purchaseId) return;
     
     const { data, error } = await supabase
       .from("Purchase")
-      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(*)")
+      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
       .eq("PurchaseId", purchaseId)
-      // .eq("user_id", user.id) // Removed user_id filter
       .single();
 
     if (error || !data) {
@@ -151,18 +150,15 @@ function EditPurchasePage() {
     setAddedItems(loadedItems);
 
     const { data: itemsData } = await supabase.from("ItemMaster").select("*, CategoryMaster(*)")
-    // .eq("user_id", user.id) // Removed user_id filter
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo")
-    // .eq("user_id", user.id) // Removed user_id filter
-    ;
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo");
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []); // Store raw supplier data
     
     setLoading(false);
-  }, [purchaseId, navigate, form, user]);
+  }, [purchaseId, navigate, form]);
 
   useEffect(() => {
     fetchData();
@@ -365,7 +361,6 @@ function EditPurchasePage() {
       toast.success(`Sell price for "${itemToUpdateSellPrice.ItemName}" updated to ${formatCurrency(newSellPrice)}!`);
       const { data: itemsData, error: itemsError } = await supabase
         .from("ItemMaster").select("*, CategoryMaster(*)")
-        // .eq("user_id", user.id) // Removed user_id filter
         .order("ItemName");
       if (!itemsError) setItemSuggestions(itemsData as ItemWithCategory[]);
       setIsUpdateSellPriceDialogOpen(false);
@@ -404,7 +399,7 @@ function EditPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }]) // Removed user_id
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
         .select()
         .single();
 
@@ -439,7 +434,6 @@ function EditPurchasePage() {
         PurchaseDate: values.PurchaseDate.toISOString(),
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
-        // user_id: user.id, // Removed user_id
       }).eq("PurchaseId", purchaseId);
 
     if (purchaseError) {
@@ -461,7 +455,6 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

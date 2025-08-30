@@ -142,13 +142,12 @@ function EditSalePage() {
   }, [watchedAdditionalDiscount, watchedDiscountPercentage, itemsTotal, form, lastDiscountChangeSource]);
 
   const fetchData = useCallback(async () => {
-    if (!saleId || !user) return;
+    if (!saleId) return;
     
     const { data, error } = await supabase
       .from("Sales")
-      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(*)")
+      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)")
       .eq("SaleId", saleId)
-      // .eq("user_id", user.id) // Removed user_id filter
       .single();
 
     if (error || !data) {
@@ -184,13 +183,10 @@ function EditSalePage() {
     setAddedItems(loadedItems);
 
     const { data: itemsData } = await supabase.from("ItemMaster").select("*, CategoryMaster(*)")
-    // .eq("user_id", user.id) // Removed user_id filter
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo")
-    // .eq("user_id", user.id) // Removed user_id filter
-    ;
+    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
     if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
     else setCustomerSuggestions(customersData || []);
 
@@ -201,9 +197,9 @@ function EditSalePage() {
       .eq("user_id", user.id)
       .single();
 
-    if (shopError && shopError.code !== 'PGRST116') {
+    if (shopError && shopError.code !== 'PGRST116') { // PGRST116 means no rows found
       toast.error("Failed to fetch shop details", { description: shopError.message });
-    } else if (shopData) {
+    } else if (data) {
       setShopDetails(shopData);
     }
     
@@ -247,7 +243,7 @@ function EditSalePage() {
       } else {
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
-          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }]) // Removed user_id
+          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }])
           .select()
           .single();
 
@@ -284,7 +280,6 @@ function EditSalePage() {
         TotalAmount: itemsTotal - additionalDiscount,
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
-        // user_id: user.id, // Removed user_id
       }).eq("SaleId", saleId);
 
     if (saleError) {
@@ -306,7 +301,6 @@ function EditSalePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
