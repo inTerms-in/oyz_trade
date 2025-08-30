@@ -42,21 +42,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let isMounted = true; // To prevent state updates on unmounted component
 
     const setupAuth = async () => {
-      // 1. Initial session and profile fetch
       const { data: { session: initialSession } } = await supabase.auth.getSession();
+      
+      let fetchedProfile: Profile | null = null;
+      if (initialSession?.user) {
+        fetchedProfile = await getProfile(initialSession.user.id);
+        if (isMounted) {
+          setProfile(fetchedProfile);
+        }
+      } else {
+        if (isMounted) setProfile(null);
+      }
+
       if (isMounted) {
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
-        if (initialSession?.user) {
-          const userProfile = await getProfile(initialSession.user.id);
-          if (isMounted) setProfile(userProfile);
-        } else {
-          if (isMounted) setProfile(null);
-        }
-        if (isMounted) setLoading(false); // Set loading to false after initial fetch
+        setLoading(false); // Set loading to false AFTER profile is attempted to be fetched
       }
 
-      // 2. Set up auth state change listener
       const { data: authListener } = supabase.auth.onAuthStateChange(
         async (event, currentSession) => {
           if (!isMounted) return;
@@ -70,8 +73,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           } else {
             setProfile(null);
           }
-          // Removed setLoading(false) from here.
-          // The `loading` state is now only for the initial check.
 
           if (event === 'SIGNED_IN') {
             navigate('/');
