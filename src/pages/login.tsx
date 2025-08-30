@@ -3,7 +3,6 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 function Login() {
-  // Other code here
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
@@ -11,20 +10,11 @@ function Login() {
         <p className="text-center text-muted-foreground">Sign in to manage your purchases and sales.</p>
         <Auth
           supabaseClient={supabase}
-          providers={[]}
+          providers={["magic_link"]}
           appearance={{
             theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: 'hsl(var(--primary))',
-                  brandAccent: 'hsl(var(--primary-foreground))',
-                },
-              },
-            },
+            // Removed custom variables and theme="light" to ensure view="sign_in" takes precedence
           }}
-          theme="light"
-          // Added to only show the sign-in view
           view="sign_in" 
         />
       </div>
