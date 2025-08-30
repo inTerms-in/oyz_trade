@@ -191,11 +191,12 @@ function EditSalePage() {
     else setCustomerSuggestions(customersData || []);
 
     // Fetch shop details for WhatsApp message
-    if (user?.id) { // Added null check for user
+    // Ensure user is not null before accessing user.id
+    if (user?.id) {
       const { data: shopData, error: shopError } = await supabase
         .from("shop")
         .select("shop_name, mobile_no, address")
-        .eq("user_id", user.id)
+        .eq("user_id", user!.id) // Non-null assertion added here
         .single();
 
       if (shopError && shopError.code !== 'PGRST116') { // PGRST116 means no rows found
