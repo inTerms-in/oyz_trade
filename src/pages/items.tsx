@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generateItemCode } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,7 +24,8 @@ type SortDirection = "asc" | "desc";
 
 function ItemsPage() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<ItemWithStock[]>([]);
+  // Removed user from useAuth
+  const [items, setItems] = useState<ItemWithStock[]>(([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
 
@@ -50,7 +52,7 @@ function ItemsPage() {
     let query = supabase
       .from("item_stock_details")
       .select("*", { count: "exact" });
-      // .eq("user_id", user.id); // Removed user_id filter
+      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.or(`ItemName.ilike.%${debouncedSearchTerm}%,ItemCode.ilike.%${debouncedSearchTerm}%`);
@@ -70,7 +72,7 @@ function ItemsPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchItems();

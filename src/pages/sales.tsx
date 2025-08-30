@@ -5,6 +5,7 @@ import { SaleWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
 type SortDirection = "asc" | "desc";
 
 function SalesPage() {
+  // Removed user from useAuth
   const [sales, setSales] = useState<SaleWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -46,7 +48,7 @@ function SalesPage() {
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)", { count: "exact" });
-      // .eq("user_id", user.id); // Removed user_id filter
+      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       // Search for customers matching the search term
@@ -99,7 +101,7 @@ function SalesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchSales();

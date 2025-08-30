@@ -4,7 +4,7 @@ import { SaleWithItems, HourlySales } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -89,7 +89,7 @@ interface RawHourlySale {
 }
 
 function SalesDashboardPage() {
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -117,16 +117,12 @@ function SalesDashboardPage() {
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
 
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*), CustomerMaster(CustomerName)")
-      // .eq("user_id", user.id) // Removed user_id filter
+      // Removed .eq("user_id", user.id)
       .order("SaleDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("SaleDate", dateRange.from.toISOString());
@@ -158,7 +154,7 @@ function SalesDashboardPage() {
     const { data: allSaleItems, error: allItemsError } = await supabase
       .from("SalesItem")
       .select("ItemId, Qty, ItemMaster(ItemName)");
-      // .eq("user_id", user.id); // Removed user_id filter
+      // Removed .eq("user_id", user.id)
 
     if (allItemsError) {
       toast.error("Failed to fetch top sold items", { description: allItemsError.message });
@@ -211,7 +207,7 @@ function SalesDashboardPage() {
     setMonthlySales(sortedMonthlySales);
 
     setLoading(false);
-  }, [dateRange, user]);
+  }, [dateRange]); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchData();

@@ -22,7 +22,7 @@ export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
 
     React.useEffect(() => {
       async function fetchShopDetails() {
-        if (!user?.id) return;
+        if (!user?.id) return; // Still need user ID to fetch *their* shop details
         const { data, error } = await supabase
           .from("shop")
           .select("shop_name, mobile_no, address")

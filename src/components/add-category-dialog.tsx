@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for inserts
 
 
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ interface AddCategoryDialogProps {
 
 export function AddCategoryDialog({ open, onOpenChange, initialValue = "", onCategoryAdded }: AddCategoryDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  // Removed user from useAuth
   
 
   const form = useForm<CategoryFormValues>({
@@ -64,10 +64,7 @@ export function AddCategoryDialog({ open, onOpenChange, initialValue = "", onCat
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: CategoryFormValues) {
-    if (!user) {
-      toast.error("You must be logged in to add a category.");
-      return;
-    }
+    // Removed user check
     setIsSubmitting(true);
 
     // Proceed with Supabase if online

@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ItemWithStock, StockAdjustment as StockAdjustmentType } from "@/types";
 import { format } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id filtering is no longer applied
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,13 +34,13 @@ const stockAdjustmentFormSchema = z.object({
 type StockAdjustmentFormValues = z.infer<typeof stockAdjustmentFormSchema>;
 
 function StockAdjustmentPage() {
+  // Removed user from useAuth
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithStock[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
   const [recentAdjustments, setRecentAdjustments] = useState<StockAdjustmentType[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [loadingAdjustments, setLoadingAdjustments] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
 
   const form = useForm<StockAdjustmentFormValues>({
     resolver: zodResolver(stockAdjustmentFormSchema),
@@ -56,28 +56,26 @@ function StockAdjustmentPage() {
   const watchedItemId = form.watch("ItemId");
 
   const fetchItemSuggestions = useCallback(async () => {
-    if (!user) return;
     setLoadingSuggestions(true);
     const { data, error } = await supabase
       .from("item_stock_details")
-      .select("ItemId, ItemName, ItemCode, current_stock")
-      // .eq("user_id", user.id); // Removed user_id filter
+      .select("ItemId, ItemName, ItemCode, current_stock");
+      // Removed .eq("user_id", user.id)
     if (error) {
       toast.error("Failed to fetch items", { description: error.message });
     } else {
       setItemSuggestions(data as ItemWithStock[]);
     }
     setLoadingSuggestions(false);
-  }, [user]);
+  }, []); // Removed user from dependencies
 
   const fetchRecentAdjustments = useCallback(async (itemId: number) => {
-    if (!user) return;
     setLoadingAdjustments(true);
     const { data, error } = await supabase
       .from("StockAdjustment")
       .select("*, ItemMaster(ItemName, ItemCode)")
       .eq("ItemId", itemId)
-      // .eq("user_id", user.id) // Removed user_id filter
+      // Removed .eq("user_id", user.id)
       .order("AdjustmentDate", { ascending: false })
       .limit(5);
     if (error) {
@@ -87,7 +85,7 @@ function StockAdjustmentPage() {
       setRecentAdjustments(data as StockAdjustmentType[]);
     }
     setLoadingAdjustments(false);
-  }, [user]);
+  }, []); // Removed user from dependencies
 
   useEffect(() => {
     fetchItemSuggestions();
@@ -121,10 +119,7 @@ function StockAdjustmentPage() {
   };
 
   async function onSubmit(values: StockAdjustmentFormValues) {
-    if (!user) {
-      toast.error("You must be logged in to record a stock adjustment.");
-      return;
-    }
+    // Removed user check
     setIsSubmitting(true);
 
     // Ensure ItemId is a number before inserting
@@ -141,7 +136,7 @@ function StockAdjustmentPage() {
         AdjustmentType: values.AdjustmentType,
         Quantity: values.Quantity,
         Reason: values.Reason,
-        // user_id: user.id, // Removed user_id
+        // Removed user_id: user.id
       });
 
     setIsSubmitting(false);

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { ExpenseCategory } from "@/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for inserts or queries
 
 
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
-  const { user } = useAuth();
+  // Removed user from useAuth
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -74,7 +74,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   });
 
   const fetchExpenseCategories = useCallback(async () => {
-    if (!user) return;
+    // Removed user check
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
@@ -89,7 +89,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         form.setValue("ExpenseCategoryId", data[0].ExpenseCategoryId, { shouldValidate: true });
       }
     }
-  }, [form, user]);
+  }, [form]); // Removed user from dependencies
 
   useEffect(() => {
     if (open) {
@@ -107,10 +107,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: ExpenseFormValues) {
-    if (!user) {
-      toast.error("You must be logged in to add an expense.");
-      return;
-    }
+    // Removed user check
     setIsSubmitting(true);
 
     const { error } = await supabase

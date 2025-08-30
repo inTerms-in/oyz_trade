@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Supplier } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +21,7 @@ import { PlusCircle, ArrowUpDown } from "lucide-react";
 type SortDirection = "asc" | "desc";
 
 function SuppliersPage() {
+  // Removed user from useAuth
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -45,7 +47,7 @@ function SuppliersPage() {
     let query = supabase
       .from("SupplierMaster")
       .select("*", { count: "exact" });
-      // .eq("user_id", user.id); // Removed user_id filter
+      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.or(`SupplierName.ilike.%${debouncedSearchTerm}%,MobileNo.ilike.%${debouncedSearchTerm}%`);
@@ -65,7 +67,7 @@ function SuppliersPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchSuppliers();

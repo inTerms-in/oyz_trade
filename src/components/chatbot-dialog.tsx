@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { useNavigate } from "react-router-dom";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,7 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
       .from("PurchaseItem")
       .select("UnitPrice, Purchase(SupplierMaster(SupplierName), PurchaseDate)")
       .eq("ItemId", item.ItemId)
-      // .eq("user_id", user.id) // Removed user_id filter
+      // Removed .eq("user_id", user.id)
       .order("PurchaseId", { ascending: false })
       .limit(10);
     
@@ -273,14 +274,12 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
           const { data, error } = await supabase
               .from('item_stock_details')
               .select('ItemId, ItemName, current_stock, ItemCode, RackNo') // Added RackNo
-              // .ilike('ItemName', `%${stockItemName}%`); // Removed user_id filter
               .ilike('ItemName', `%${stockItemName}%`);
           
           if (error || !data || data.length === 0) {
               const { data: broaderData } = await supabase
                 .from('item_stock_details')
                 .select('ItemId, ItemName, current_stock, ItemCode, RackNo') // Added RackNo
-                // .textSearch('ItemName', `'${stockItemName}'`); // Removed user_id filter
                 .textSearch('ItemName', `'${stockItemName}'`);
               
               if (broaderData && broaderData.length > 0) {
@@ -302,7 +301,6 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
         const { data: items, error: itemsError } = await supabase
           .from("item_stock_details") // Use item_stock_details to get stock too
           .select("ItemId, ItemName, current_stock, ItemCode, RackNo") // Added RackNo
-          // .ilike("ItemName", `%${historyItemName}%`) // Removed user_id filter
           .ilike("ItemName", `%${historyItemName}%`)
           .limit(5);
 
@@ -324,7 +322,6 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
         const { data: items, error: itemsError } = await supabase
           .from("item_stock_details") // Use item_stock_details to get stock too
           .select("ItemId, ItemName, current_stock, ItemCode, RackNo") // Added RackNo
-          // .ilike("ItemName", `%${searchTerm}%`) // Removed user_id filter
           .ilike("ItemName", `%${searchTerm}%`)
           .limit(5);
 

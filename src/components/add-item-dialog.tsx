@@ -7,7 +7,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Category } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for inserts or queries
 
 
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const { user } = useAuth();
+  // Removed user from useAuth
   
 
   const form = useForm<ItemFormValues>({
@@ -87,7 +87,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
 
   useEffect(() => {
     async function fetchCategories() {
-      if (!user) return;
+      // Removed user check
       const { data } = await supabase.from("CategoryMaster").select("*")
       // .eq("user_id", user.id) // Removed user_id filter
       .order("CategoryName");
@@ -101,14 +101,10 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
     if (open) {
       fetchCategories();
     }
-  }, [open, form, initialValues, user]);
+  }, [open, form, initialValues]); // Removed user from dependencies
 
   const handleGenerateBarcode = async () => {
-    // Barcode generation is a server-side RPC, so it requires online status
-    if (!user) {
-      toast.error("You must be logged in to generate a barcode.");
-      return;
-    }
+    // Removed user check
     
     const { data, error } = await supabase.rpc('generate_unique_barcode');
     if (error) {
@@ -120,10 +116,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
   };
 
   async function onSubmit(values: ItemFormValues) {
-    if (!user) {
-      toast.error("You must be logged in to add an item.");
-      return;
-    }
+    // Removed user check
     setIsSubmitting(true);
 
     // Proceed with Supabase if online

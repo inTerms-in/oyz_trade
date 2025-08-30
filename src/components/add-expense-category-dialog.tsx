@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for inserts
 
 
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ interface AddExpenseCategoryDialogProps {
 
 export function AddExpenseCategoryDialog({ open, onOpenChange, initialValue = "", onCategoryAdded }: AddExpenseCategoryDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  // Removed user from useAuth
 
   const form = useForm<ExpenseCategoryFormValues>({
     resolver: zodResolver(expenseCategoryFormSchema),
@@ -67,10 +67,7 @@ export function AddExpenseCategoryDialog({ open, onOpenChange, initialValue = ""
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: ExpenseCategoryFormValues) {
-    if (!user) {
-      toast.error("You must be logged in to add an expense category.");
-      return;
-    }
+    // Removed user check
     setIsSubmitting(true);
 
     const { error } = await supabase

@@ -1,4 +1,5 @@
 import { PurchaseWithItems } from "@/types";
+// Removed useAuth import as user_id filtering is no longer applied
 import {
   Card,
   CardContent,

@@ -6,6 +6,7 @@ import { ItemWithStock, PrintableItem } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useLocation } from "react-router-dom";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,6 +23,7 @@ type SortDirection = "asc" | "desc";
 
 function BarcodePrintPage() {
   const location = useLocation();
+  // Removed user from useAuth
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,7 +54,7 @@ function BarcodePrintPage() {
     let query = supabase
       .from("item_stock_details")
       .select("ItemId, ItemName, CategoryId, CategoryName, SellPrice, Barcode, ItemCode, RackNo", { count: "exact" });
-      // .eq("user_id", user.id); // Removed user_id filter
+      // Removed .eq("user_id", user.id)
 
     if (initialItemIds && initialItemIds.length > 0) {
       query = query.in("ItemId", initialItemIds);
@@ -87,7 +89,7 @@ function BarcodePrintPage() {
       }
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
 
   useEffect(() => {
     const initialItemIds = location.state?.initialSelectedItems as number[] | undefined;

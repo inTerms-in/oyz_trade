@@ -7,7 +7,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Category, Item } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for inserts or queries
 
 
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ export function AddNewItemInlineDialog({
 }: AddNewItemInlineDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const { user } = useAuth();
+  // Removed user from useAuth
   
 
   const form = useForm<ItemFormValues>({
@@ -73,7 +73,7 @@ export function AddNewItemInlineDialog({
 
   useEffect(() => {
     async function fetchCategories() {
-      if (!user) return;
+      // Removed user check
       const { data } = await supabase.from("CategoryMaster").select("*")
       // .eq("user_id", user.id) // Removed user_id filter
       .order("CategoryName");
@@ -87,13 +87,10 @@ export function AddNewItemInlineDialog({
     if (open) {
       fetchCategories();
     }
-  }, [open, form, user]);
+  }, [open, form]); // Removed user from dependencies
 
   async function onSubmit(values: ItemFormValues) {
-    if (!user) {
-      toast.error("You must be logged in to add an item.");
-      return;
-    }
+    // Removed user check
     setIsSubmitting(true);
 
     // Proceed with Supabase if online

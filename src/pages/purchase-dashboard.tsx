@@ -4,6 +4,7 @@ import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
+// Removed useAuth import as user_id filtering is no longer applied
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -36,6 +37,7 @@ interface MonthlyTotal {
 }
 
 function PurchaseDashboardPage() {
+  // Removed user from useAuth
   const [loading, setLoading] = useState(true);
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalPurchases, setTotalPurchases] = useState(0);
@@ -58,7 +60,7 @@ function PurchaseDashboardPage() {
       const { count, error: itemsError } = await supabase
         .from("ItemMaster")
         .select('*', { count: 'exact', head: true });
-        // .eq("user_id", user.id); // Removed user_id filter
+        // Removed .eq("user_id", user.id)
       
       if (itemsError) toast.error("Failed to fetch item count", { description: itemsError.message });
       else setTotalItems(count || 0);
@@ -66,7 +68,7 @@ function PurchaseDashboardPage() {
       let query = supabase
         .from("Purchase")
         .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
-        // .eq("user_id", user.id) // Removed user_id filter
+        // Removed .eq("user_id", user.id)
         .order("PurchaseDate", { ascending: false });
 
       if (dateRange?.from) query = query.gte("PurchaseDate", dateRange.from.toISOString());
@@ -124,7 +126,7 @@ function PurchaseDashboardPage() {
       const { data: allPurchaseItems, error: allItemsError } = await supabase
         .from("PurchaseItem")
         .select("ItemMaster(*)");
-        // .eq("user_id", user.id); // Removed user_id filter
+        // Removed .eq("user_id", user.id)
 
       if (allItemsError) {
         toast.error("Failed to fetch top items", { description: allItemsError.message });
@@ -146,7 +148,7 @@ function PurchaseDashboardPage() {
     }
 
     fetchData();
-  }, [dateRange]);
+  }, [dateRange]); // Removed user.id from dependencies
 
   if (loading) {
     return (
@@ -164,13 +166,9 @@ function PurchaseDashboardPage() {
             <Skeleton className="h-80" />
             <Skeleton className="h-80" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-            <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
-        </div>
         <div className="grid gap-4 md:grid-cols-2"> {/* Added for new charts */}
-            <Skeleton className="h-80" />
-            <Skeleton className="h-80" />
+            <Skeleton className="h-96" />
+            <Skeleton className="h-96" />
         </div>
       </div>
     );
