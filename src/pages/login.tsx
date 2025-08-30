@@ -24,6 +24,8 @@ function Login() {
             },
           }}
           theme="light"
+          // Added to only show the sign-in view
+          view="sign_in" 
         />
       </div>
     </div>

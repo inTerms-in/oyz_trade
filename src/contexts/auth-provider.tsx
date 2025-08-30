@@ -29,6 +29,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) { // If a session exists on initial load, navigate to dashboard
+        navigate('/');
+      }
     };
 
     getSession();
@@ -38,8 +41,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        // Removed unconditional redirect on SIGNED_IN.
-        // The ProtectedRoute component will handle navigation based on authentication status.
+        if (event === 'SIGNED_IN') { // Redirect to dashboard on successful sign-in
+          navigate('/');
+        }
         if (event === 'SIGNED_OUT') {
           navigate('/login');
         }
