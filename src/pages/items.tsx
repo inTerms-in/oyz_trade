@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ItemWithStock } from "@/types"; // Removed PrintableItem as it's not directly used here
+import { ItemWithStock } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generateItemCode } from "@/lib/utils";
-import { useNavigate, useLocation } from "react-router-dom"; // Import useLocation
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,15 +20,13 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { PlusCircle, ArrowUpDown, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-// Removed import for PrintableBarcodes as it's not directly used here
-// Removed import for FloatingLabelInput as it's not directly used here
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SortDirection = "asc" | "desc";
 
 function ItemsPage() {
   const navigate = useNavigate();
-  const location = useLocation(); // Use useLocation to check for state
+  const location = useLocation();
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -64,7 +62,7 @@ function ItemsPage() {
     }
 
     query = query.order(sort.column, { ascending: sort.direction === "asc" });
-    if (!initialItemIds) { // Only apply range if not fetching specific initial items
+    if (!initialItemIds) {
       query = query.range(from, to);
     }
 
@@ -80,7 +78,6 @@ function ItemsPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
 
       if (initialItemIds && initialItemIds.length > 0) {
-        // Pre-select items that were passed via state
         const preSelected = fetchedItems.map(item => item.ItemId);
         setSelectedItemIds(preSelected);
       }
@@ -91,11 +88,35 @@ function ItemsPage() {
   useEffect(() => {
     const initialItemIds = location.state?.initialSelectedItems as number[] | undefined;
     fetchItems(initialItemIds);
-    // Clear state after use to prevent re-fetching on subsequent visits
     if (location.state?.initialSelectedItems) {
-      window.history.replaceState({}, document.title); // Clear state from history
+      window.history.replaceState({}, document.title);
     }
   }, [fetchItems, location.state?.initialSelectedItems]);
+
+  useEffect(() => {
+    const channel = supabase.channel('public:ItemMaster')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ItemMaster' },
+        () => {
+          toast.info("Items have been updated. Refreshing list...");
+          fetchItems();
+        }
+      )
+      .subscribe();
+
+    const categoryChannel = supabase.channel('public:CategoryMaster')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'CategoryMaster' },
+        () => {
+          toast.info("Categories have been updated. Refreshing item list...");
+          fetchItems();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(categoryChannel);
+    };
+  }, [fetchItems]);
 
   const handleSort = (column: string) => {
     const isAsc = sort.column === column && sort.direction === "asc";
