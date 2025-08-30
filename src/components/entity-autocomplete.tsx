@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils"
 
 interface EntityAutocompleteProps<T> extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onSelect'> {
   suggestions: T[];
-  value: string; // The current input value (name)
+  value: string; // The current input value (name) from parent
   onValueChange: (value: string) => void; // When the input text changes
   onSelect?: (entity: T) => void; // When an entity is selected from suggestions
   label?: string;
   id: string;
+  className?: string;
   // New props to define how to map T to Entity
   getId: (item: T) => number | string;
   getName: (item: T) => string;
@@ -28,28 +29,44 @@ const EntityAutocompleteInner = React.forwardRef(
     const [isFocused, setIsFocused] = React.useState(false);
     const [activeIndex, setActiveIndex] = React.useState(-1);
     const activeItemRef = React.useRef<HTMLButtonElement>(null);
+    const [displayValue, setDisplayValue] = React.useState(value); // Internal state for input field
+
+    // Sync internal displayValue with external value prop
+    React.useEffect(() => {
+      if (value !== displayValue) {
+        setDisplayValue(value);
+      }
+    }, [value]);
 
     const filteredSuggestions = React.useMemo(() => {
-      if (!value) {
+      if (!displayValue) {
         return [];
       }
-      const lowercasedValue = value.toLowerCase();
+      const lowercasedValue = displayValue.toLowerCase();
       return suggestions.filter((entity: T) => 
         getName(entity).toLowerCase().includes(lowercasedValue)
       ).slice(0, 7);
-    }, [suggestions, value, getName]);
+    }, [suggestions, displayValue, getName]);
 
     const open = isFocused && filteredSuggestions.length > 0;
 
     React.useEffect(() => {
       setActiveIndex(-1);
-    }, [value]);
+    }, [displayValue]);
 
     React.useEffect(() => {
       if (activeIndex >= 0 && activeItemRef.current) {
         activeItemRef.current.scrollIntoView({ block: "nearest" });
       }
     }, [activeIndex]);
+
+    const handleSelect = (selectedEntity: T) => {
+      const entityDisplayName = getName(selectedEntity);
+      setDisplayValue(entityDisplayName); // Update internal state
+      onValueChange(entityDisplayName); // Propagate to parent
+      onSelect?.(selectedEntity); // Call parent's onSelect
+      setIsFocused(false);
+    };
 
     const handleFocus = () => {
       setIsFocused(true);
@@ -73,18 +90,11 @@ const EntityAutocompleteInner = React.forwardRef(
       } else if (e.key === "Enter" || e.key === "Tab") {
         if (activeIndex >= 0) {
           e.preventDefault();
-          const selectedEntity = filteredSuggestions[activeIndex];
-          onValueChange(getName(selectedEntity));
-          onSelect?.(selectedEntity);
-          setIsFocused(false);
+          handleSelect(filteredSuggestions[activeIndex]);
         } else if (filteredSuggestions.length === 1 && e.key === "Enter") {
           e.preventDefault();
-          const selectedEntity = filteredSuggestions[0];
-          onValueChange(getName(selectedEntity));
-          onSelect?.(selectedEntity);
-          setIsFocused(false);
+          handleSelect(filteredSuggestions[0]);
         } else {
-          // If no suggestion is active, and Enter/Tab is pressed, just close suggestions
           setIsFocused(false);
         }
       } else if (e.key === "Escape") {
@@ -99,8 +109,11 @@ const EntityAutocompleteInner = React.forwardRef(
             <Input
               ref={ref}
               id={id}
-              value={value}
-              onChange={(e) => onValueChange(e.target.value)}
+              value={displayValue} // Use internal state
+              onChange={(e) => {
+                setDisplayValue(e.target.value); // Update internal state
+                onValueChange(e.target.value); // Propagate to parent
+              }}
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
@@ -134,11 +147,7 @@ const EntityAutocompleteInner = React.forwardRef(
                   "w-full text-left rounded-sm p-2 text-sm hover:bg-accent focus:outline-none focus:bg-accent",
                   index === activeIndex && "bg-accent text-accent-foreground" // Highlight active item
                 )}
-                onClick={() => {
-                  onValueChange(getName(entity));
-                  onSelect?.(entity);
-                  setIsFocused(false);
-                }}
+                onClick={() => handleSelect(entity)}
                 onMouseEnter={() => setActiveIndex(index)}
               >
                 {getName(entity)} {getMobileNo && getMobileNo(entity) && <span className="text-muted-foreground text-xs">({getMobileNo(entity)})</span>}

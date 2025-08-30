@@ -22,6 +22,7 @@ import { useState } from "react";
 import { ChatbotTrigger } from "@/components/chatbot-trigger";
 import { ChatbotDialog } from "@/components/chatbot-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 // Define a type for navigation items, including nested children
 interface NavItem {
@@ -169,7 +170,7 @@ function Layout() {
   ];
 
   // Helper to render nav links, recursively for nested items
-  const renderNavLinks = (items: NavItem[], isMobile: boolean) => { // Removed unused 'parentPath'
+  const renderNavLinks = (items: NavItem[], isMobile: boolean) => {
     return items.map((item) => {
       const currentPath = item.to;
       const isActive = location.pathname.startsWith(currentPath) && (item.end ? location.pathname === currentPath : true);
@@ -217,7 +218,7 @@ function Layout() {
           );
         }
       } else {
-        return (
+        const linkContent = (
           <NavLink key={item.label} to={item.to} className={isMobile ? mobileNavLinkClasses : navLinkClasses} onClick={isMobile ? closeSheet : undefined} end={item.end}>
             <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
             <span className={cn(
@@ -227,6 +228,21 @@ function Layout() {
               {item.label}
             </span>
           </NavLink>
+        );
+
+        return isCollapsed && !isMobile ? (
+          <TooltipProvider key={item.label}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {linkContent}
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {item.label}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          linkContent
         );
       }
     });
@@ -247,7 +263,7 @@ function Layout() {
             <span>PurchaseTracker</span>
           </NavLink>
           <Button variant="ghost" size="icon" className={cn("h-8 w-8", !isCollapsed && "ml-auto")} onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            <ChevronsLeft className="h-5 w-5 transition-transform" />
+            <ChevronsLeft className={cn("h-5 w-5 transition-transform", isCollapsed && "rotate-180")} />
           </Button>
         </div>
         <div className="flex-1 py-4">
@@ -279,7 +295,6 @@ function Layout() {
           </Sheet>
           <div className="w-full flex-1">
             <div className="relative">
-              {/* Existing Dashboards Dropdown - can be kept or removed based on preference */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button>
@@ -343,7 +358,7 @@ function Layout() {
             </DropdownMenu>
           )}
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20">
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-4 bg-muted/20"> {/* Adjusted padding here */}
           <Outlet key={location.pathname} />
         </main>
         <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />

@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils"
 // Made Autocomplete generic with type T
 interface AutocompleteProps<T> extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onSelect'> {
   suggestions: T[];
-  value: string;
-  onValueChange: (value: string) => void;
-  onSelect?: (item: T) => void;
+  value: string; // This is the value from the parent form/state
+  onValueChange: (value: string) => void; // When the input text changes
+  onSelect?: (item: T) => void; // When an item is selected from suggestions
   label?: string;
   id?: string;
   className?: string;
@@ -30,24 +30,31 @@ const AutocompleteInner = React.forwardRef(
     const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
     const [activeIndex, setActiveIndex] = React.useState(-1);
     const activeItemRef = React.useRef<HTMLButtonElement>(null);
+    const [displayValue, setDisplayValue] = React.useState(value); // Internal state for input field
+
+    // Sync internal displayValue with external value prop
+    React.useEffect(() => {
+      if (value !== displayValue) {
+        setDisplayValue(value);
+      }
+    }, [value]);
 
     const filteredSuggestions = React.useMemo(() => {
-      if (!value) {
+      if (!displayValue) {
         return [];
       }
-      const lowercasedValue = value.toLowerCase();
+      const lowercasedValue = displayValue.toLowerCase();
       return suggestions.filter((item: T) => 
         getName(item).toLowerCase().includes(lowercasedValue) ||
         (getItemCode && getItemCode(item) && getItemCode(item)!.toLowerCase().includes(lowercasedValue))
       ).slice(0, 7);
-    }, [suggestions, value, getName, getItemCode]);
+    }, [suggestions, displayValue, getName, getItemCode]);
 
-    // The popover should be open if there are filtered suggestions AND the user is interacting with the input/popover
     const shouldOpenPopover = isSuggestionsOpen && filteredSuggestions.length > 0;
 
     React.useEffect(() => {
       setActiveIndex(-1);
-    }, [value]);
+    }, [displayValue]);
 
     React.useEffect(() => {
       if (activeIndex >= 0 && activeItemRef.current) {
@@ -55,8 +62,16 @@ const AutocompleteInner = React.forwardRef(
       }
     }, [activeIndex]);
 
+    const handleSelect = (selectedItem: T) => {
+      const itemDisplayName = getName(selectedItem);
+      setDisplayValue(itemDisplayName); // Update internal state
+      onValueChange(itemDisplayName); // Propagate to parent
+      onSelect?.(selectedItem); // Call parent's onSelect
+      setIsSuggestionsOpen(false);
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!shouldOpenPopover) return; // Use the new state
+      if (!shouldOpenPopover) return;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -67,18 +82,13 @@ const AutocompleteInner = React.forwardRef(
       } else if (e.key === "Enter" || e.key === "Tab") {
         if (activeIndex >= 0) {
           e.preventDefault();
-          const selectedItem = filteredSuggestions[activeIndex];
-          onValueChange(getName(selectedItem));
-          onSelect?.(selectedItem);
-          setIsSuggestionsOpen(false); // Close on select
+          handleSelect(filteredSuggestions[activeIndex]);
         } else if (filteredSuggestions.length === 1 && e.key === "Enter") {
           e.preventDefault();
-          const selectedItem = filteredSuggestions[0];
-          onValueChange(getName(selectedItem));
-          onSelect?.(selectedItem);
-          setIsSuggestionsOpen(false); // Close on select
+          handleSelect(filteredSuggestions[0]);
         } else {
-          setIsSuggestionsOpen(false); // Close if no selection
+          // If no suggestion is active, and Enter/Tab is pressed, just close suggestions
+          setIsSuggestionsOpen(false);
         }
       } else if (e.key === "Escape") {
         setIsSuggestionsOpen(false);
@@ -86,22 +96,23 @@ const AutocompleteInner = React.forwardRef(
     };
 
     return (
-      <Popover open={shouldOpenPopover} onOpenChange={setIsSuggestionsOpen}> {/* Control Popover open state */}
+      <Popover open={shouldOpenPopover} onOpenChange={setIsSuggestionsOpen}>
         <PopoverAnchor asChild>
           <div className="relative">
             <Input
               ref={ref}
               id={id}
-              value={value}
+              value={displayValue} // Use internal state
               onChange={(e) => {
-                onValueChange(e.target.value);
-                if (e.target.value.length > 0) { // Open suggestions if typing
+                setDisplayValue(e.target.value); // Update internal state
+                onValueChange(e.target.value); // Propagate to parent
+                if (e.target.value.length > 0) {
                   setIsSuggestionsOpen(true);
                 } else {
-                  setIsSuggestionsOpen(false); // Close if input is empty
+                  setIsSuggestionsOpen(false);
                 }
               }}
-              onFocus={() => setIsSuggestionsOpen(true)} // Open on focus
+              onFocus={() => setIsSuggestionsOpen(true)}
               onKeyDown={handleKeyDown}
               placeholder={label ? " " : placeholder}
               autoComplete="off"
@@ -133,11 +144,7 @@ const AutocompleteInner = React.forwardRef(
                   "w-full text-left rounded-sm p-2 text-sm hover:bg-accent focus:outline-none focus:bg-accent",
                   index === activeIndex && "bg-accent text-accent-foreground"
                 )}
-                onClick={() => {
-                  onValueChange(getName(item));
-                  onSelect?.(item);
-                  setIsSuggestionsOpen(false); // Close on click
-                }}
+                onClick={() => handleSelect(item)}
                 onMouseEnter={() => setActiveIndex(index)}
               >
                 {getName(item)} {getItemCode && getItemCode(item) && <span className="text-muted-foreground text-xs">({getItemCode(item)})</span>}

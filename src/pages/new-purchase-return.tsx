@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
-import { PurchaseWithItems } from "@/types"; // Removed Purchase, Item, ItemWithCategory
+import { PurchaseWithItems } from "@/types";
 import { useAuth } from "@/contexts/auth-provider";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, Trash2 } from "lucide-react"; // Removed Plus
+import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -29,12 +29,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Autocomplete } from "@/components/autocomplete"; // For searching purchases
+import { Autocomplete } from "@/components/autocomplete";
 
 const purchaseReturnFormSchema = z.object({
   PurchaseId: z.coerce.number({ required_error: "Please select an original purchase." }),
   ReturnDate: z.date(),
   Reason: z.string().optional().nullable(),
+  purchaseSearchText: z.string().optional(), // New field to hold the autocomplete text
 });
 
 type PurchaseReturnFormValues = z.infer<typeof purchaseReturnFormSchema>;
@@ -64,10 +65,11 @@ function NewPurchaseReturnPage() {
   const form = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnFormSchema),
     mode: "onChange",
-    defaultValues: { PurchaseId: undefined, ReturnDate: new Date(), Reason: "" },
+    defaultValues: { PurchaseId: undefined, ReturnDate: new Date(), Reason: "", purchaseSearchText: "" },
   });
 
   const watchedPurchaseId = form.watch("PurchaseId");
+  const watchedPurchaseSearchText = form.watch("purchaseSearchText"); // Watch the new search text field
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchPurchaseSuggestions = useCallback(async () => {
@@ -107,14 +109,21 @@ function NewPurchaseReturnPage() {
           TotalPrice: 0,
         }));
         setReturnableItems(items);
+        // Update the search text field to reflect the selected purchase's name
+        form.setValue("purchaseSearchText", purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`, { shouldValidate: true });
       } else {
         setReturnableItems([]);
+        form.setValue("purchaseSearchText", "", { shouldValidate: true });
       }
     } else {
       setSelectedPurchase(null);
       setReturnableItems([]);
+      // If PurchaseId is cleared, also clear the search text unless user is actively typing
+      if (!watchedPurchaseSearchText) {
+        form.setValue("purchaseSearchText", "", { shouldValidate: true });
+      }
     }
-  }, [watchedPurchaseId, purchaseSuggestions]);
+  }, [watchedPurchaseId, purchaseSuggestions, form, watchedPurchaseSearchText]);
 
   const handleQtyReturnedChange = (index: number, value: number) => {
     const updatedItems = [...returnableItems];
@@ -224,7 +233,7 @@ function NewPurchaseReturnPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="PurchaseId"
+                  name="purchaseSearchText" // Use the new search text field for the Autocomplete's value
                   render={({ field }) => (
                     <FormItem className="flex-grow">
                       <Label htmlFor="purchase-autocomplete">Original Purchase</Label>
@@ -232,16 +241,19 @@ function NewPurchaseReturnPage() {
                         <Autocomplete<PurchaseWithItems>
                           id="purchase-autocomplete"
                           suggestions={purchaseSuggestions}
-                          value={selectedPurchase ? (selectedPurchase.ReferenceNo || `Purchase ${selectedPurchase.PurchaseId}`) : ""}
+                          value={field.value ?? ""} // Bind Autocomplete's value to purchaseSearchText
                           onValueChange={(v) => {
-                            const matchedPurchase = purchaseSuggestions.find(s => (s.ReferenceNo === v || `Purchase ${s.PurchaseId}` === v));
-                            if (matchedPurchase) {
-                              field.onChange(matchedPurchase.PurchaseId);
-                            } else {
-                              field.onChange(undefined);
+                            field.onChange(v); // Update purchaseSearchText
+                            // If the typed value no longer matches a selected purchase, clear PurchaseId
+                            const matchedPurchase = purchaseSuggestions.find(s => (s.ReferenceNo === v || `Purchase ${s.PurchaseId} (${s.SupplierMaster?.SupplierName || 'N/A'})` === v));
+                            if (!matchedPurchase) {
+                              form.setValue("PurchaseId", undefined, { shouldValidate: true });
                             }
                           }}
-                          onSelect={(purchase) => field.onChange(purchase.PurchaseId)}
+                          onSelect={(purchase) => {
+                            form.setValue("PurchaseId", purchase.PurchaseId, { shouldValidate: true }); // Set PurchaseId on selection
+                            field.onChange(purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`); // Update search text to selected item's display name
+                          }}
                           placeholder="Search by Purchase Ref No or Supplier Name..."
                           getId={(s) => s.PurchaseId}
                           getName={(s) => s.ReferenceNo || `Purchase ${s.PurchaseId} (${s.SupplierMaster?.SupplierName || 'N/A'})`}

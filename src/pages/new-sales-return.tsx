@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
-import { SaleWithItems } from "@/types"; // Removed Sale, Item, ItemWithCategory
+import { SaleWithItems } from "@/types";
 import { useAuth } from "@/contexts/auth-provider";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, Trash2 } from "lucide-react"; // Removed Plus
+import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -29,12 +29,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Autocomplete } from "@/components/autocomplete"; // For searching sales
+import { Autocomplete } from "@/components/autocomplete";
 
 const salesReturnFormSchema = z.object({
   SaleId: z.coerce.number({ required_error: "Please select an original sale." }),
   ReturnDate: z.date(),
   Reason: z.string().optional().nullable(),
+  saleSearchText: z.string().optional(), // New field to hold the autocomplete text
 });
 
 type SalesReturnFormValues = z.infer<typeof salesReturnFormSchema>;
@@ -64,10 +65,11 @@ function NewSalesReturnPage() {
   const form = useForm<SalesReturnFormValues>({
     resolver: zodResolver(salesReturnFormSchema),
     mode: "onChange",
-    defaultValues: { SaleId: undefined, ReturnDate: new Date(), Reason: "" },
+    defaultValues: { SaleId: undefined, ReturnDate: new Date(), Reason: "", saleSearchText: "" },
   });
 
   const watchedSaleId = form.watch("SaleId");
+  const watchedSaleSearchText = form.watch("saleSearchText"); // Watch the new search text field
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchSalesSuggestions = useCallback(async () => {
@@ -107,14 +109,21 @@ function NewSalesReturnPage() {
           TotalPrice: 0,
         }));
         setReturnableItems(items);
+        // Update the search text field to reflect the selected sale's name
+        form.setValue("saleSearchText", sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`, { shouldValidate: true });
       } else {
         setReturnableItems([]);
+        form.setValue("saleSearchText", "", { shouldValidate: true });
       }
     } else {
       setSelectedSale(null);
       setReturnableItems([]);
+      // If SaleId is cleared, also clear the search text unless user is actively typing
+      if (!watchedSaleSearchText) { // Only clear if it's not already being typed into
+        form.setValue("saleSearchText", "", { shouldValidate: true });
+      }
     }
-  }, [watchedSaleId, saleSuggestions]);
+  }, [watchedSaleId, saleSuggestions, form, watchedSaleSearchText]);
 
   const handleQtyReturnedChange = (index: number, value: number) => {
     const updatedItems = [...returnableItems];
@@ -224,7 +233,7 @@ function NewSalesReturnPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="SaleId"
+                  name="saleSearchText" // Use the new search text field for the Autocomplete's value
                   render={({ field }) => (
                     <FormItem className="flex-grow">
                       <Label htmlFor="sale-autocomplete">Original Sale</Label>
@@ -232,16 +241,19 @@ function NewSalesReturnPage() {
                         <Autocomplete<SaleWithItems>
                           id="sale-autocomplete"
                           suggestions={saleSuggestions}
-                          value={selectedSale ? (selectedSale.ReferenceNo || `Sale ${selectedSale.SaleId}`) : ""}
+                          value={field.value ?? ""} // Bind Autocomplete's value to saleSearchText
                           onValueChange={(v) => {
-                            const matchedSale = saleSuggestions.find(s => (s.ReferenceNo === v || `Sale ${s.SaleId}` === v));
-                            if (matchedSale) {
-                              field.onChange(matchedSale.SaleId);
-                            } else {
-                              field.onChange(undefined);
+                            field.onChange(v); // Update saleSearchText
+                            // If the typed value no longer matches a selected sale, clear SaleId
+                            const matchedSale = saleSuggestions.find(s => (s.ReferenceNo === v || `Sale ${s.SaleId} (${s.CustomerMaster?.CustomerName || 'N/A'})` === v));
+                            if (!matchedSale) {
+                              form.setValue("SaleId", undefined, { shouldValidate: true });
                             }
                           }}
-                          onSelect={(sale) => field.onChange(sale.SaleId)}
+                          onSelect={(sale) => {
+                            form.setValue("SaleId", sale.SaleId, { shouldValidate: true }); // Set SaleId on selection
+                            field.onChange(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`); // Update search text to selected item's display name
+                          }}
                           placeholder="Search by Sale Ref No or Customer Name..."
                           getId={(s) => s.SaleId}
                           getName={(s) => s.ReferenceNo || `Sale ${s.SaleId} (${s.CustomerMaster?.CustomerName || 'N/A'})`}
