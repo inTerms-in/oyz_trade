@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText,
   ChevronDown, DollarSign, FileText, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Clock,
-  AlertCircle, Calendar, Settings, ArrowLeftRight 
+  AlertCircle, Calendar, Settings, ArrowLeftRight, Search 
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChatbotTrigger } from "@/components/chatbot-trigger";
 import { ChatbotDialog } from "@/components/chatbot-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -40,6 +40,7 @@ function Layout() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const searchInputRef = useRef<HTMLInputElement>(null); // Ref for the search input
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -218,7 +219,7 @@ function Layout() {
           );
         }
       } else {
-        const linkContent = (
+        return (
           <NavLink key={item.label} to={item.to} className={isMobile ? mobileNavLinkClasses : navLinkClasses} onClick={isMobile ? closeSheet : undefined} end={item.end}>
             <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
             <span className={cn(
@@ -229,142 +230,156 @@ function Layout() {
             </span>
           </NavLink>
         );
-
-        return isCollapsed && !isMobile ? (
-          <TooltipProvider key={item.label}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {linkContent}
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {item.label}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          linkContent
-        );
       }
     });
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'n') {
+        event.preventDefault();
+        // Simulate click on the "New" dropdown trigger
+        const newButton = document.getElementById('new-action-button');
+        if (newButton) {
+          newButton.click();
+        }
+      }
+      if (event.ctrlKey && event.key === 'f') {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
-    <div className={cn("grid min-h-screen w-full md:grid-cols-[auto_1fr]")}>
-      <div className={cn(
-        "hidden border-r bg-muted/40 md:block transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-[88px]" : "w-[220px] lg:w-[280px]"
-      )}>
+    <TooltipProvider>
+      <div className={cn("grid min-h-screen w-full md:grid-cols-[auto_1fr]")}>
         <div className={cn(
-          "flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6",
-          isCollapsed && "justify-center"
+          "hidden border-r bg-muted/40 md:block transition-all duration-300 ease-in-out",
+          isCollapsed ? "w-[88px]" : "w-[220px] lg:w-[280px]"
         )}>
-          <NavLink to="/" className={cn("flex items-center gap-2 font-semibold", isCollapsed && "hidden")}>
-            <Package className="h-6 w-6 text-primary" />
-            <span>PurchaseTracker</span>
-          </NavLink>
-          <Button variant="ghost" size="icon" className={cn("h-8 w-8", !isCollapsed && "ml-auto")} onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            <ChevronsLeft className={cn("h-5 w-5 transition-transform", isCollapsed && "rotate-180")} />
-          </Button>
-        </div>
-        <div className="flex-1 py-4">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            {renderNavLinks(navItems, false)}
-          </nav>
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0 md:hidden" aria-label="Toggle navigation menu">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <SheetHeader>
-                <SheetTitle>PurchaseTracker</SheetTitle>
-              </SheetHeader>
-              <nav className="grid gap-2 text-lg font-medium">
-                <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
-                  <Package className="h-6 w-6 text-primary" />
-                  <span>PurchaseTracker</span>
-                </NavLink>
-                {renderNavLinks(navItems, true)}
-              </nav>
-            </SheetContent>
-          </Sheet>
-          <div className="w-full flex-1">
-            <div className="relative">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button>
-                    <span className="flex items-center">
-                      <BarChart className="mr-2 h-4 w-4" />
-                      <span>Dashboards</span>
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onSelect={() => navigate('/')}>Overview</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate('/sales-module/dashboard')}>Sales Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate('/purchase-module/dashboard')}>Purchase Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate('/inventory-module/dashboard')}>Inventory Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate('/accounts-module/dashboard')}>Accounts Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate('/reports-module/dashboard')}>Reports Dashboard</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+          <div className={cn(
+            "flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6",
+            isCollapsed && "justify-center"
+          )}>
+            <NavLink to="/" className={cn("flex items-center gap-2 font-semibold", isCollapsed && "hidden")}>
+              <Package className="h-6 w-6 text-primary" />
+              <span>PurchaseTracker</span>
+            </NavLink>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className={cn("h-8 w-8", !isCollapsed && "ml-auto")} onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+                  <ChevronsLeft className={cn("h-5 w-5 transition-transform", isCollapsed && "rotate-180")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              </TooltipContent>
+            </Tooltip>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm">
-                <span className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  <span>New</span>
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-invoice/new')}>New Purchase</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-invoice/new')}>New Sale</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/inventory-module/item-master')}>New Item</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/inventory-module/categories')}>New Category</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/sales-module/customers')}>New Customer</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/purchase-module/suppliers')}>New Supplier</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate('/inventory-module/stock-adjustment')}>Stock Adjustment</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/accounts-module/expenses')}>New Expense</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-return/new')}>New Sales Return</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-return/new')}>New Purchase Return</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {user && (
+          <div className="flex-1 py-4">
+            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+              {renderNavLinks(navItems, false)}
+            </nav>
+          </div>
+        </div>
+        <div className="flex flex-col">
+          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0 md:hidden" aria-label="Toggle navigation menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="flex flex-col">
+                <SheetHeader>
+                  <SheetTitle>PurchaseTracker</SheetTitle>
+                </SheetHeader>
+                <nav className="grid gap-2 text-lg font-medium">
+                  <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
+                    <Package className="h-6 w-6 text-primary" />
+                    <span>PurchaseTracker</span>
+                  </NavLink>
+                  {renderNavLinks(navItems, true)}
+                </nav>
+              </SheetContent>
+            </Sheet>
+            <div className="w-full flex-1">
+              <div className="relative">
+                {/* Search Input */}
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  placeholder="Search... (Ctrl+F)"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="icon" className="rounded-full" aria-label="Toggle user menu">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button id="new-action-button" size="sm">
+                      <span className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>New</span>
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>New (Ctrl+N)</p>
+                  </TooltipContent>
+                </Tooltip>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-invoice/new')}>New Purchase</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-invoice/new')}>New Sale</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/inventory-module/item-master')}>New Item</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/inventory-module/categories')}>New Category</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/sales-module/customers')}>New Customer</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/purchase-module/suppliers')}>New Supplier</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => navigate('/settings')}>Settings</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/inventory-module/stock-adjustment')}>Stock Adjustment</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/accounts-module/expenses')}>New Expense</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-return/new')}>New Sales Return</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-return/new')}>New Purchase Return</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
-        </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-4 bg-muted/20"> {/* Adjusted padding here */}
-          <Outlet key={location.pathname} />
-        </main>
-        <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />
-        <ChatbotDialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen} />
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="icon" className="rounded-full" aria-label="Toggle user menu">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => navigate('/settings')}>Settings</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </header>
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20">
+            <Outlet key={location.pathname} />
+          </main>
+          <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />
+          <ChatbotDialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen} />
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
