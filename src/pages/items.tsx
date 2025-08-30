@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ItemWithStock } from "@/types";
@@ -25,7 +27,7 @@ type SortDirection = "asc" | "desc";
 function ItemsPage() {
   const navigate = useNavigate();
   // Removed user from useAuth
-  const [items, setItems] = useState<ItemWithStock[]>(([]);
+  const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
 
