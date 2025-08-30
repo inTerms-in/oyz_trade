@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generateItemCode } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-// Removed useAuth import as user_id filtering is no longer applied
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,7 +25,6 @@ type SortDirection = "asc" | "desc";
 
 function ItemsPage() {
   const navigate = useNavigate();
-  // Removed user from useAuth
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -54,16 +52,13 @@ function ItemsPage() {
     let query = supabase
       .from("item_stock_details")
       .select("ItemId, ItemName, CategoryId, CategoryName, SellPrice, Barcode, ItemCode, RackNo", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.or(`ItemName.ilike.%${debouncedSearchTerm}%,ItemCode.ilike.%${debouncedSearchTerm}%`);
     }
 
     query = query.order(sort.column, { ascending: sort.direction === "asc" });
-    if (!initialItemIds) { // Only apply range if not fetching specific initial items
-      query = query.range(from, to);
-    }
+    query = query.range(from, to); // Always apply range for this page
 
     const { data, error, count } = await query;
 
@@ -75,19 +70,9 @@ function ItemsPage() {
       setItems(fetchedItems);
       setItemCount(count ?? 0);
       setPageCount(Math.ceil((count ?? 0) / pageSize));
-
-      if (initialItemIds && initialItemIds.length > 0) {
-        // Pre-select items that were passed via state
-        const preSelected = fetchedItems.map(item => ({
-          ...item,
-          CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
-          quantityToPrint: 1,
-        }));
-        setSelectedItems(preSelected);
-      }
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
 
   useEffect(() => {
     fetchItems();

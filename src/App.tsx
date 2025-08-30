@@ -9,7 +9,7 @@ import ItemsPage from "@/pages/items";
 import PurchasesPage from "@/pages/purchases";
 import NewPurchasePage from "@/pages/new-purchase";
 import EditPurchasePage from "@/pages/edit-purchase";
-import LoginPage from "@/pages/login";
+import LoginPage from "@/pages/login"; // Corrected import for default export
 import SettingsPage from "@/pages/settings";
 import { ProtectedRoute } from "@/components/protected-route";
 import SalesPage from "@/pages/sales";
@@ -19,7 +19,7 @@ import CustomersPage from "@/pages/customers";
 import SuppliersPage from "@/pages/suppliers";
 import BarcodePrintPage from "@/pages/barcode-print";
 import StockAdjustmentPage from "@/pages/stock-adjustment";
-import ExpensesPage from "@/pages/expenses"; // New import
+import ExpensesPage from "@/pages/expenses";
 
 function App() {
   return (
@@ -43,7 +43,7 @@ function App() {
           <Route path="suppliers" element={<SuppliersPage />} />
           <Route path="barcode-print" element={<BarcodePrintPage />} />
           <Route path="stock-adjustment" element={<StockAdjustmentPage />} />
-          <Route path="expenses" element={<ExpensesPage />} /> {/* New Route */}
+          <Route path="expenses" element={<ExpensesPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>

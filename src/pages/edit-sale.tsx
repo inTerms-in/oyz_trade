@@ -29,7 +29,7 @@ import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SaleInvoice } from "@/components/sale-invoice";
-import { SalePostSaveActionsDialog } from "@/components/sale-post-save-actions-dialog";
+// Removed SalePostSaveActionsDialog import as it's not used here
 
 const saleFormSchema = z.object({
   CustomerName: z.string().optional().nullable(),
@@ -67,7 +67,7 @@ interface ShopDetails {
   address: string | null;
 }
 
-function EditSalePage() {
+export default function EditSalePage() { // Exported as default
   const { saleId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,7 +88,7 @@ function EditSalePage() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastDiscountChangeSource, setLastDiscountChangeSource] = useState<'amount' | 'percentage' | null>(null);
 
-  const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false);
+  // Removed isPostSaveActionsDialogOpen state as the dialog is no longer used
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +104,6 @@ function EditSalePage() {
   const { formState: { isValid } = {} } = form;
 
   const itemsTotal = addedItems.reduce((sum: number, item: SaleListItem) => sum + item.TotalPrice, 0);
-  // Moved grandTotal calculation here so it's defined before use in useCallback dependencies
   const grandTotal = itemsTotal - (watchedAdditionalDiscount || 0);
 
   // Synchronize AdditionalDiscount and DiscountPercentage
@@ -191,15 +190,14 @@ function EditSalePage() {
     else setCustomerSuggestions(customersData || []);
 
     // Fetch shop details for WhatsApp message
-    // Ensure user is not null before accessing user.id
     if (user?.id) {
       const { data: shopData, error: shopError } = await supabase
         .from("shop")
         .select("shop_name, mobile_no, address")
-        .eq("user_id", user!.id) // Non-null assertion added here
+        .eq("user_id", user.id)
         .single();
 
-      if (shopError && shopError.code !== 'PGRST116') { // PGRST116 means no rows found
+      if (shopError && shopError.code !== 'PGRST116') {
         toast.error("Failed to fetch shop details", { description: shopError.message });
       } else if (shopData) {
         setShopDetails(shopData);
@@ -213,7 +211,6 @@ function EditSalePage() {
     fetchData();
   }, [fetchData]);
 
-  // Function to format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);
   };
@@ -322,7 +319,7 @@ function EditSalePage() {
     toast.success(`Sale updated successfully!`);
     setIsSubmitting(false);
     return true;
-  }, [saleId, addedItems, user, customerSuggestions, itemsTotal]); // Added itemsTotal to dependencies
+  }, [saleId, addedItems, user, customerSuggestions, itemsTotal]);
 
   const handlePrint = useCallback(async (id: number) => {
     if (!id) {
@@ -417,7 +414,7 @@ function EditSalePage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, user?.id, saleData, grandTotal, shopDetails, saveSale, fetchData, itemsTotal]); // Added itemsTotal to dependencies
+  }, [form, user?.id, saleData, grandTotal, shopDetails, saveSale, fetchData, itemsTotal]);
 
   // Handle actions passed via location state (from NewSalePage)
   useEffect(() => {
@@ -432,7 +429,7 @@ function EditSalePage() {
         handlePrint(Number(saleId));
       }
     }
-  }, [location.state, saleId, loading, handleSendWhatsApp, handlePrint]); // Depend on loading to ensure data is fetched
+  }, [location.state, saleId, loading, handleSendWhatsApp, handlePrint]);
 
   // Effect to update mobile number when customer is selected from autocomplete
   useEffect(() => {
@@ -586,15 +583,12 @@ function EditSalePage() {
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
     if (success) {
-      setIsPostSaveActionsDialogOpen(true);
+      // No post-save dialog for edit page, just navigate back to sales list
+      navigate("/sales");
     }
   };
 
   const invoiceDataForPrint = saleData;
-
-  const handleReturnToListFromDialog = () => {
-    navigate("/sales");
-  };
 
   if (loading) {
     return (
@@ -831,16 +825,7 @@ function EditSalePage() {
       </Card>
       <AddNewItemInlineDialog open={isCreateItemOpen} onOpenChange={setCreateItemOpen} initialItemName={currentItem.ItemName} onItemAdded={handleItemCreated} />
       <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
-      <SalePostSaveActionsDialog
-        open={isPostSaveActionsDialogOpen}
-        onOpenChange={setIsPostSaveActionsDialogOpen}
-        saleId={saleId ? Number(saleId) : null}
-        onSendWhatsApp={handleSendWhatsApp}
-        onPrint={handlePrint}
-        onReturnToList={handleReturnToListFromDialog}
-      />
+      {/* Removed SalePostSaveActionsDialog as it's not needed on the edit page */}
     </div>
   );
 }
-
-export default EditSalePage;
