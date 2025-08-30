@@ -247,7 +247,7 @@ function Layout() {
             <span>PurchaseTracker</span>
           </NavLink>
           <Button variant="ghost" size="icon" className={cn("h-8 w-8", !isCollapsed && "ml-auto")} onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            <ChevronsLeft className={cn("h-5 w-5 transition-transform", isCollapsed && "rotate-180")} />
+            <ChevronsLeft className="h-5 w-5 transition-transform" />
           </Button>
         </div>
         <div className="flex-1 py-4">
