@@ -1,13 +1,14 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from "@/integrations/supabase/client"; // Import supabase client
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
-export default function Login() {
+function Login() {
   // Other code here
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted">
-      <div className="w-full max-w-md p-8 space-y-4 bg-background rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-center text-primary mb-6">Welcome to PurchaseTracker</h1>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
+        <h1 className="text-3xl font-bold text-center text-foreground">Welcome Back!</h1>
+        <p className="text-center text-muted-foreground">Sign in to manage your purchases and sales.</p>
         <Auth
           supabaseClient={supabase}
           providers={[]}
@@ -28,3 +29,5 @@ export default function Login() {
     </div>
   );
 }
+
+export default Login; // Export as default
