@@ -22,30 +22,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   
-  // Function to fetch user profile
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  // Function to fetch user profile with retry logic
+  const fetchProfile = async (userId: string, retries = 5, delay = 1000): Promise<Profile | null> => {
     console.log(`[AuthProvider] Attempting to fetch profile for user: ${userId}`);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is handled by returning null
-        console.error(`[AuthProvider] Error fetching profile for user ${userId}:`, error);
-        return null;
+        if (data) {
+          console.log(`[AuthProvider] Profile found for user ${userId} on attempt ${i + 1}:`, data);
+          return data as Profile;
+        }
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is handled by retrying
+          console.error(`[AuthProvider] Error fetching profile for user ${userId} on attempt ${i + 1}:`, error);
+          // If it's a real error (not just "no rows found"), stop retrying
+          return null;
+        }
+
+        console.log(`[AuthProvider] No profile found for user ${userId} on attempt ${i + 1}. Retrying in ${delay / 1000}s...`);
+        await new Promise(res => setTimeout(res, delay)); // Wait before retrying
+
+      } catch (e) {
+        console.error(`[AuthProvider] Exception in fetchProfile for user ${userId} on attempt ${i + 1}:`, e);
+        return null; // Stop retrying on unexpected exceptions
       }
-      if (data) {
-        console.log(`[AuthProvider] Profile found for user ${userId}:`, data);
-        return data as Profile;
-      }
-      console.log(`[AuthProvider] No profile found for user ${userId}.`);
-      return null;
-    } catch (e) {
-      console.error(`[AuthProvider] Exception in fetchProfile for user ${userId}:`, e);
-      return null;
     }
+    console.warn(`[AuthProvider] Failed to find profile for user ${userId} after ${retries} attempts.`);
+    return null;
   };
 
   // Function to check if default settings and shop exist (assuming trigger creates them)
