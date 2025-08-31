@@ -106,7 +106,7 @@ function SettingsPage() {
       if (categories) zip.file("categories.csv", Papa.unparse(categories));
 
       // Fetch and add items
-      const { data: items } = await supabase.from("ItemMaster").select("*").eq("user_id", user.id);
+      const { data: items } = await supabase.from("ItemMaster").select("*").eq("user.id", user.id);
       if (items) zip.file("items.csv", Papa.unparse(items));
 
       // Fetch and add purchases
@@ -342,6 +342,22 @@ function SettingsPage() {
           <CardDescription>Manage your application settings and data.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {user?.id && (
+            <div className="p-4 border rounded-lg space-y-2 bg-blue-50 dark:bg-blue-950">
+              <h3 className="font-semibold text-blue-800 dark:text-blue-200">Your Supabase User ID</h3>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Please copy this ID and use it to replace `[---PASTE_YOUR_ACTUAL_SUPABASE_USER_ID_HERE---]` in the SQL commands.
+              </p>
+              <Input
+                id="user-id-display"
+                value={user.id}
+                readOnly
+                className="font-mono text-xs bg-blue-100 dark:bg-blue-900 border-blue-200 dark:border-blue-800"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+            </div>
+          )}
+
           <div className="p-4 border rounded-lg space-y-4">
             <div>
               <h3 className="font-semibold">Shop Details</h3>
