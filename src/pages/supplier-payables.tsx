@@ -22,7 +22,10 @@ export default function SupplierPayablesPage() {
 
   useEffect(() => {
     const fetchSupplierPayables = async () => {
-      if (!user?.id) return; // Ensure user is logged in
+      if (!user?.id) { // Still need user for authentication, but not for data filtering
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const { data, error } = await supabase
         .from('SupplierMaster')
@@ -30,11 +33,9 @@ export default function SupplierPayablesPage() {
           SupplierId,
           SupplierName,
           MobileNo,
-          user_id,
           Purchase(TotalAmount),
           PurchaseReturn(TotalRefundAmount)
-        `)
-        .eq("user_id", user.id); // Filter by user_id
+        `);
 
       if (error) {
         toast.error("Failed to fetch supplier payables", { description: error.message });
@@ -50,7 +51,6 @@ export default function SupplierPayablesPage() {
           SupplierId: supplier.SupplierId,
           SupplierName: supplier.SupplierName,
           MobileNo: supplier.MobileNo,
-          user_id: supplier.user_id, // Fixed: Add user_id
           total_purchase_amount: 0,
           total_return_amount: 0,
           net_payable: 0,
@@ -78,7 +78,7 @@ export default function SupplierPayablesPage() {
     };
 
     fetchSupplierPayables();
-  }, [user?.id]); // Add user.id to dependencies
+  }, [user?.id]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);
@@ -131,3 +131,5 @@ export default function SupplierPayablesPage() {
     </div>
   );
 }
+
+export default SupplierPayablesPage;

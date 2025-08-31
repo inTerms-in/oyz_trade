@@ -7,6 +7,7 @@ import { SalesReturnWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function SalesReturnPage() {
+  const { user } = useAuth(); // Use useAuth
   const [salesReturns, setSalesReturns] = useState<SalesReturnWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -42,6 +44,10 @@ function SalesReturnPage() {
   });
 
   const fetchSalesReturns = useCallback(async () => {
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -53,8 +59,7 @@ function SalesReturnPage() {
     if (debouncedSearchTerm) {
       const { data: matchingSales, error: salesError } = await supabase
         .from("Sales")
-        .select("SaleId, ReferenceNo, CustomerMaster(CustomerName)")
-        .or(`ReferenceNo.ilike.%${debouncedSearchTerm}%,CustomerMaster(CustomerName.ilike.%${debouncedSearchTerm}%)`);
+        .select("SaleId, ReferenceNo, CustomerMaster(CustomerName)");
 
       if (salesError) {
         console.error("Error fetching matching sales:", salesError);
@@ -91,7 +96,7 @@ function SalesReturnPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
 
   useEffect(() => {
     fetchSalesReturns();

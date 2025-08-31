@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Category } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useLocation } from "react-router-dom"; // Import useLocation
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,7 +23,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function CategoriesPage() {
-  const location = useLocation(); // Use useLocation to check for state
+  const location = useLocation();
+  const { user } = useAuth(); // Use useAuth
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -41,6 +43,10 @@ function CategoriesPage() {
   });
 
   const fetchCategories = useCallback(async () => {
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -67,7 +73,7 @@ function CategoriesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, user?.id]);
 
   useEffect(() => {
     fetchCategories();

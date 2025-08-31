@@ -6,6 +6,7 @@ import { ItemWithStock, PrintableItem } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,6 +24,7 @@ type SortDirection = "asc" | "desc";
 
 function BarcodePrintPage() {
   const location = useLocation();
+  const { user } = useAuth(); // Import useAuth
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,6 +48,10 @@ function BarcodePrintPage() {
   };
 
   const fetchItems = useCallback(async (initialItemIds?: number[]) => {
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -87,14 +93,13 @@ function BarcodePrintPage() {
       }
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, user?.id]);
 
   useEffect(() => {
     const initialItemIds = location.state?.initialSelectedItems as number[] | undefined;
     fetchItems(initialItemIds);
-    // Clear state after use to prevent re-fetching on subsequent visits
     if (location.state?.initialSelectedItems) {
-      window.history.replaceState({}, document.title); // Clear state from history
+      window.history.replaceState({}, document.title);
     }
   }, [fetchItems, location.state?.initialSelectedItems]);
 

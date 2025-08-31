@@ -4,7 +4,7 @@ import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider"; // Re-add useAuth import
+import { useAuth } from "@/contexts/auth-provider";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -37,7 +37,7 @@ interface MonthlyTotal {
 }
 
 function PurchaseDashboardPage() {
-  const { user } = useAuth(); // Re-add user from useAuth
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalPurchases, setTotalPurchases] = useState(0);
@@ -54,13 +54,15 @@ function PurchaseDashboardPage() {
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) return; // Add user check
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     const { count, error: itemsError } = await supabase
       .from("ItemMaster")
-      .select('*', { count: 'exact', head: true })
-      .eq("user_id", user.id); // Re-add user.id filter
+      .select('*', { count: 'exact', head: true });
     
     if (itemsError) toast.error("Failed to fetch item count", { description: itemsError.message });
     else setTotalItems(count || 0);
@@ -68,7 +70,6 @@ function PurchaseDashboardPage() {
     let query = supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)")
-      .eq("user_id", user.id) // Re-add user.id filter
       .order("PurchaseDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("PurchaseDate", dateRange.from.toISOString());
@@ -125,8 +126,7 @@ function PurchaseDashboardPage() {
 
     const { data: allPurchaseItems, error: allItemsError } = await supabase
       .from("PurchaseItem")
-      .select("ItemMaster(*)")
-      .eq("user_id", user.id); // Re-add user.id filter
+      .select("ItemMaster(*)");
 
     if (allItemsError) {
       toast.error("Failed to fetch top items", { description: allItemsError.message });
@@ -145,7 +145,7 @@ function PurchaseDashboardPage() {
     }
 
     setLoading(false);
-  }, [dateRange, user?.id]); // Add user.id to dependencies
+  }, [dateRange, user?.id]);
 
   useEffect(() => {
     fetchData();

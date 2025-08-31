@@ -4,7 +4,7 @@ import { SaleWithItems, HourlySales } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider"; // Re-add useAuth import
+import { useAuth } from "@/contexts/auth-provider";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -88,7 +88,7 @@ interface RawHourlySale {
 }
 
 function SalesDashboardPage() {
-  const { user } = useAuth(); // Re-add user from useAuth
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -114,13 +114,15 @@ function SalesDashboardPage() {
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) return; // Add user check
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*), CustomerMaster(CustomerName)")
-      .eq("user_id", user.id) // Re-add user.id filter
       .order("SaleDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("SaleDate", dateRange.from.toISOString());
@@ -150,8 +152,7 @@ function SalesDashboardPage() {
 
     const { data: allSaleItems, error: allItemsError } = await supabase
       .from("SalesItem")
-      .select("ItemId, Qty, ItemMaster(ItemName)")
-      .eq("user_id", user.id); // Re-add user.id filter
+      .select("ItemId, Qty, ItemMaster(ItemName)");
 
     if (allItemsError) {
       toast.error("Failed to fetch top sold items", { description: allItemsError.message });
@@ -203,7 +204,7 @@ function SalesDashboardPage() {
     setMonthlySales(sortedMonthlySales);
 
     setLoading(false);
-  }, [dateRange, user?.id]); // Add user.id to dependencies
+  }, [dateRange, user?.id]);
 
   useEffect(() => {
     fetchData();
@@ -276,97 +277,8 @@ function SalesDashboardPage() {
         <MonthlySalesChart data={monthlySales} />
         <Card>
           <CardHeader>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <CardTitle>Sales by Time of Day</CardTitle>
-              <DropdownMenu open={isFilterDropdownOpen} onOpenChange={setIsFilterDropdownOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    <Filter className="mr-2 h-4 w-4" />
-                    {filterHourlyType === 'all' ? 'All Days' : 
-                     filterHourlyType === 'day' && selectedHourlyDate ? format(selectedHourlyDate, 'MMM d, yyyy') :
-                     filterHourlyType === 'month' && selectedHourlyMonth ? format(parseISO(selectedHourlyMonth + '-01'), 'MMM yyyy') :
-                     'Filter Hourly Sales'}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuLabel>Filter Hourly Sales</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup value={filterHourlyType} onValueChange={(value: string) => {
-                    setFilterHourlyType(value as 'all' | 'day' | 'month');
-                    setSelectedHourlyDate(undefined);
-                    setSelectedHourlyMonth(undefined);
-                    if (value === 'day' && !selectedHourlyDate) {
-                      setSelectedHourlyDate(new Date());
-                    }
-                  }}>
-                    <DropdownMenuRadioItem value="all">All Days</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="day">By Specific Day</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="month">By Specific Month</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                  {filterHourlyType === 'day' && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <div className="p-2">
-                        <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !selectedHourlyDate && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {selectedHourlyDate ? format(selectedHourlyDate, "PPP") : "Pick a day"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={selectedHourlyDate}
-                              onSelect={(date) => {
-                                setSelectedHourlyDate(date || undefined);
-                                setIsDatePickerOpen(false);
-                                setIsFilterDropdownOpen(false);
-                              }}
-                              initialFocus
-                              captionLayout="dropdown-buttons"
-                              fromYear={new Date().getFullYear() - 5}
-                              toYear={new Date().getFullYear()}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </>
-                  )}
-                  {filterHourlyType === 'month' && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <div className="p-2">
-                        <Select
-                          value={selectedHourlyMonth}
-                          onValueChange={(value) => {
-                            setSelectedHourlyMonth(value);
-                            setIsFilterDropdownOpen(false);
-                          }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select a month" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableHourlyMonths.map(monthKey => (
-                              <SelectItem key={monthKey} value={monthKey}>
-                                {format(parseISO(monthKey + '-01'), 'MMM yyyy')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <CardTitle>Sales by Time of Day</CardTitle>
+            <CardDescription>Total sales revenue for each hour of the day.</CardDescription>
           </CardHeader>
           <CardContent>
             <SalesByHourChart data={displayHourlySales} />

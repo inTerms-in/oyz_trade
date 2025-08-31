@@ -5,6 +5,7 @@ import { SaleWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function SalesPage() {
+  const { user } = useAuth(); // Use useAuth
   const [sales, setSales] = useState<SaleWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -40,6 +42,10 @@ function SalesPage() {
   });
 
   const fetchSales = useCallback(async () => {
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -94,7 +100,7 @@ function SalesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
 
   useEffect(() => {
     fetchSales();

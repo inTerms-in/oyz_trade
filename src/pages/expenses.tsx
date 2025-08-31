@@ -6,7 +6,8 @@ import { Expense, ExpenseCategory } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { format } from "date-fns";
-import { useLocation } from "react-router-dom"; // Import useLocation
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,7 +33,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function ExpensesPage() {
-  const location = useLocation(); // Use useLocation to check for state
+  const location = useLocation();
+  const { user } = useAuth(); // Use useAuth
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -54,6 +56,10 @@ function ExpensesPage() {
 
 
   const fetchExpenses = useCallback(async () => {
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -84,9 +90,10 @@ function ExpensesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory, user?.id]);
 
   const fetchExpenseCategories = useCallback(async () => {
+    if (!user?.id) return; // Still need user for authentication, but not for data filtering
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
@@ -96,7 +103,7 @@ function ExpensesPage() {
     } else {
       setExpenseCategories(data || []);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchExpenses();
