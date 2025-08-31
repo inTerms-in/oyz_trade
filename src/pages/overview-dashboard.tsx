@@ -109,10 +109,6 @@ function OverviewDashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!user?.id) { // Still need user for authentication, but not for data filtering
-        setLoading(false);
-        return;
-      }
       setLoading(true);
       let currentTotalPurchaseSpending = 0;
       let currentTotalExpenses = 0;
@@ -213,7 +209,7 @@ function OverviewDashboardPage() {
         purchases.forEach(purchase => {
           const purchaseDate = parseISO(purchase.PurchaseDate);
           const dateKey = format(purchaseDate, 'yyyy-MM-dd');
-          purchasesByDate[dateKey] = (purchasesByDate[dateKey] || 0) + purchase.TotalAmount;
+          dailySpending[dateKey] = (dailySpending[dateKey] || 0) + purchase.TotalAmount;
 
           const monthKey = format(purchaseDate, 'yyyy-MM'); // Use yyyy-MM for internal key
           purchasesByMonth[monthKey] = (purchasesByMonth[monthKey] || 0) + purchase.TotalAmount;
@@ -302,7 +298,7 @@ function OverviewDashboardPage() {
     }
 
     fetchData();
-  }, [dateRange, user?.id]);
+  }, [dateRange]);
 
   // Handler for card clicks to toggle chart visibility
   const handleCardClick = (type: 'sales' | 'purchases' | 'reset') => {

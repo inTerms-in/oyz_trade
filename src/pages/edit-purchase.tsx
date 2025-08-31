@@ -115,7 +115,7 @@ function EditPurchasePage() {
     
     const { data, error } = await supabase
       .from("Purchase")
-      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName, MobileNo, user_id)") // Fixed: Added MobileNo, user_id
+      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName, MobileNo)")
       .eq("PurchaseId", purchaseId)
       .single();
 
@@ -154,12 +154,12 @@ function EditPurchasePage() {
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo, user_id"); // Fixed: Added user_id
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo");
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []);
     
     setLoading(false);
-  }, [purchaseId, navigate, form, user]); // Added user to dependencies
+  }, [purchaseId, navigate, form]);
 
   useEffect(() => {
     fetchData();
@@ -398,7 +398,7 @@ function EditPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null, user_id: user.id }])
         .select()
         .single();
 
@@ -416,7 +416,8 @@ function EditPurchasePage() {
       const { error: updateMobileError } = await supabase
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
-        .eq("SupplierId", supplierToUpdate.SupplierId);
+        .eq("SupplierId", supplierToUpdate.SupplierId)
+        .eq("user_id", user.id);
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -454,6 +455,7 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
+      user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

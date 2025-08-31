@@ -5,7 +5,7 @@ import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+import { useAuth } from "@/contexts/auth-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function PurchasesPage() {
-  const { user } = useAuth(); // Use useAuth
+  const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -42,10 +42,6 @@ function PurchasesPage() {
   });
 
   const fetchPurchases = useCallback(async () => {
-    if (!user?.id) { // Still need user for authentication, but not for data filtering
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -100,7 +96,7 @@ function PurchasesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
 
   useEffect(() => {
     fetchPurchases();

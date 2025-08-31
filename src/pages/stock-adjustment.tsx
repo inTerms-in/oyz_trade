@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ItemWithStock, StockAdjustment as StockAdjustmentType } from "@/types";
 import { format } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+import { useAuth } from "@/contexts/auth-provider";
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,7 @@ const stockAdjustmentFormSchema = z.object({
 type StockAdjustmentFormValues = z.infer<typeof stockAdjustmentFormSchema>;
 
 function StockAdjustmentPage() {
-  const { user } = useAuth(); // Use useAuth
+  const { user } = useAuth();
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithStock[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
   const [recentAdjustments, setRecentAdjustments] = useState<StockAdjustmentType[]>([]);
@@ -56,28 +56,24 @@ function StockAdjustmentPage() {
   const watchedItemId = form.watch("ItemId");
 
   const fetchItemSuggestions = useCallback(async () => {
-    if (!user?.id) return; // Ensure user is logged in
     setLoadingSuggestions(true);
     const { data, error } = await supabase
       .from("item_stock_details")
-      .select("ItemId, ItemName, ItemCode, current_stock")
-      .eq("user_id", user.id); // Filter by user_id
+      .select("ItemId, ItemName, ItemCode, current_stock");
     if (error) {
       toast.error("Failed to fetch items", { description: error.message });
     } else {
       setItemSuggestions(data as ItemWithStock[]);
     }
     setLoadingSuggestions(false);
-  }, [user?.id]); // Add user.id to dependencies
+  }, []);
 
   const fetchRecentAdjustments = useCallback(async (itemId: number) => {
-    if (!user?.id) return; // Ensure user is logged in
     setLoadingAdjustments(true);
     const { data, error } = await supabase
       .from("StockAdjustment")
       .select("*, ItemMaster(ItemName, ItemCode)")
       .eq("ItemId", itemId)
-      .eq("user_id", user.id) // Filter by user_id
       .order("AdjustmentDate", { ascending: false })
       .limit(5);
     if (error) {
@@ -87,7 +83,7 @@ function StockAdjustmentPage() {
       setRecentAdjustments(data as StockAdjustmentType[]);
     }
     setLoadingAdjustments(false);
-  }, [user?.id]); // Add user.id to dependencies
+  }, []);
 
   useEffect(() => {
     fetchItemSuggestions();
@@ -121,7 +117,7 @@ function StockAdjustmentPage() {
   };
 
   async function onSubmit(values: StockAdjustmentFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
+    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     setIsSubmitting(true);
 
     // Ensure ItemId is a number before inserting
@@ -138,7 +134,7 @@ function StockAdjustmentPage() {
         AdjustmentType: values.AdjustmentType,
         Quantity: values.Quantity,
         Reason: values.Reason,
-        user_id: user.id, // Add user_id
+        user_id: user.id,
       });
 
     setIsSubmitting(false);

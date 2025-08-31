@@ -7,7 +7,7 @@ import { SalesReturnWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+import { useAuth } from "@/contexts/auth-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function SalesReturnPage() {
-  const { user } = useAuth(); // Use useAuth
+  const { user } = useAuth();
   const [salesReturns, setSalesReturns] = useState<SalesReturnWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -44,10 +44,6 @@ function SalesReturnPage() {
   });
 
   const fetchSalesReturns = useCallback(async () => {
-    if (!user?.id) { // Still need user for authentication, but not for data filtering
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -96,7 +92,7 @@ function SalesReturnPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
 
   useEffect(() => {
     fetchSalesReturns();
@@ -177,7 +173,7 @@ function SalesReturnPage() {
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("Sales.ReferenceNo")}>
-                      <span className="flex items-center">
+                      <span className className="flex items-center">
                         <span>Original Sale Ref No.</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>

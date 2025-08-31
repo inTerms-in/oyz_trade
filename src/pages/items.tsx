@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generateItemCode } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+import { useAuth } from "@/contexts/auth-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,7 +28,7 @@ type SortDirection = "asc" | "desc";
 function ItemsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth(); // Use useAuth
+  const { user } = useAuth();
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -49,10 +49,6 @@ function ItemsPage() {
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
 
   const fetchItems = useCallback(async (initialItemIds?: number[]) => {
-    if (!user?.id) { // Still need user for authentication, but not for data filtering
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -64,7 +60,7 @@ function ItemsPage() {
     if (initialItemIds && initialItemIds.length > 0) {
       query = query.in("ItemId", initialItemIds);
     } else if (debouncedSearchTerm) {
-      query = query.or(`ItemName.ilike.%${debouncedSearchTerm}%,ItemCode.ilike.%${debouncedSearchTerm}%`);
+      query = query.or(`ItemName.ilike.%${debouncedSearchName}%,ItemCode.ilike.%${debouncedSearchTerm}%`);
     }
 
     query = query.order(sort.column, { ascending: sort.direction === "asc" });
@@ -89,7 +85,7 @@ function ItemsPage() {
       }
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, user?.id]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
 
   useEffect(() => {
     const initialItemIds = location.state?.initialSelectedItems as number[] | undefined;

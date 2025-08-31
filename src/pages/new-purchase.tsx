@@ -114,19 +114,16 @@ function NewPurchasePage() {
   const displayGrandTotal = parseFloat((itemsTotalRaw + numericAdditionalCost).toFixed(2));
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) { // Still need user for authentication, but not for data filtering
-      return;
-    }
     const { data: itemsData, error: itemsError } = await supabase
       .from("ItemMaster").select("*, CategoryMaster(*)")
       .order("ItemName");
     if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
     else setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo, user_id")
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo")
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []);
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     fetchData();
