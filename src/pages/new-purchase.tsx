@@ -123,7 +123,7 @@ function NewPurchasePage() {
     if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
     else setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo")
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo, user_id")
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []);
   }, [user?.id]);
@@ -362,7 +362,7 @@ function NewPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null, user_id: user.id }])
         .select()
         .single();
 
@@ -380,7 +380,8 @@ function NewPurchasePage() {
       const { error: updateMobileError } = await supabase
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
-        .eq("SupplierId", supplierToUpdate.SupplierId);
+        .eq("SupplierId", supplierToUpdate.SupplierId)
+        .eq("user_id", user.id);
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -388,7 +389,7 @@ function NewPurchasePage() {
       }
     }
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no', { p_user_id: user.id });
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase reference number", { description: refNoError?.message });
@@ -406,6 +407,7 @@ function NewPurchasePage() {
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
         ReferenceNo: refNoData,
+        user_id: user.id,
       }).select().single();
 
     if (purchaseError || !purchaseData) {
@@ -420,6 +422,7 @@ function NewPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
+      user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -431,7 +434,7 @@ function NewPurchasePage() {
       toast.error("Failed to save purchase items. Rolling back.", { 
         description: itemsError?.message || "An unknown error occurred. The purchase was not saved." 
       });
-      await supabase.from("Purchase").delete().eq("PurchaseId", purchaseData.PurchaseId);
+      await supabase.from("Purchase").delete().eq("PurchaseId", purchaseData.PurchaseId).eq("user_id", user.id);
       setIsSubmitting(false);
       return;
     }

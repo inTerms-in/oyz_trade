@@ -23,26 +23,34 @@ export function RecentPurchaseItems() {
       if (!user?.id) return; // Ensure user is logged in
       setLoading(true);
       const { data, error } = await supabase
-        .from("PurchaseItem")
+        .from("Purchase") // Query from Purchase table
         .select(`
-          UnitPrice,
-          ItemMaster (ItemName),
-          Purchase (SupplierMaster(SupplierName), PurchaseDate)
+          PurchaseDate,
+          SupplierMaster(SupplierName),
+          PurchaseItem(
+            UnitPrice,
+            ItemMaster(ItemName)
+          )
         `)
-        .eq("user_id", user.id) // Filter by user_id
-        .order("PurchaseId", { ascending: false })
+        .eq("user_id", user.id) // Filter by user_id on the Purchase table
+        .order("PurchaseDate", { ascending: false })
         .limit(10);
 
       if (error) {
         toast.error("Failed to fetch recent items", { description: error.message });
       } else {
-        const formattedData = data.map((item: any) => ({
-          ItemName: item.ItemMaster.ItemName,
-          ShopName: item.Purchase.SupplierMaster?.SupplierName || 'N/A',
-          PurchaseDate: item.Purchase.PurchaseDate,
-          UnitPrice: item.UnitPrice,
-        }));
-        setItems(formattedData);
+        const formattedData: RecentItem[] = [];
+        data.forEach((purchase: any) => {
+          purchase.PurchaseItem.forEach((item: any) => {
+            formattedData.push({
+              ItemName: item.ItemMaster.ItemName,
+              ShopName: purchase.SupplierMaster?.SupplierName || 'N/A',
+              PurchaseDate: purchase.PurchaseDate,
+              UnitPrice: item.UnitPrice,
+            });
+          });
+        });
+        setItems(formattedData.slice(0, 10)); // Take top 10 items across all recent purchases
       }
       setLoading(false);
     };

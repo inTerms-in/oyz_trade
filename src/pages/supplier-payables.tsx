@@ -33,6 +33,7 @@ export default function SupplierPayablesPage() {
           SupplierId,
           SupplierName,
           MobileNo,
+          user_id,
           Purchase(TotalAmount),
           PurchaseReturn(TotalRefundAmount)
         `);
@@ -51,6 +52,7 @@ export default function SupplierPayablesPage() {
           SupplierId: supplier.SupplierId,
           SupplierName: supplier.SupplierName,
           MobileNo: supplier.MobileNo,
+          user_id: supplier.user_id, // Include user_id here
           total_purchase_amount: 0,
           total_return_amount: 0,
           net_payable: 0,

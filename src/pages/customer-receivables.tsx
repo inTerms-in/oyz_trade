@@ -33,6 +33,7 @@ export default function CustomerReceivablesPage() {
           CustomerId,
           CustomerName,
           MobileNo,
+          user_id,
           Sales(TotalAmount),
           SalesReturn(TotalRefundAmount)
         `);
@@ -51,6 +52,7 @@ export default function CustomerReceivablesPage() {
           CustomerId: customer.CustomerId,
           CustomerName: customer.CustomerName,
           MobileNo: customer.MobileNo,
+          user_id: customer.user_id, // Include user_id here
           total_sales_amount: 0,
           total_return_amount: 0,
           net_receivable: 0,
