@@ -14,7 +14,7 @@ interface RecentItem {
 }
 
 export function RecentPurchaseItems() {
-  const { user } = useAuth(); // Use useAuth
+  const {  } = useAuth(); // Use useAuth
   const [items, setItems] = useState<RecentItem[]>([]);
   const [loading, setLoading] = useState(true);
 

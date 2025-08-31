@@ -54,7 +54,7 @@ interface ReturnableItem {
 
 function NewPurchaseReturnPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const {  } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [purchaseSuggestions, setPurchaseSuggestions] = useState<PurchaseWithItems[]>([]);
