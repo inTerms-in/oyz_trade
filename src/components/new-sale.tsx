@@ -143,7 +143,7 @@ function NewSalePage() {
       if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
       else setItemSuggestions(itemsData as ItemWithCategory[]);
 
-      const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
+      const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo, user_id");
       if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
       else setCustomerSuggestions(customersData || []);
     }
@@ -323,7 +323,7 @@ function NewSalePage() {
       } else {
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
-          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }])
+          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null, user_id: user.id }])
           .select()
           .single();
 
@@ -341,7 +341,8 @@ function NewSalePage() {
         const { error: updateMobileError } = await supabase
           .from("CustomerMaster")
           .update({ MobileNo: values.customerMobileNo || null })
-          .eq("CustomerId", customerToUpdate.CustomerId);
+          .eq("CustomerId", customerToUpdate.CustomerId)
+          .eq("user_id", user.id);
         if (updateMobileError) {
           toast.error("Failed to update customer mobile number", { description: updateMobileError.message });
           setIsSubmitting(false);
@@ -369,6 +370,7 @@ function NewSalePage() {
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
         ReferenceNo: refNoData,
+        user_id: user.id,
       }).select().single();
 
     if (saleError || !saleData) {
@@ -383,6 +385,7 @@ function NewSalePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
+      user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -394,7 +397,7 @@ function NewSalePage() {
       toast.error("Failed to save sale items. Rolling back.", { 
         description: itemsError?.message || "An unknown error occurred. The sale was not saved." 
       });
-      await supabase.from("Sales").delete().eq("SaleId", saleData.SaleId);
+      await supabase.from("Sales").delete().eq("SaleId", saleData.SaleId).eq("user_id", user.id);
       setIsSubmitting(false);
       return;
     }
@@ -418,15 +421,15 @@ function NewSalePage() {
     // This page doesn't have shop details or the full saleData to generate a rich message.
     // For a new sale, we'd need to fetch the full saleData again.
     // For simplicity, we'll navigate to the edit page and let it handle WhatsApp.
-    navigate(`/sales/edit/${saleId}`, { state: { action: 'send-whatsapp' } });
+    navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'send-whatsapp' } });
   };
 
   const handlePrintFromDialog = (saleId: number) => {
-    navigate(`/sales/edit/${saleId}`, { state: { action: 'print-invoice' } });
+    navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'print-invoice' } });
   };
 
   const handleReturnToListFromDialog = () => {
-    navigate("/sales");
+    navigate("/sales-module/sales-invoice");
   };
 
   return (
