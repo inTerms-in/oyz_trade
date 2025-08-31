@@ -2,26 +2,18 @@ import { useEffect } from 'react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth-provider';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/auth-provider'; // Import useAuth
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 function Login() {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth(); // Get user and loading state from AuthContext
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("[Login Page useEffect] Current state - Loading:", loading, "User:", user ? "Present" : "Absent");
     // If not loading and user is authenticated, redirect to dashboard
     if (!loading && user) {
-      console.log("[Login Page] User authenticated, attempting redirection to /");
-      // Add a small delay to ensure the Supabase UI has fully rendered/processed its state
-      // before we force a navigation. This can help with race conditions.
-      const timer = setTimeout(() => {
-        navigate('/', { replace: true });
-        console.log("[Login Page] Navigation to / executed.");
-      }, 100); // 100ms delay
-
-      return () => clearTimeout(timer); // Cleanup the timer if component unmounts
+      console.log("[Login Page] User authenticated, redirecting to /");
+      navigate('/', { replace: true }); // Use replace to prevent going back to login page
     }
   }, [user, loading, navigate]);
 
@@ -37,7 +29,7 @@ function Login() {
             theme: ThemeSupa,
           }}
           view="sign_in" 
-          showLinks={false}
+          showLinks={false} // Strictly hide all links, including signup
         />
       </div>
     </div>
