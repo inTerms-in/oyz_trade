@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText,
   ChevronDown, DollarSign, FileText, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Calendar,
-  AlertCircle, Settings, ArrowLeftRight, Search, Clock 
+  AlertCircle, Settings, ArrowLeftRight, Clock 
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ function Layout() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Removed searchInputRef as the search bar is being removed
   const newActionButtonRef = useRef<HTMLButtonElement>(null); // Ref for the "New" button
 
   const handleLogout = async () => {
@@ -264,10 +264,7 @@ function Layout() {
         event.preventDefault();
         newActionButtonRef.current?.click();
       }
-      if (event.ctrlKey && event.key === 'f') {
-        event.preventDefault();
-        searchInputRef.current?.focus();
-      }
+      // Removed Ctrl+F shortcut for search as the search bar is removed
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -330,17 +327,7 @@ function Layout() {
               </SheetContent>
             </Sheet>
             <h1 className="text-lg font-semibold md:text-xl mr-auto">{currentPageTitle}</h1>
-            <div className="w-full flex-1 max-w-xs hidden sm:block">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  ref={searchInputRef}
-                  type="search"
-                  placeholder="Search... (Ctrl+F)"
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
-            </div>
+            {/* Removed the search input field */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Tooltip>
