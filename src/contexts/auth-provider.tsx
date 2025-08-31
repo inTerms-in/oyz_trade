@@ -1,13 +1,13 @@
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types';
+// Removed Profile import
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  profile: Profile | null;
+  // Removed profile from AuthContextType
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,82 +20,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  // Removed profile state
   
-  // Function to fetch user profile with retry logic
-  const fetchProfile = async (userId: string, retries = 5, delay = 1000): Promise<Profile | null> => {
-    console.log(`[AuthProvider] Attempting to fetch profile for user: ${userId}`);
-    for (let i = 0; i < retries; i++) {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (data) {
-          console.log(`[AuthProvider] Profile found for user ${userId} on attempt ${i + 1}:`, data);
-          return data as Profile;
-        }
-
-        if (error) {
-          if (error.code === 'PGRST116') { // No rows found
-            console.log(`[AuthProvider] No profile found for user ${userId} on attempt ${i + 1}. Retrying in ${delay / 1000}s...`);
-          } else { // Other Supabase error
-            console.error(`[AuthProvider] Supabase error fetching profile for user ${userId} on attempt ${i + 1}:`, error);
-            return null; // Stop retrying on actual errors
-          }
-        } else {
-          console.log(`[AuthProvider] No data and no error (unexpected) for user ${userId} on attempt ${i + 1}. Retrying in ${delay / 1000}s...`);
-        }
-        await new Promise(res => setTimeout(res, delay)); // Wait before retrying
-
-      } catch (e) {
-        console.error(`[AuthProvider] Exception in fetchProfile for user ${userId} on attempt ${i + 1}:`, e);
-        return null; // Stop retrying on unexpected exceptions
-      }
-    }
-    console.warn(`[AuthProvider] Failed to find profile for user ${userId} after ${retries} attempts.`);
-    return null;
-  };
-
-  // Function to check if default settings and shop exist (assuming trigger creates them)
-  const checkDefaultUserSettings = async (userId: string) => {
-    console.log(`[AuthProvider] Checking default user settings for user: ${userId}`);
-    try {
-      // Check settings
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('settings')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (settingsError && settingsError.code !== 'PGRST116') {
-        console.error('[AuthProvider] Error checking existing settings:', settingsError);
-      } else if (!settingsData) {
-        console.warn(`[AuthProvider] Default settings not found for user ${userId}. This might indicate a trigger issue.`);
-      } else {
-        console.log(`[AuthProvider] Default settings found for user ${userId}.`);
-      }
-
-      // Check shop details
-      const { data: shopData, error: shopError } = await supabase
-        .from('shop')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (shopError && shopError.code !== 'PGRST116') {
-        console.error('[AuthProvider] Error checking existing shop details:', shopError);
-      } else if (!shopData) {
-        console.warn(`[AuthProvider] Default shop details not found for user ${userId}. This might indicate a trigger issue.`);
-      } else {
-        console.log(`[AuthProvider] Default shop details found for user ${userId}.`);
-      }
-    } catch (e) {
-      console.error('[AuthProvider] Exception in checkDefaultUserSettings:', e);
-    }
-  };
+  // Removed fetchProfile function
+  // Removed checkDefaultUserSettings function
 
   useEffect(() => {
     let isMounted = true;
@@ -108,12 +36,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        let userProfile: Profile | null = null;
-        if (currentSession?.user) {
-          userProfile = await fetchProfile(currentSession.user.id);
-          await checkDefaultUserSettings(currentSession.user.id); // Check, don't create
-        }
-        setProfile(userProfile);
+        // Removed profile fetching and setting logic
+        // Removed checkDefaultUserSettings call
+
         setLoading(false);
         console.log("[AuthProvider] Auth state change handler finished. Loading set to false.");
       }
@@ -125,12 +50,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
 
-      let userProfile: Profile | null = null;
-      if (initialSession?.user) {
-        userProfile = await fetchProfile(initialSession.user.id);
-        await checkDefaultUserSettings(initialSession.user.id); // Check, don't create
-      }
-      setProfile(userProfile);
+      // Removed profile fetching and setting logic
+      // Removed checkDefaultUserSettings call
+
       setLoading(false);
       console.log("[AuthProvider] Initial session check finished. Loading set to false.");
     }).catch(e => {
@@ -149,7 +71,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     session,
     user,
     loading,
-    profile,
+    // Removed profile from value
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
