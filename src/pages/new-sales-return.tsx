@@ -136,7 +136,7 @@ function NewSalesReturnPage() {
   };
 
   async function onSubmit(values: SalesReturnFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again.");
+    // No user_id check here as per new global access policy for transaction data
     if (!selectedSale) return toast.error("Please select an original sale.");
 
     const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
@@ -144,7 +144,7 @@ function NewSalesReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no', { p_user_id: user.id });
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no'); // Removed p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate sales return reference number", { description: refNoError?.message });
@@ -160,6 +160,7 @@ function NewSalesReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
+        // user_id: user.id, // Removed user_id
       })
       .select()
       .single();
@@ -176,6 +177,7 @@ function NewSalesReturnPage() {
       Qty: item.QtyReturned,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
+      // user_id: user.id, // Removed user_id
     }));
 
     const { error: salesReturnItemsError } = await supabase
@@ -200,6 +202,7 @@ function NewSalesReturnPage() {
           AdjustmentType: 'in', // Stock increases on return
           Quantity: item.QtyReturned,
           Reason: `Sales Return (Ref: ${refNoData})`,
+          // user_id: user.id, // Removed user_id
         });
       if (stockError) {
         console.error(`Failed to update stock for item ${item.ItemName}:`, stockError.message);

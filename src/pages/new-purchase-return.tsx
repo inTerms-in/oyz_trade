@@ -136,7 +136,7 @@ function NewPurchaseReturnPage() {
   };
 
   async function onSubmit(values: PurchaseReturnFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again.");
+    // No user_id check here as per new global access policy for transaction data
     if (!selectedPurchase) return toast.error("Please select an original purchase.");
 
     const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
@@ -144,7 +144,7 @@ function NewPurchaseReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no', { p_user_id: user.id });
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no'); // Removed p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase return reference number", { description: refNoError?.message });
@@ -160,6 +160,7 @@ function NewPurchaseReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
+        // user_id: user.id, // Removed user_id
       })
       .select()
       .single();
@@ -176,6 +177,7 @@ function NewPurchaseReturnPage() {
       Qty: item.QtyReturned,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
+      // user_id: user.id, // Removed user_id
     }));
 
     const { error: purchaseReturnItemsError } = await supabase
@@ -200,6 +202,7 @@ function NewPurchaseReturnPage() {
           AdjustmentType: 'out', // Stock decreases on return to supplier
           Quantity: item.QtyReturned,
           Reason: `Purchase Return (Ref: ${refNoData})`,
+          // user_id: user.id, // Removed user_id
         });
       if (stockError) {
         console.error(`Failed to update stock for item ${item.ItemName}:`, stockError.message);
