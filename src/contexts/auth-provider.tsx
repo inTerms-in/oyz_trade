@@ -38,13 +38,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return data as Profile;
         }
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is handled by retrying
-          console.error(`[AuthProvider] Error fetching profile for user ${userId} on attempt ${i + 1}:`, error);
-          // If it's a real error (not just "no rows found"), stop retrying
-          return null;
+        if (error) {
+          if (error.code === 'PGRST116') { // No rows found
+            console.log(`[AuthProvider] No profile found for user ${userId} on attempt ${i + 1}. Retrying in ${delay / 1000}s...`);
+          } else { // Other Supabase error
+            console.error(`[AuthProvider] Supabase error fetching profile for user ${userId} on attempt ${i + 1}:`, error);
+            return null; // Stop retrying on actual errors
+          }
+        } else {
+          console.log(`[AuthProvider] No data and no error (unexpected) for user ${userId} on attempt ${i + 1}. Retrying in ${delay / 1000}s...`);
         }
-
-        console.log(`[AuthProvider] No profile found for user ${userId} on attempt ${i + 1}. Retrying in ${delay / 1000}s...`);
         await new Promise(res => setTimeout(res, delay)); // Wait before retrying
 
       } catch (e) {
