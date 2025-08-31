@@ -115,7 +115,6 @@ function NewPurchasePage() {
 
   const fetchData = useCallback(async () => {
     if (!user?.id) { // Still need user for authentication, but not for data filtering
-      setLoading(false);
       return;
     }
     const { data: itemsData, error: itemsError } = await supabase

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SaleWithItems, HourlySales } from "@/types";
@@ -8,28 +10,14 @@ import { useAuth } from "@/contexts/auth-provider";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, ShoppingBag, Tag, Filter, Calendar as CalendarIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { DollarSign, ShoppingBag, Tag } from "lucide-react";
 import { RecentSales } from "@/components/dashboard/recent-sales";
 import { RecentSaleItems } from "@/components/dashboard/recent-sale-items";
 import { TopSoldItemsChart } from "@/components/dashboard/top-sold-items-chart";
 import { SalesOverTimeChart } from "@/components/dashboard/sales-over-time-chart";
 import { MonthlySalesChart } from "@/components/dashboard/monthly-sales-chart";
 import { SalesByHourChart } from "@/components/dashboard/sales-by-hour-chart";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SalesStatsCardsProps {
   totalRevenue: number;
@@ -99,14 +87,7 @@ function SalesDashboardPage() {
   const [monthlySales, setMonthlySales] = useState<MonthlyTotal[]>([]);
   
   const [allRawHourlySales, setAllRawHourlySales] = useState<RawHourlySale[]>([]);
-  const [filterHourlyType, setFilterHourlyType] = useState<'all' | 'day' | 'month'>('all');
-  const [selectedHourlyDate, setSelectedHourlyDate] = useState<Date | undefined>(undefined);
-  const [selectedHourlyMonth, setSelectedHourlyMonth] = useState<string | undefined>(undefined);
   const [displayHourlySales, setDisplayHourlySales] = useState<HourlySales[]>([]);
-  const [availableHourlyMonths, setAvailableHourlyMonths] = useState<string[]>([]);
-
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -191,7 +172,6 @@ function SalesDashboardPage() {
     });
 
     setAllRawHourlySales(rawHourlySalesData);
-    setAvailableHourlyMonths(Array.from(uniqueMonths).sort());
 
     const sortedSalesOverTime = Object.entries(salesByDate)
       .map(([date, total]) => ({ date, total }))
@@ -214,12 +194,9 @@ function SalesDashboardPage() {
     const hourlyAggregated: { [hour: number]: number } = {};
     let filteredRawSales = allRawHourlySales;
 
-    if (filterHourlyType === 'day' && selectedHourlyDate) {
-      const formattedSelectedDate = format(selectedHourlyDate, 'yyyy-MM-dd');
-      filteredRawSales = filteredRawSales.filter(sale => sale.date === formattedSelectedDate);
-    } else if (filterHourlyType === 'month' && selectedHourlyMonth) {
-      filteredRawSales = filteredRawSales.filter(sale => format(parseISO(sale.date), 'yyyy-MM') === selectedHourlyMonth);
-    }
+    // Since there's no UI to change filterHourlyType, selectedHourlyDate, or selectedHourlyMonth,
+    // the chart will always display aggregated data for all hours within the selected date range.
+    // The previous filtering logic has been removed.
 
     for (let i = 0; i < 24; i++) {
       hourlyAggregated[i] = 0;
@@ -234,7 +211,7 @@ function SalesDashboardPage() {
       .sort((a, b) => a.hour - b.hour);
     
     setDisplayHourlySales(processedHourlySales);
-  }, [allRawHourlySales, filterHourlyType, selectedHourlyDate, selectedHourlyMonth]);
+  }, [allRawHourlySales]);
 
   if (loading) {
     return (
