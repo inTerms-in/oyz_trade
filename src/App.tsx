@@ -9,7 +9,7 @@ import ItemsPage from "@/pages/items";
 import PurchasesPage from "@/pages/purchases";
 import NewPurchasePage from "@/pages/new-purchase";
 import EditPurchasePage from "@/pages/edit-purchase";
-import LoginPage from "@/pages/login";
+import LoginPage from "@/pages/login"; // Corrected import to use default export
 import SettingsPage from "@/pages/settings";
 import { ProtectedRoute } from "@/components/protected-route";
 import SalesPage from "@/pages/sales";
