@@ -22,96 +22,67 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   
-  const getOrCreateProfile = async (userId: string, email: string | undefined): Promise<Profile | null> => {
-    console.log(`[AuthProvider] Attempting to get or create profile for user: ${userId}`);
+  // Function to fetch user profile
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    console.log(`[AuthProvider] Attempting to fetch profile for user: ${userId}`);
     try {
-      // Try to get existing profile
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is handled by returning null
+        console.error(`[AuthProvider] Error fetching profile for user ${userId}:`, error);
+        return null;
+      }
       if (data) {
         console.log(`[AuthProvider] Profile found for user ${userId}:`, data);
         return data as Profile;
       }
-
-      if (error && error.code === 'PGRST116') { // No rows found, create a new profile
-        console.log(`[AuthProvider] No profile found for user ${userId}, creating one.`);
-        const { data: newProfileData, error: insertError } = await supabase
-          .from('profiles')
-          .insert({ 
-            id: userId, 
-            first_name: email ? email.split('@')[0] : 'User', // Use email part as default name
-            role: 'user' // Default role
-          })
-          .select('*')
-          .single();
-
-        if (insertError) {
-          console.error('[AuthProvider] Error creating new profile:', insertError);
-          return null;
-        }
-        console.log(`[AuthProvider] New profile created for user ${userId}:`, newProfileData);
-        return newProfileData as Profile;
-      }
-
-      // Other errors during fetch
-      if (error) {
-        console.error('[AuthProvider] Error fetching profile:', error);
-      }
+      console.log(`[AuthProvider] No profile found for user ${userId}.`);
       return null;
     } catch (e) {
-      console.error('[AuthProvider] Exception in getOrCreateProfile:', e);
+      console.error(`[AuthProvider] Exception in fetchProfile for user ${userId}:`, e);
       return null;
     }
   };
 
-  // Function to create default settings and shop for a new user
-  const createDefaultUserSettings = async (userId: string) => {
+  // Function to check if default settings and shop exist (assuming trigger creates them)
+  const checkDefaultUserSettings = async (userId: string) => {
+    console.log(`[AuthProvider] Checking default user settings for user: ${userId}`);
     try {
-      // Check if settings already exist
-      const { error: settingsError } = await supabase // Removed 'data: existingSettings'
+      // Check settings
+      const { data: settingsData, error: settingsError } = await supabase
         .from('settings')
         .select('id')
         .eq('user_id', userId)
         .single();
 
-      if (settingsError && settingsError.code === 'PGRST116') { // No settings found, create default
-        const { error: insertSettingsError } = await supabase
-          .from('settings')
-          .insert({ user_id: userId, financial_year_start_month: 4 }); // Default to April
-        if (insertSettingsError) {
-          console.error('[AuthProvider] Error creating default settings:', insertSettingsError);
-        } else {
-          console.log(`[AuthProvider] Default settings created for user ${userId}.`);
-        }
-      } else if (settingsError) {
+      if (settingsError && settingsError.code !== 'PGRST116') {
         console.error('[AuthProvider] Error checking existing settings:', settingsError);
+      } else if (!settingsData) {
+        console.warn(`[AuthProvider] Default settings not found for user ${userId}. This might indicate a trigger issue.`);
+      } else {
+        console.log(`[AuthProvider] Default settings found for user ${userId}.`);
       }
 
-      // Check if shop details already exist
-      const { error: shopError } = await supabase // Removed 'data: existingShop'
+      // Check shop details
+      const { data: shopData, error: shopError } = await supabase
         .from('shop')
         .select('id')
         .eq('user_id', userId)
         .single();
 
-      if (shopError && shopError.code === 'PGRST116') { // No shop details found, create default
-        const { error: insertShopError } = await supabase
-          .from('shop')
-          .insert({ user_id: userId, shop_name: 'My Shop' }); // Default shop name
-        if (insertShopError) {
-          console.error('[AuthProvider] Error creating default shop details:', insertShopError);
-        } else {
-          console.log(`[AuthProvider] Default shop details created for user ${userId}.`);
-        }
-      } else if (shopError) {
+      if (shopError && shopError.code !== 'PGRST116') {
         console.error('[AuthProvider] Error checking existing shop details:', shopError);
+      } else if (!shopData) {
+        console.warn(`[AuthProvider] Default shop details not found for user ${userId}. This might indicate a trigger issue.`);
+      } else {
+        console.log(`[AuthProvider] Default shop details found for user ${userId}.`);
       }
     } catch (e) {
-      console.error('[AuthProvider] Exception in createDefaultUserSettings:', e);
+      console.error('[AuthProvider] Exception in checkDefaultUserSettings:', e);
     }
   };
 
@@ -128,9 +99,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         let userProfile: Profile | null = null;
         if (currentSession?.user) {
-          userProfile = await getOrCreateProfile(currentSession.user.id, currentSession.user.email);
-          // Also ensure default settings and shop details are created
-          await createDefaultUserSettings(currentSession.user.id);
+          userProfile = await fetchProfile(currentSession.user.id);
+          await checkDefaultUserSettings(currentSession.user.id); // Check, don't create
         }
         setProfile(userProfile);
         setLoading(false);
@@ -146,8 +116,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       let userProfile: Profile | null = null;
       if (initialSession?.user) {
-        userProfile = await getOrCreateProfile(initialSession.user.id, initialSession.user.email);
-        await createDefaultUserSettings(initialSession.user.id);
+        userProfile = await fetchProfile(initialSession.user.id);
+        await checkDefaultUserSettings(initialSession.user.id); // Check, don't create
       }
       setProfile(userProfile);
       setLoading(false);
