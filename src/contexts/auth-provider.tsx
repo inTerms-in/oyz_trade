@@ -24,85 +24,94 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   const getOrCreateProfile = async (userId: string, email: string | undefined): Promise<Profile | null> => {
     console.log(`[AuthProvider] Attempting to get or create profile for user: ${userId}`);
-    // Try to get existing profile
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (data) {
-      console.log(`[AuthProvider] Profile found for user ${userId}:`, data);
-      return data as Profile;
-    }
-
-    if (error && error.code === 'PGRST116') { // No rows found, create a new profile
-      console.log(`[AuthProvider] No profile found for user ${userId}, creating one.`);
-      const { data: newProfileData, error: insertError } = await supabase
+    try {
+      // Try to get existing profile
+      const { data, error } = await supabase
         .from('profiles')
-        .insert({ 
-          id: userId, 
-          first_name: email ? email.split('@')[0] : 'User', // Use email part as default name
-          role: 'user' // Default role
-        })
         .select('*')
+        .eq('id', userId)
         .single();
 
-      if (insertError) {
-        console.error('[AuthProvider] Error creating new profile:', insertError);
-        return null;
+      if (data) {
+        console.log(`[AuthProvider] Profile found for user ${userId}:`, data);
+        return data as Profile;
       }
-      console.log(`[AuthProvider] New profile created for user ${userId}:`, newProfileData);
-      return newProfileData as Profile;
-    }
 
-    // Other errors during fetch
-    if (error) {
-      console.error('[AuthProvider] Error fetching profile:', error);
+      if (error && error.code === 'PGRST116') { // No rows found, create a new profile
+        console.log(`[AuthProvider] No profile found for user ${userId}, creating one.`);
+        const { data: newProfileData, error: insertError } = await supabase
+          .from('profiles')
+          .insert({ 
+            id: userId, 
+            first_name: email ? email.split('@')[0] : 'User', // Use email part as default name
+            role: 'user' // Default role
+          })
+          .select('*')
+          .single();
+
+        if (insertError) {
+          console.error('[AuthProvider] Error creating new profile:', insertError);
+          return null;
+        }
+        console.log(`[AuthProvider] New profile created for user ${userId}:`, newProfileData);
+        return newProfileData as Profile;
+      }
+
+      // Other errors during fetch
+      if (error) {
+        console.error('[AuthProvider] Error fetching profile:', error);
+      }
+      return null;
+    } catch (e) {
+      console.error('[AuthProvider] Exception in getOrCreateProfile:', e);
+      return null;
     }
-    return null;
   };
 
   // Function to create default settings and shop for a new user
   const createDefaultUserSettings = async (userId: string) => {
-    // Check if settings already exist
-    const { data: _existingSettings, error: settingsError } = await supabase // Fixed: _existingSettings
-      .from('settings')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (settingsError && settingsError.code === 'PGRST116') { // No settings found, create default
-      const { error: insertSettingsError } = await supabase
+    try {
+      // Check if settings already exist
+      const { error: settingsError } = await supabase // Removed 'data: existingSettings'
         .from('settings')
-        .insert({ user_id: userId, financial_year_start_month: 4 }); // Default to April
-      if (insertSettingsError) {
-        console.error('[AuthProvider] Error creating default settings:', insertSettingsError);
-      } else {
-        console.log(`[AuthProvider] Default settings created for user ${userId}.`);
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (settingsError && settingsError.code === 'PGRST116') { // No settings found, create default
+        const { error: insertSettingsError } = await supabase
+          .from('settings')
+          .insert({ user_id: userId, financial_year_start_month: 4 }); // Default to April
+        if (insertSettingsError) {
+          console.error('[AuthProvider] Error creating default settings:', insertSettingsError);
+        } else {
+          console.log(`[AuthProvider] Default settings created for user ${userId}.`);
+        }
+      } else if (settingsError) {
+        console.error('[AuthProvider] Error checking existing settings:', settingsError);
       }
-    } else if (settingsError) {
-      console.error('[AuthProvider] Error checking existing settings:', settingsError);
-    }
 
-    // Check if shop details already exist
-    const { data: _existingShop, error: shopError } = await supabase // Fixed: _existingShop
-      .from('shop')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (shopError && shopError.code === 'PGRST116') { // No shop details found, create default
-      const { error: insertShopError } = await supabase
+      // Check if shop details already exist
+      const { error: shopError } = await supabase // Removed 'data: existingShop'
         .from('shop')
-        .insert({ user_id: userId, shop_name: 'My Shop' }); // Default shop name
-      if (insertShopError) {
-        console.error('[AuthProvider] Error creating default shop details:', insertShopError);
-      } else {
-        console.log(`[AuthProvider] Default shop details created for user ${userId}.`);
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (shopError && shopError.code === 'PGRST116') { // No shop details found, create default
+        const { error: insertShopError } = await supabase
+          .from('shop')
+          .insert({ user_id: userId, shop_name: 'My Shop' }); // Default shop name
+        if (insertShopError) {
+          console.error('[AuthProvider] Error creating default shop details:', insertShopError);
+        } else {
+          console.log(`[AuthProvider] Default shop details created for user ${userId}.`);
+        }
+      } else if (shopError) {
+        console.error('[AuthProvider] Error checking existing shop details:', shopError);
       }
-    } else if (shopError) {
-      console.error('[AuthProvider] Error checking existing shop details:', shopError);
+    } catch (e) {
+      console.error('[AuthProvider] Exception in createDefaultUserSettings:', e);
     }
   };
 
@@ -125,6 +134,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         setProfile(userProfile);
         setLoading(false);
+        console.log("[AuthProvider] Auth state change handler finished. Loading set to false.");
       }
     );
 
@@ -141,6 +151,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       setProfile(userProfile);
       setLoading(false);
+      console.log("[AuthProvider] Initial session check finished. Loading set to false.");
+    }).catch(e => {
+      console.error("[AuthProvider] Error during initial session fetch:", e);
+      setLoading(false); // Ensure loading is set to false even on error
     });
 
 
