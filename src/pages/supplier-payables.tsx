@@ -134,5 +134,3 @@ export default function SupplierPayablesPage() {
     </div>
   );
 }
-
-export default SupplierPayablesPage;

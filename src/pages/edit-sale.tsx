@@ -23,7 +23,7 @@ import { Autocomplete } from "@/components/autocomplete";
 import { EntityAutocomplete } from "@/components/entity-autocomplete";
 import { Label } from "@/components/ui/label";
 import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
-import { Calendar as CalendarIcon, Plus, PlusCircle, Trash2, Pencil, Printer, ScanBarcode, MessageCircleMore } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, PlusCircle, Trash2, Pencil, ScanBarcode } from "lucide-react";
 import { AddNewItemInlineDialog } from "@/components/add-new-item-inline-dialog";
 import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
