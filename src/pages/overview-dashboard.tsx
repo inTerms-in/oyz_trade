@@ -120,7 +120,7 @@ function OverviewDashboardPage() {
       // Declare maps for monthly data aggregation at a higher scope
       const salesByMonth: Record<string, number> = {};
       const purchasesByMonth: Record<string, number> = {};
-      const dailySpending: { [key: string]: number } = {}; // Declared dailySpending here
+      // Removed unused dailySpending variable
 
       // Fetch total item count and items in stock for gauge
       const { count: totalItemsCount, error: totalItemsError } = await supabase

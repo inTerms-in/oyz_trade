@@ -121,13 +121,16 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
 
   async function onSubmit(values: ItemFormValues) {
     setIsSubmitting(true);
+    // Ensure empty string barcode is converted to null
+    const barcodeToUpdate = values.Barcode === "" ? null : values.Barcode;
+
     const { error } = await supabase
       .from("ItemMaster")
       .update({ 
         ItemName: values.ItemName, 
         CategoryId: values.CategoryId,
         SellPrice: values.SellPrice,
-        Barcode: values.Barcode,
+        Barcode: barcodeToUpdate,
         ItemCode: values.ItemCode,
         RackNo: values.RackNo,
       })

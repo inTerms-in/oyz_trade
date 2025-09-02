@@ -116,6 +116,9 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
     if (!user?.id) return toast.error("Authentication error. Please log in again.");
     setIsSubmitting(true);
 
+    // Ensure empty string barcode is converted to null
+    const barcodeToInsert = values.Barcode === "" ? null : values.Barcode;
+
     // Proceed with Supabase if online
     const { data: insertedItem, error: insertError } = await supabase
       .from("ItemMaster")
@@ -123,7 +126,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
         ItemName: values.ItemName, 
         CategoryId: values.CategoryId, 
         SellPrice: values.SellPrice,
-        Barcode: values.Barcode,
+        Barcode: barcodeToInsert,
         RackNo: values.RackNo,
         user_id: user.id,
       }])
