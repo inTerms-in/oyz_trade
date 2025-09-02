@@ -745,7 +745,7 @@ function EditPurchasePage() {
                     </Tooltip>
                   </div>
                 </div>
-              )}
+              </div>
 
               {addedItems.length > 0 && (
                 <div className="w-full overflow-x-auto">
@@ -795,16 +795,10 @@ function EditPurchasePage() {
                   <Link to="/purchase-module/purchase-invoice" className="flex-1 sm:flex-none">
                     <Button type="button" variant="outline" className="w-full">Cancel</Button>
                   </Link>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button type="submit" disabled={isSubmitting || !isValid || addedItems.length === 0} className="flex-1 sm:flex-none">
-                        {isSubmitting ? "Saving..." : "Save Changes"}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Save Changes (Ctrl+S)</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  {/* Removed Tooltip wrapper for diagnostic purposes */}
+                  <Button type="submit" disabled={isSubmitting || !isValid || addedItems.length === 0} className="flex-1 sm:flex-none">
+                    {isSubmitting ? "Saving..." : "Save Changes"}
+                  </Button>
                 </div>
                 <div className="w-full sm:w-auto sm:max-w-xs space-y-1 text-sm self-end">
                     <div className="flex justify-between">
