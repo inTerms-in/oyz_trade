@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ItemWithStock, StockAdjustment as StockAdjustmentType } from "@/types";
 import { format } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for filtering
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,7 @@ const stockAdjustmentFormSchema = z.object({
 type StockAdjustmentFormValues = z.infer<typeof stockAdjustmentFormSchema>;
 
 function StockAdjustmentPage() {
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithStock[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
   const [recentAdjustments, setRecentAdjustments] = useState<StockAdjustmentType[]>([]);
@@ -60,13 +60,14 @@ function StockAdjustmentPage() {
     const { data, error } = await supabase
       .from("item_stock_details")
       .select("ItemId, ItemName, ItemCode, current_stock");
+      // Removed .eq("user_id", user.id) filter
     if (error) {
       toast.error("Failed to fetch items", { description: error.message });
     } else {
       setItemSuggestions(data as ItemWithStock[]);
     }
     setLoadingSuggestions(false);
-  }, []);
+  }, []); // Removed user.id from dependencies
 
   const fetchRecentAdjustments = useCallback(async (itemId: number) => {
     setLoadingAdjustments(true);
@@ -74,6 +75,7 @@ function StockAdjustmentPage() {
       .from("StockAdjustment")
       .select("*, ItemMaster(ItemName, ItemCode)")
       .eq("ItemId", itemId)
+      // Removed .eq("user_id", user.id) filter
       .order("AdjustmentDate", { ascending: false })
       .limit(5);
     if (error) {
@@ -83,7 +85,7 @@ function StockAdjustmentPage() {
       setRecentAdjustments(data as StockAdjustmentType[]);
     }
     setLoadingAdjustments(false);
-  }, []);
+  }, []); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchItemSuggestions();
@@ -117,7 +119,7 @@ function StockAdjustmentPage() {
   };
 
   async function onSubmit(values: StockAdjustmentFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again.");
+    // Removed user_id check
     setIsSubmitting(true);
 
     // Ensure ItemId is a number before inserting
@@ -134,7 +136,7 @@ function StockAdjustmentPage() {
         AdjustmentType: values.AdjustmentType,
         Quantity: values.Quantity,
         Reason: values.Reason,
-        user_id: user.id,
+        // Removed user_id
       });
 
     setIsSubmitting(false);

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+// Removed useAuth import as user_id is no longer used for filtering
 
 
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ interface AddSupplierDialogProps {
 
 export function AddSupplierDialog({ open, onOpenChange, initialValue, onSupplierAdded }: AddSupplierDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth(); // Import useAuth
+  // Removed user from useAuth
 
   const form = useForm<SupplierFormValues>({
     resolver: zodResolver(supplierFormSchema),
@@ -73,7 +73,6 @@ export function AddSupplierDialog({ open, onOpenChange, initialValue, onSupplier
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: SupplierFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
     setIsSubmitting(true);
 
     const { error } = await supabase
@@ -81,7 +80,7 @@ export function AddSupplierDialog({ open, onOpenChange, initialValue, onSupplier
       .insert([{ 
         SupplierName: values.SupplierName, 
         MobileNo: values.MobileNo || null,
-        user_id: user.id, // Add user_id
+        // Removed user_id
       }])
       .select();
 

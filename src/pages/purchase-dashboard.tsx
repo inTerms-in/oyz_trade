@@ -4,7 +4,7 @@ import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for filtering
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -37,7 +37,7 @@ interface MonthlyTotal {
 }
 
 function PurchaseDashboardPage() {
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [loading, setLoading] = useState(true);
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalPurchases, setTotalPurchases] = useState(0);
@@ -54,10 +54,6 @@ function PurchaseDashboardPage() {
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) { // Still need user for authentication, but not for data filtering
-      setLoading(false);
-      return;
-    }
     setLoading(true);
 
     const { count, error: itemsError } = await supabase
@@ -145,7 +141,7 @@ function PurchaseDashboardPage() {
     }
 
     setLoading(false);
-  }, [dateRange, user?.id]);
+  }, [dateRange]); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchData();

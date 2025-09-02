@@ -2,7 +2,7 @@ import React from "react";
 import { SaleWithItems } from "@/types";
 import { generateItemCode } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client"; // Import supabase client
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+// Removed useAuth import as user_id is no longer used for filtering
 import { toast } from "sonner";
 
 interface SaleInvoiceProps {
@@ -17,16 +17,15 @@ interface ShopDetails {
 
 export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
   ({ sale }, ref) => {
-    const { user } = useAuth();
+    // Removed user from useAuth
     const [shopDetails, setShopDetails] = React.useState<ShopDetails | null>(null);
 
     React.useEffect(() => {
       async function fetchShopDetails() {
-        if (!user?.id) return; // Still need user ID to fetch *their* shop details
         const { data, error } = await supabase
           .from("shop")
           .select("shop_name, mobile_no, address")
-          .eq("user_id", user.id)
+          // Removed .eq("user_id", user.id) filter
           .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -36,7 +35,7 @@ export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
         }
       }
       fetchShopDetails();
-    }, [user?.id]);
+    }, []); // Removed user?.id from dependencies
 
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

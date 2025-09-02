@@ -54,11 +54,11 @@ function SettingsPage() {
   ];
 
   const fetchSettings = useCallback(async () => {
-    if (!user?.id) return;
+    // Removed user?.id check as settings are now global
     const { data, error } = await supabase
       .from("settings")
       .select("financial_year_start_month")
-      .eq("user_id", user.id)
+      // Removed .eq("user_id", user.id) filter
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -66,7 +66,7 @@ function SettingsPage() {
     } else if (data) {
       setFinancialYearStartMonth(data.financial_year_start_month);
     }
-  }, [user?.id]);
+  }, []); // Removed user?.id from dependencies
 
   useEffect(() => {
     fetchSettings();
@@ -80,7 +80,7 @@ function SettingsPage() {
     setIsSavingSettings(true);
     const { error } = await supabase
       .from("settings")
-      .upsert({ user_id: user.id, financial_year_start_month: financialYearStartMonth }, { onConflict: 'user_id' });
+      .upsert({ financial_year_start_month: financialYearStartMonth }, { onConflict: 'id' }); // Upsert based on id, assuming a single row for global settings
 
     setIsSavingSettings(false);
     if (error) {
@@ -142,11 +142,9 @@ function SettingsPage() {
       const { data: stockAdjustments } = await supabase.from("StockAdjustment").select("*"); // Removed user_id filter
       if (stockAdjustments) zip.file("stock_adjustments.csv", Papa.unparse(stockAdjustments));
 
-      // Fetch and add shop details (user-specific)
-      if (user?.id) { // Keep user_id for user-specific data
-        const { data: shopData } = await supabase.from("shop").select("*").eq("user_id", user.id);
-        if (shopData) zip.file("shop_details.csv", Papa.unparse(shopData));
-      }
+      // Fetch and add shop details (now global)
+      const { data: shopData } = await supabase.from("shop").select("*"); // Removed user_id filter
+      if (shopData) zip.file("shop_details.csv", Papa.unparse(shopData));
 
       // Fetch and add reference number sequences (global)
       const { data: refSequences } = await supabase.from("reference_number_sequences").select("*"); // Removed user_id filter

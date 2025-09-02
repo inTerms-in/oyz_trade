@@ -64,11 +64,10 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
   });
 
   const fetchShopDetails = useCallback(async () => {
-    if (!user?.id) return;
+    // Removed user?.id check as shop details are now global
     const { data, error } = await supabase
       .from("shop")
       .select("shop_name, mobile_no, address")
-      .eq("user_id", user.id)
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -78,7 +77,7 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
     } else {
       form.reset({ shop_name: "", mobile_no: "", address: "" });
     }
-  }, [user?.id, form]);
+  }, [form]); // Removed user?.id from dependencies
 
   useEffect(() => {
     if (open) {
@@ -99,12 +98,12 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
       .from("shop")
       .upsert(
         { 
-          user_id: user.id,
+          // Removed user_id
           shop_name: values.shop_name, 
           mobile_no: values.mobile_no || null,
           address: values.address || null,
         }, 
-        { onConflict: 'user_id' } // Upsert based on user_id
+        { onConflict: 'id' } // Upsert based on id, assuming a single row for global settings
       );
 
     setIsSubmitting(false);

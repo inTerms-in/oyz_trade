@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, PurchaseWithItems, Supplier } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for filtering
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -73,7 +73,7 @@ const EMPTY_ITEM: Omit<PurchaseListItem, 'ItemId'> & { ItemId: number | string }
 function EditPurchasePage() {
   const { purchaseId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [loading, setLoading] = useState(true);
   const [purchaseData, setPurchaseData] = useState<PurchaseWithItems | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,7 +115,7 @@ function EditPurchasePage() {
     
     const { data, error } = await supabase
       .from("Purchase")
-      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName, MobileNo, user_id)")
+      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName, MobileNo)")
       .eq("PurchaseId", purchaseId)
       .single();
 
@@ -154,12 +154,12 @@ function EditPurchasePage() {
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo, user_id");
+    const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo");
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []);
     
     setLoading(false);
-  }, [purchaseId, navigate, form, user]);
+  }, [purchaseId, navigate, form]); // Removed user from dependencies
 
   useEffect(() => {
     fetchData();
@@ -380,10 +380,7 @@ function EditPurchasePage() {
       toast.error("Please add at least one item.");
       return false;
     }
-    if (!user?.id) {
-      toast.error("Authentication error. Please log in again.");
-      return false;
-    }
+    // Removed user_id check
     
     setIsSubmitting(true);
 
@@ -398,7 +395,7 @@ function EditPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null, user_id: user.id }])
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }]) // Removed user_id
         .select()
         .single();
 
@@ -416,8 +413,7 @@ function EditPurchasePage() {
       const { error: updateMobileError } = await supabase
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
-        .eq("SupplierId", supplierToUpdate.SupplierId)
-        .eq("user_id", user.id);
+        .eq("SupplierId", supplierToUpdate.SupplierId); // Removed user_id filter
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -434,7 +430,7 @@ function EditPurchasePage() {
         PurchaseDate: values.PurchaseDate.toISOString(),
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
-      }).eq("PurchaseId", purchaseId);
+      }).eq("PurchaseId", purchaseId); // Removed user_id filter
 
     if (purchaseError) {
       toast.error("Failed to update purchase", { description: purchaseError.message });
@@ -455,7 +451,7 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      user_id: user.id,
+      // Removed user_id
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -763,7 +759,7 @@ function EditPurchasePage() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Save Changes (Ctrl+S)</p>
+                        <p>Save Changes (Ctrl+S)</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+// Removed useAuth import as user_id is no longer used for filtering
 
 interface RecentItem {
   ItemName: string;
@@ -14,13 +14,12 @@ interface RecentItem {
 }
 
 export function RecentSaleItems() {
-  const { user } = useAuth(); // Import useAuth
+  // Removed user from useAuth
   const [items, setItems] = useState<RecentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRecentItems = async () => {
-      if (!user?.id) return; // Ensure user is logged in
       setLoading(true);
       const { data, error } = await supabase
         .from("SalesItem")
@@ -29,7 +28,7 @@ export function RecentSaleItems() {
           ItemMaster (ItemName),
           Sales (CustomerMaster(CustomerName), SaleDate)
         `)
-        .eq("user_id", user.id) // Filter by user_id
+        // Removed .eq("user_id", user.id) filter
         .order("SaleId", { ascending: false })
         .limit(10);
 
@@ -48,7 +47,7 @@ export function RecentSaleItems() {
     };
 
     fetchRecentItems();
-  }, [user?.id]); // Add user.id to dependencies
+  }, []); // Removed user.id from dependencies
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

@@ -6,7 +6,7 @@ import { SaleWithItems, HourlySales } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user_id is no longer used for filtering
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -76,7 +76,7 @@ interface RawHourlySale {
 }
 
 function SalesDashboardPage() {
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -95,15 +95,12 @@ function SalesDashboardPage() {
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) { // Still need user for authentication, but not for data filtering
-      setLoading(false);
-      return;
-    }
     setLoading(true);
 
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*), CustomerMaster(CustomerName)")
+      // Removed .eq("user_id", user.id) filter
       .order("SaleDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("SaleDate", dateRange.from.toISOString());
@@ -184,7 +181,7 @@ function SalesDashboardPage() {
     setMonthlySales(sortedMonthlySales);
 
     setLoading(false);
-  }, [dateRange, user?.id]);
+  }, [dateRange]); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchData();
