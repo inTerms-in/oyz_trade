@@ -42,24 +42,21 @@ function SalesPage() {
   });
 
   const fetchSales = useCallback(async () => {
-    if (!user?.id) { // Ensure user is logged in
-      setLoading(false);
-      return;
-    }
+    // Removed user.id check here as per new global access policy
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase
       .from("Sales")
-      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)", { count: "exact" })
-      .eq("user_id", user.id); // Filter by user_id
+      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName)", { count: "exact" });
+      // Removed .eq("user_id", user.id); // Filter by user_id
 
     if (debouncedSearchTerm) {
       const { data: matchingCustomers, error: customerError } = await supabase
         .from("CustomerMaster")
         .select("CustomerId")
-        .eq("user_id", user.id) // Filter by user_id
+        // Removed .eq("user_id", user.id); // Filter by user_id
         .ilike("CustomerName", `%${debouncedSearchTerm}%`);
 
       if (customerError) {
@@ -102,7 +99,7 @@ function SalesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchSales();

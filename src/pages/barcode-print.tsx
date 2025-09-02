@@ -48,18 +48,15 @@ function BarcodePrintPage() {
   };
 
   const fetchItems = useCallback(async (initialItemIds?: number[]) => {
-    if (!user?.id) { // Ensure user is logged in
-      setLoading(false);
-      return;
-    }
+    // Removed user.id check here as per new global access policy
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase
       .from("item_stock_details")
-      .select("ItemId, ItemName, CategoryId, CategoryName, SellPrice, Barcode, ItemCode, RackNo", { count: "exact" })
-      .eq("user_id", user.id); // Filter by user_id
+      .select("ItemId, ItemName, CategoryId, CategoryName, SellPrice, Barcode, ItemCode, RackNo", { count: "exact" });
+      // Removed .eq("user_id", user.id); // Filter by user_id
 
     if (initialItemIds && initialItemIds.length > 0) {
       query = query.in("ItemId", initialItemIds);
@@ -94,7 +91,7 @@ function BarcodePrintPage() {
       }
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, user?.id]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
 
   useEffect(() => {
     const initialItemIds = location.state?.initialSelectedItems as number[] | undefined;
@@ -247,7 +244,7 @@ function BarcodePrintPage() {
                           {isItemSelected(item.ItemId) && (
                             <FloatingLabelInput
                               id={`qty-${item.ItemId}`}
-                              label="Qty"
+                              label=" "
                               type="number"
                               value={selectedItem?.quantityToPrint || 1}
                               onChange={(e) => handleQuantityChange(item.ItemId, e.target.valueAsNumber)}

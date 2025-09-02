@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, PurchaseWithItems, Supplier } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -73,7 +73,7 @@ const EMPTY_ITEM: Omit<PurchaseListItem, 'ItemId'> & { ItemId: number | string }
 function EditPurchasePage() {
   const { purchaseId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [loading, setLoading] = useState(true);
   const [purchaseData, setPurchaseData] = useState<PurchaseWithItems | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,7 +88,7 @@ function EditPurchasePage() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isUpdateSellPriceDialogOpen, setIsUpdateSellPriceDialogOpen] = useState(false);
-  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(null);
+  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(itemToUpdateSellPrice);
   const [newSellPrice, setNewSellPrice] = useState<number | string>("");
   const [existingSellPriceForDialog, setExistingSellPriceForDialog] = useState<number | null>(null);
 
@@ -380,10 +380,6 @@ function EditPurchasePage() {
       toast.error("Please add at least one item.");
       return false;
     }
-    if (!user?.id) {
-      toast.error("Authentication error. Please log in again.");
-      return false;
-    }
     
     setIsSubmitting(true);
 
@@ -398,7 +394,7 @@ function EditPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null, user_id: user.id }])
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
         .select()
         .single();
 
@@ -416,8 +412,7 @@ function EditPurchasePage() {
       const { error: updateMobileError } = await supabase
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
-        .eq("SupplierId", supplierToUpdate.SupplierId)
-        .eq("user_id", user.id);
+        .eq("SupplierId", supplierToUpdate.SupplierId);
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -455,7 +450,7 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      user_id: user.id,
+      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

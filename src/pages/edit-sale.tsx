@@ -61,12 +61,6 @@ interface SaleListItem {
 const UNITS = ["Piece", "Pack", "Box", "Dozen", "Ream", "Kg", "Gram", "Liter", "ml"];
 const EMPTY_ITEM: Omit<SaleListItem, 'ItemId'> & { ItemId: number | string } = { ItemId: "", ItemName: "", CategoryName: "", Barcode: "", ItemCode: "", Qty: 1, Unit: "Piece", UnitPrice: 0, TotalPrice: 0 };
 
-interface ShopDetails {
-  shop_name: string;
-  mobile_no: string | null;
-  address: string | null;
-}
-
 export default function EditSalePage() { // Exported as default
   const { saleId } = useParams();
   const navigate = useNavigate();
@@ -191,22 +185,20 @@ export default function EditSalePage() { // Exported as default
     else setCustomerSuggestions(customersData || []);
 
     // Fetch shop details for WhatsApp message
-    if (user?.id) {
-      const { data: shopData, error: shopError } = await supabase
-        .from("shop")
-        .select("shop_name, mobile_no, address")
-        .eq("user_id", user.id)
-        .single();
+    // Removed user.id check here as shop details are now global
+    const { data: shopData, error: shopError } = await supabase
+      .from("shop")
+      .select("shop_name, mobile_no, address")
+      .single();
 
-      if (shopError && shopError.code !== 'PGRST116') {
-        toast.error("Failed to fetch shop details", { description: shopError.message });
-      } else if (data) {
-        setShopDetails(shopData);
-      }
+    if (shopError && shopError.code !== 'PGRST116') {
+      toast.error("Failed to fetch shop details", { description: shopError.message });
+    } else if (shopData) {
+      setShopDetails(shopData);
     }
     
     setLoading(false);
-  }, [saleId, navigate, form, user]);
+  }, [saleId, navigate, form]);
 
   useEffect(() => {
     fetchData();
@@ -225,10 +217,6 @@ export default function EditSalePage() { // Exported as default
       toast.error("Please add at least one item.");
       return false;
     }
-    if (!user?.id) {
-      toast.error("Authentication error. Please log in again.");
-      return false;
-    }
     
     setIsSubmitting(true);
 
@@ -244,7 +232,7 @@ export default function EditSalePage() { // Exported as default
       } else {
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
-          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null, user_id: user.id }])
+          .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }])
           .select()
           .single();
 
@@ -262,8 +250,7 @@ export default function EditSalePage() { // Exported as default
         const { error: updateMobileError } = await supabase
           .from("CustomerMaster")
           .update({ MobileNo: values.customerMobileNo || null })
-          .eq("CustomerId", customerToUpdate.CustomerId)
-          .eq("user_id", user.id);
+          .eq("CustomerId", customerToUpdate.CustomerId);
         if (updateMobileError) {
           toast.error("Failed to update customer mobile number", { description: updateMobileError.message });
           setIsSubmitting(false);
@@ -303,7 +290,7 @@ export default function EditSalePage() { // Exported as default
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      user_id: user.id,
+      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -322,7 +309,7 @@ export default function EditSalePage() { // Exported as default
     toast.success(`Sale updated successfully!`);
     setIsSubmitting(false);
     return true;
-  }, [saleId, addedItems, user, customerSuggestions, itemsTotal]);
+  }, [saleId, addedItems, customerSuggestions, itemsTotal]);
 
   const handlePrint = useCallback(async (id: number) => {
     if (!id) {
@@ -352,8 +339,8 @@ export default function EditSalePage() { // Exported as default
   }, [form, saveSale, fetchData]);
 
   const handleSendWhatsApp = useCallback(async (id: number) => {
-    if (!id || !user?.id || !saleData) {
-      toast.error("Authentication error or Sale ID missing.");
+    if (!id || !saleData) {
+      toast.error("Sale ID missing.");
       return;
     }
 
@@ -418,7 +405,7 @@ export default function EditSalePage() { // Exported as default
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, user?.id, saleData, grandTotal, shopDetails, saveSale, fetchData, itemsTotal]);
+  }, [form, saleData, grandTotal, shopDetails, saveSale, fetchData, itemsTotal]);
 
   // Handle actions passed via location state (from NewSalePage)
   useEffect(() => {
