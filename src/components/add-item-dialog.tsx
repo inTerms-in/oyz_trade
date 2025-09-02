@@ -7,7 +7,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Category } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const { user } = useAuth();
+  // Removed user from useAuth
   
 
   const form = useForm<ItemFormValues>({
@@ -87,9 +87,9 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
 
   useEffect(() => {
     async function fetchCategories() {
-      if (!user?.id) return; // Ensure user is logged in
+      // Removed user.id check here
       const { data } = await supabase.from("CategoryMaster").select("*")
-      .eq("user_id", user.id) // Filter by user_id
+      // Removed .eq("user_id", user.id)
       .order("CategoryName");
       if (data) {
         setCategories(data);
@@ -101,7 +101,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
     if (open) {
       fetchCategories();
     }
-  }, [open, form, initialValues, user?.id]);
+  }, [open, form, initialValues]); // Removed user.id from dependencies
 
   const handleGenerateBarcode = async () => {
     
@@ -115,7 +115,6 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
   };
 
   async function onSubmit(values: ItemFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     setIsSubmitting(true);
 
     // Ensure empty string barcode is converted to null
@@ -130,7 +129,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
         SellPrice: values.SellPrice,
         Barcode: barcodeToInsert,
         RackNo: values.RackNo,
-        user_id: user.id,
+        // Removed user_id: user.id,
       }])
       .select()
       .single();
@@ -150,7 +149,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
 
     if (newItemCode.error) {
       toast.error("Failed to generate item code", { description: newItemCode.error.message });
-      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId).eq("user_id", user.id); // Added user_id
+      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId); // Removed user_id
       setIsSubmitting(false);
       return;
     }
@@ -158,8 +157,8 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
     const { error: updateError } = await supabase
       .from("ItemMaster")
       .update({ ItemCode: newItemCode.data })
-      .eq("ItemId", insertedItem.ItemId)
-      .eq("user_id", user.id); // Added user_id
+      .eq("ItemId", insertedItem.ItemId);
+      // Removed .eq("user_id", user.id); // Added user_id
 
     if (updateError) {
       toast.error("Failed to update item with generated code", { description: updateError.message });

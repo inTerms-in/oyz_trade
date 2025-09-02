@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { PurchaseWithItems } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -54,7 +54,7 @@ interface ReturnableItem {
 
 function NewPurchaseReturnPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [purchaseSuggestions, setPurchaseSuggestions] = useState<PurchaseWithItems[]>([]);
@@ -72,11 +72,11 @@ function NewPurchaseReturnPage() {
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchPurchaseSuggestions = useCallback(async () => {
-    if (!user?.id) return;
+    // Removed user.id check here
     const { data, error } = await supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), SupplierMaster(SupplierName))")
-      .eq("user_id", user.id) // Filter by user_id
+      // Removed .eq("user_id", user.id) // Filter by user_id
       .order("PurchaseDate", { ascending: false })
       .limit(20); // Fetch recent purchases for suggestions
 
@@ -85,7 +85,7 @@ function NewPurchaseReturnPage() {
     } else {
       setPurchaseSuggestions(data as unknown as PurchaseWithItems[]); // Explicit cast
     }
-  }, [user?.id]);
+  }, []); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchPurchaseSuggestions();
@@ -138,7 +138,6 @@ function NewPurchaseReturnPage() {
   };
 
   async function onSubmit(values: PurchaseReturnFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     if (!selectedPurchase) return toast.error("Please select an original purchase.");
 
     const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
@@ -146,7 +145,7 @@ function NewPurchaseReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no', { p_user_id: user.id }); // Added p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no'); // Removed p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase return reference number", { description: refNoError?.message });
@@ -162,7 +161,7 @@ function NewPurchaseReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
-        user_id: user.id, // Added user_id
+        // Removed user_id: user.id, // Added user_id
       })
       .select()
       .single();
@@ -179,7 +178,7 @@ function NewPurchaseReturnPage() {
       Qty: item.QtyReturned,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      user_id: user.id, // Added user_id
+      // Removed user_id: user.id, // Added user_id
     }));
 
     const { error: purchaseReturnItemsError } = await supabase
@@ -190,7 +189,7 @@ function NewPurchaseReturnPage() {
       toast.error("Failed to save purchase return items. Rolling back.", {
         description: purchaseReturnItemsError.message || "An unknown error occurred. The purchase return was not saved."
       });
-      await supabase.from("PurchaseReturn").delete().eq("PurchaseReturnId", purchaseReturnData.PurchaseReturnId).eq("user_id", user.id); // Added user_id
+      await supabase.from("PurchaseReturn").delete().eq("PurchaseReturnId", purchaseReturnData.PurchaseReturnId); // Removed user_id
       setIsSubmitting(false);
       return;
     }
@@ -204,7 +203,7 @@ function NewPurchaseReturnPage() {
           AdjustmentType: 'out', // Stock decreases on return to supplier
           Quantity: item.QtyReturned,
           Reason: `Purchase Return (Ref: ${refNoData})`,
-          user_id: user.id, // Added user_id
+          // Removed user_id: user.id, // Added user_id
         });
       if (stockError) {
         console.error(`Failed to update stock for item ${item.ItemName}:`, stockError.message);

@@ -89,6 +89,7 @@ export function ChatbotDialog({ open, onOpenChange }: ChatbotDialogProps) {
       .from("PurchaseItem")
       .select("UnitPrice, Purchase(SupplierMaster(SupplierName), PurchaseDate)")
       .eq("ItemId", item.ItemId)
+      // Removed .eq("user_id", user.id)
       .order("PurchaseId", { ascending: false })
       .limit(10);
     

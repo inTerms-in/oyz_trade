@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, ShoppingCart, ReceiptText, Package, Users, Truck } from "lucide-react"; // Removed Clock icon
 import { cn } from "@/lib/utils";
+// Removed useAuth import as user.id is no longer used for filtering
 
 interface OverviewStatsCardsProps {
   totalRevenue: number;

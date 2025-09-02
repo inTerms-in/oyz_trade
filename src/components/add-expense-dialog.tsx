@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { ExpenseCategory } from "@/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+// Removed useAuth import as user.id is no longer used for filtering
 
 
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
-  const { user } = useAuth(); // Import useAuth
+  // Removed user from useAuth
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -74,11 +74,11 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   });
 
   const fetchExpenseCategories = useCallback(async () => {
-    if (!user?.id) return; // Ensure user is logged in
+    // Removed user.id check here
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
-      .eq("user_id", user.id) // Filter by user_id
+      // Removed .eq("user_id", user.id)
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
@@ -89,7 +89,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         form.setValue("ExpenseCategoryId", data[0].ExpenseCategoryId, { shouldValidate: true });
       }
     }
-  }, [form, user?.id]); // Add user.id to dependencies
+  }, [form]); // Removed user.id from dependencies
 
   useEffect(() => {
     if (open) {
@@ -107,7 +107,6 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: ExpenseFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
     setIsSubmitting(true);
 
     const { error } = await supabase
@@ -118,7 +117,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         Description: values.Description || null,
         ExpenseCategoryId: values.ExpenseCategoryId,
         ReferenceNo: values.ReferenceNo || null,
-        user_id: user.id, // Add user_id
+        // Removed user_id: user.id, // Add user_id
       }])
       .select();
 

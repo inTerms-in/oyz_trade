@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+// Removed useAuth import as user.id is no longer used for filtering
 
 interface RecentSalesProps {
   sales: SaleWithItems[];
