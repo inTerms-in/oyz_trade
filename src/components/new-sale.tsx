@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } => "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -246,7 +246,7 @@ function NewSalePage() {
     }
 
     const existingItemIndex = addedItems.findIndex(
-      (item) =>
+      (item: SaleListItem) =>
         item.ItemId === currentItem.ItemId &&
         item.Unit === currentItem.Unit &&
         item.UnitPrice === currentItem.UnitPrice
