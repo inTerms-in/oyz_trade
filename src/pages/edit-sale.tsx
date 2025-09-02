@@ -29,7 +29,7 @@ import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SaleInvoice } from "@/components/sale-invoice";
-// Removed SalePostSaveActionsDialog import as it's not used here
+import { SalePostSaveActionsDialog } from "@/components/sale-post-save-actions-dialog"; // Re-added import
 
 const saleFormSchema = z.object({
   CustomerName: z.string().optional().nullable(),
@@ -88,7 +88,8 @@ export default function EditSalePage() { // Exported as default
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastDiscountChangeSource, setLastDiscountChangeSource] = useState<'amount' | 'percentage' | null>(null);
 
-  // Removed isPostSaveActionsDialogOpen state as the dialog is no longer used
+  const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false); // New state
+  // Removed newlyCreatedSaleId as it's not a new sale, but an existing one being edited
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -566,7 +567,10 @@ export default function EditSalePage() { // Exported as default
       Unit: "Piece",
       TotalPrice: newItem.SellPrice || 0,
     });
-    qtyInputRef.current?.focus();
+    // Automatically add the newly created item to the list
+    setTimeout(() => { // Use a timeout to ensure state updates are processed
+      handleAddItem();
+    }, 0);
   };
 
   const handleScan = (barcode: string) => {
@@ -586,9 +590,25 @@ export default function EditSalePage() { // Exported as default
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
     if (success) {
-      // No post-save dialog for edit page, just navigate back to sales list
-      navigate("/sales-module/sales-invoice");
+      // Open the post-save actions dialog for edited sales too
+      setIsPostSaveActionsDialogOpen(true);
     }
+  };
+
+  // Handlers for the post-save dialog (re-using existing logic)
+  const handleSendWhatsAppFromDialog = (saleId: number) => {
+    handleSendWhatsApp(saleId);
+    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+  };
+
+  const handlePrintFromDialog = (saleId: number) => {
+    handlePrint(saleId);
+    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+  };
+
+  const handleReturnToListFromDialog = () => {
+    navigate("/sales-module/sales-invoice");
+    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
   };
 
   const invoiceDataForPrint = saleData;
@@ -617,20 +637,7 @@ export default function EditSalePage() { // Exported as default
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Edit Sale</CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleSendWhatsApp(Number(saleId))} disabled={isSubmitting || loading || !saleData || !saleData.CustomerMaster?.MobileNo}>
-              <span className="flex items-center">
-                <MessageCircleMore className="mr-2 h-4 w-4" />
-                <span>WhatsApp Message</span>
-              </span>
-            </Button>
-            <Button variant="outline" onClick={() => handlePrint(Number(saleId))} disabled={isSubmitting || loading || !saleData}>
-              <span className="flex items-center">
-                <Printer className="mr-2 h-4 w-4" />
-                <span>Print</span>
-              </span>
-            </Button>
-          </div>
+          {/* Removed direct WhatsApp and Print buttons, now handled by dialog */}
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -828,7 +835,14 @@ export default function EditSalePage() { // Exported as default
       </Card>
       <AddNewItemInlineDialog open={isCreateItemOpen} onOpenChange={setCreateItemOpen} initialItemName={currentItem.ItemName} onItemAdded={handleItemCreated} />
       <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
-      {/* Removed SalePostSaveActionsDialog as it's not needed on the edit page */}
+      <SalePostSaveActionsDialog
+        open={isPostSaveActionsDialogOpen}
+        onOpenChange={setIsPostSaveActionsDialogOpen}
+        saleId={Number(saleId)} // Pass the current saleId
+        onSendWhatsApp={handleSendWhatsAppFromDialog}
+        onPrint={handlePrintFromDialog}
+        onReturnToList={handleReturnToListFromDialog}
+      />
     </div>
   );
 }

@@ -266,7 +266,10 @@ function NewPurchasePage() {
       UnitPrice: 0,
       TotalPrice: 0,
     });
-    qtyInputRef.current?.focus();
+    // Automatically add the newly created item to the list
+    setTimeout(() => { // Use a timeout to ensure state updates are processed
+      handleAddItem();
+    }, 0);
   };
 
   const handleScan = (barcode: string) => {
@@ -386,7 +389,7 @@ function NewPurchasePage() {
       }
     }
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no', { p_user_id: user.id });
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase reference number", { description: refNoError?.message });

@@ -288,7 +288,10 @@ function NewSalePage() {
       Unit: "Piece",
       TotalPrice: newItem.SellPrice || 0,
     });
-    qtyInputRef.current?.focus();
+    // Automatically add the newly created item to the list
+    setTimeout(() => { // Use a timeout to ensure state updates are processed
+      handleAddItem();
+    }, 0);
   };
 
   const handleScan = (barcode: string) => {
@@ -351,7 +354,7 @@ function NewSalePage() {
       }
     }
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sale_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sale_reference_no', { p_user_id: user.id });
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate sale reference number", { description: refNoError?.message });
