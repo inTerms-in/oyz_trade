@@ -250,3 +250,18 @@ export interface PurchaseReturnWithItems extends PurchaseReturn {
   PurchaseReturnItem: PurchaseReturnItem[];
   Purchase?: PurchaseWithItems | null; // Link to the original purchase
 }
+
+// New interface for items in return forms
+export interface ReturnableItem {
+  OriginalItemId: number; // The ID of the original SalesItem or PurchaseItem
+  ItemId: number;
+  ItemName: string;
+  ItemCode?: string | null;
+  CategoryName?: string;
+  QtyOriginal: number; // Quantity originally sold/purchased
+  QtyAlreadyReturned: number; // Quantity already returned for this specific item in the original transaction
+  QtyToReturn: number; // Quantity being returned in this form
+  Unit: string;
+  UnitPrice: number; // Original unit price
+  TotalPrice: number; // QtyToReturn * UnitPrice
+}

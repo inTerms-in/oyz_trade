@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
-import { SaleWithItems } from "@/types";
+import { SaleWithItems, ReturnableItem } from "@/types";
 // Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
@@ -39,19 +39,6 @@ const salesReturnFormSchema = z.object({
 
 type SalesReturnFormValues = z.infer<typeof salesReturnFormSchema>;
 
-interface ReturnableItem {
-  SalesItemId: number; // Original SalesItem ID
-  ItemId: number;
-  ItemName: string;
-  ItemCode?: string | null;
-  CategoryName?: string;
-  QtySold: number; // Quantity originally sold
-  QtyReturned: number; // Quantity being returned in this form
-  Unit: string;
-  UnitPrice: number; // Original unit price
-  TotalPrice: number; // QtyReturned * UnitPrice
-}
-
 function NewSalesReturnPage() {
   const navigate = useNavigate();
   // Removed user from useAuth
@@ -74,15 +61,60 @@ function NewSalesReturnPage() {
   const fetchSalesSuggestions = useCallback(async () => {
     const { data, error } = await supabase
       .from("Sales")
-      .select("*, SalesItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), CustomerMaster(CustomerName))")
-      // Removed .eq("user_id", user.id)
+      .select(`
+        SaleId,
+        ReferenceNo,
+        SaleDate,
+        CustomerMaster(CustomerName),
+        SalesItem(
+          SalesItemId,
+          ItemId,
+          Qty,
+          Unit,
+          UnitPrice,
+          ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))
+        )
+      `)
       .order("SaleDate", { ascending: false })
       .limit(20); // Fetch recent sales for suggestions
 
     if (error) {
       toast.error("Failed to fetch sales suggestions", { description: error.message });
     } else {
-      setSaleSuggestions(data as unknown as SaleWithItems[]); // Explicit cast
+      const salesWithReturnInfo = await Promise.all((data || []).map(async (sale) => {
+        const { data: returnedItemsData, error: returnedItemsError } = await supabase
+          .from("SalesReturnItem")
+          .select(`
+            ItemId,
+            Qty,
+            SalesReturn(SaleId)
+          `)
+          .eq("SalesReturn.SaleId", sale.SaleId);
+
+        if (returnedItemsError) {
+          console.error("Error fetching returned items for sale", sale.SaleId, returnedItemsError);
+          return { ...sale, hasAnyItemAvailableForReturn: false };
+        }
+
+        const totalQtySoldMap = new Map<number, number>();
+        sale.SalesItem.forEach(si => totalQtySoldMap.set(si.ItemId, (totalQtySoldMap.get(si.ItemId) || 0) + si.Qty));
+
+        const totalQtyReturnedMap = new Map<number, number>();
+        returnedItemsData.forEach(sri => totalQtyReturnedMap.set(sri.ItemId, (totalQtyReturnedMap.get(sri.ItemId) || 0) + sri.Qty));
+
+        let hasAnyItemAvailableForReturn = false;
+        for (const [itemId, qtySold] of totalQtySoldMap.entries()) {
+          const qtyReturned = totalQtyReturnedMap.get(itemId) || 0;
+          if (qtySold > qtyReturned) {
+            hasAnyItemAvailableForReturn = true;
+            break;
+          }
+        }
+        return { ...sale, hasAnyItemAvailableForReturn };
+      }));
+
+      const filteredSales = salesWithReturnInfo.filter(sale => sale.hasAnyItemAvailableForReturn);
+      setSaleSuggestions(filteredSales as unknown as SaleWithItems[]);
     }
   }, []); // Removed user.id from dependencies
 
@@ -91,41 +123,71 @@ function NewSalesReturnPage() {
   }, [fetchSalesSuggestions]);
 
   useEffect(() => {
-    if (watchedSaleId) {
-      const sale = saleSuggestions.find(s => s.SaleId === watchedSaleId);
-      setSelectedSale(sale || null);
-      if (sale) {
-        setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`);
-        // Initialize returnable items from the selected sale's items
-        const items = sale.SalesItem.map(item => ({
-          SalesItemId: item.SalesItemId,
-          ItemId: item.ItemId,
-          ItemName: item.ItemMaster?.ItemName || 'Unknown Item',
-          ItemCode: item.ItemMaster?.ItemCode || generateItemCode(item.ItemMaster?.CategoryMaster?.CategoryName, item.ItemId),
-          CategoryName: item.ItemMaster?.CategoryMaster?.CategoryName,
-          QtySold: item.Qty,
-          QtyReturned: 0, // Default to 0 returned
-          Unit: item.Unit,
-          UnitPrice: item.UnitPrice,
-          TotalPrice: 0,
-        }));
-        setReturnableItems(items);
+    const loadSaleDetails = async () => {
+      if (watchedSaleId) {
+        const sale = saleSuggestions.find(s => s.SaleId === watchedSaleId);
+        setSelectedSale(sale || null);
+        if (sale) {
+          setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`);
+
+          // Fetch all SalesReturnItems related to this specific SaleId
+          const { data: salesReturnItemsForSale, error: sriError } = await supabase
+            .from("SalesReturnItem")
+            .select(`
+              ItemId,
+              Qty,
+              SalesReturn(SaleId)
+            `)
+            .eq("SalesReturn.SaleId", sale.SaleId);
+
+          if (sriError) {
+            toast.error("Failed to fetch existing return quantities.", { description: sriError.message });
+            setReturnableItems([]);
+            return;
+          }
+
+          const returnedQtyMap = new Map<number, number>();
+          salesReturnItemsForSale.forEach(sri => {
+            returnedQtyMap.set(sri.ItemId, (returnedQtyMap.get(sri.ItemId) || 0) + sri.Qty);
+          });
+
+          const items = sale.SalesItem.map(item => {
+            const qtyAlreadyReturned = returnedQtyMap.get(item.ItemId) || 0;
+            return {
+              OriginalItemId: item.SalesItemId, // Store original SalesItemId
+              ItemId: item.ItemId,
+              ItemName: item.ItemMaster?.ItemName || 'Unknown Item',
+              ItemCode: item.ItemMaster?.ItemCode || generateItemCode(item.ItemMaster?.CategoryMaster?.CategoryName, item.ItemId),
+              CategoryName: item.ItemMaster?.CategoryMaster?.CategoryName,
+              QtyOriginal: item.Qty, // Original quantity sold
+              QtyAlreadyReturned: qtyAlreadyReturned,
+              QtyToReturn: 0, // Default to 0 returned
+              Unit: item.Unit,
+              UnitPrice: item.UnitPrice,
+              TotalPrice: 0,
+            };
+          }).filter(item => item.QtyOriginal > item.QtyAlreadyReturned); // Filter out items already fully returned
+
+          setReturnableItems(items);
+        } else {
+          setDisplaySaleName("");
+          setReturnableItems([]);
+        }
       } else {
+        setSelectedSale(null);
         setDisplaySaleName("");
         setReturnableItems([]);
       }
-    } else {
-      setSelectedSale(null);
-      setDisplaySaleName("");
-      setReturnableItems([]);
-    }
+    };
+    loadSaleDetails();
   }, [watchedSaleId, saleSuggestions]);
 
   const handleQtyReturnedChange = (index: number, value: number) => {
     const updatedItems = [...returnableItems];
     const item = updatedItems[index];
-    const newQty = Math.max(0, Math.min(value, item.QtySold)); // Cannot return more than sold
-    item.QtyReturned = newQty;
+    const maxReturnable = item.QtyOriginal - item.QtyAlreadyReturned;
+    const newQty = Math.max(0, Math.min(value, maxReturnable)); // Cannot return more than available
+    item.QtyToReturn = newQty;
     item.TotalPrice = parseFloat((newQty * item.UnitPrice).toFixed(2));
     setReturnableItems(updatedItems);
   };
@@ -139,7 +201,7 @@ function NewSalesReturnPage() {
   async function onSubmit(values: SalesReturnFormValues) {
     if (!selectedSale) return toast.error("Please select an original sale.");
 
-    const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
+    const itemsToReturn = returnableItems.filter(item => item.QtyToReturn > 0);
     if (itemsToReturn.length === 0) return toast.error("Please specify at least one item to return.");
 
     setIsSubmitting(true);
@@ -174,7 +236,7 @@ function NewSalesReturnPage() {
     const salesReturnItems = itemsToReturn.map(item => ({
       SalesReturnId: salesReturnData.SalesReturnId,
       ItemId: item.ItemId,
-      Qty: item.QtyReturned,
+      Qty: item.QtyToReturn,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
       // Removed user_id: user.id,
@@ -200,7 +262,7 @@ function NewSalesReturnPage() {
         .insert({
           ItemId: item.ItemId,
           AdjustmentType: 'in', // Stock increases on return
-          Quantity: item.QtyReturned,
+          Quantity: item.QtyToReturn,
           Reason: `Sales Return (Ref: ${refNoData})`,
           // Removed user_id: user.id,
         });
@@ -307,6 +369,7 @@ function NewSalesReturnPage() {
                           <TableHead>Item</TableHead>
                           <TableHead>Code</TableHead>
                           <TableHead className="text-right">Qty Sold</TableHead>
+                          <TableHead className="text-right">Qty Returned</TableHead>
                           <TableHead>Unit</TableHead>
                           <TableHead className="text-right">Unit Price</TableHead>
                           <TableHead className="text-center">Qty to Return</TableHead>
@@ -317,10 +380,11 @@ function NewSalesReturnPage() {
                       <TableBody>
                         {returnableItems.length > 0 ? (
                           returnableItems.map((item, index) => (
-                            <TableRow key={item.SalesItemId}>
+                            <TableRow key={item.OriginalItemId}>
                               <TableCell className="font-medium">{item.ItemName}</TableCell>
                               <TableCell className="font-mono text-xs">{item.ItemCode}</TableCell>
-                              <TableCell className="text-right">{item.QtySold}</TableCell>
+                              <TableCell className="text-right">{item.QtyOriginal}</TableCell>
+                              <TableCell className="text-right">{item.QtyAlreadyReturned}</TableCell>
                               <TableCell>{item.Unit}</TableCell>
                               <TableCell className="text-right">{formatCurrency(item.UnitPrice)}</TableCell>
                               <TableCell className="text-center">
@@ -328,10 +392,10 @@ function NewSalesReturnPage() {
                                   id={`qty-return-${index}`}
                                   label=" "
                                   type="number"
-                                  value={item.QtyReturned}
+                                  value={item.QtyToReturn}
                                   onChange={(e) => handleQtyReturnedChange(index, e.target.valueAsNumber)}
                                   min={0}
-                                  max={item.QtySold}
+                                  max={item.QtyOriginal - item.QtyAlreadyReturned}
                                   className="w-20 text-center"
                                 />
                               </TableCell>
@@ -345,8 +409,8 @@ function NewSalesReturnPage() {
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center">
-                              No items in this sale.
+                            <TableCell colSpan={9} className="h-24 text-center">
+                              No items available for return in this sale.
                             </TableCell>
                           </TableRow>
                         )}

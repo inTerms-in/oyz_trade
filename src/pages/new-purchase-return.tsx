@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
-import { PurchaseWithItems } from "@/types";
+import { PurchaseWithItems, ReturnableItem } from "@/types";
 // Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
@@ -39,19 +39,6 @@ const purchaseReturnFormSchema = z.object({
 
 type PurchaseReturnFormValues = z.infer<typeof purchaseReturnFormSchema>;
 
-interface ReturnableItem {
-  PurchaseItemId: number; // Original PurchaseItem ID
-  ItemId: number;
-  ItemName: string;
-  ItemCode?: string | null;
-  CategoryName?: string;
-  QtyPurchased: number; // Quantity originally purchased
-  QtyReturned: number; // Quantity being returned in this form
-  Unit: string;
-  UnitPrice: number; // Original unit price
-  TotalPrice: number; // QtyReturned * UnitPrice
-}
-
 function NewPurchaseReturnPage() {
   const navigate = useNavigate();
   // Removed user from useAuth
@@ -72,18 +59,62 @@ function NewPurchaseReturnPage() {
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchPurchaseSuggestions = useCallback(async () => {
-    // Removed user.id check here
     const { data, error } = await supabase
       .from("Purchase")
-      .select("*, PurchaseItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), SupplierMaster(SupplierName))")
-      // Removed .eq("user_id", user.id) // Filter by user_id
+      .select(`
+        PurchaseId,
+        ReferenceNo,
+        PurchaseDate,
+        SupplierMaster(SupplierName),
+        PurchaseItem(
+          PurchaseItemId,
+          ItemId,
+          Qty,
+          Unit,
+          UnitPrice,
+          ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))
+        )
+      `)
       .order("PurchaseDate", { ascending: false })
       .limit(20); // Fetch recent purchases for suggestions
 
     if (error) {
       toast.error("Failed to fetch purchase suggestions", { description: error.message });
     } else {
-      setPurchaseSuggestions(data as unknown as PurchaseWithItems[]); // Explicit cast
+      const purchasesWithReturnInfo = await Promise.all((data || []).map(async (purchase) => {
+        const { data: returnedItemsData, error: returnedItemsError } = await supabase
+          .from("PurchaseReturnItem")
+          .select(`
+            ItemId,
+            Qty,
+            PurchaseReturn(PurchaseId)
+          `)
+          .eq("PurchaseReturn.PurchaseId", purchase.PurchaseId);
+
+        if (returnedItemsError) {
+          console.error("Error fetching returned items for purchase", purchase.PurchaseId, returnedItemsError);
+          return { ...purchase, hasAnyItemAvailableForReturn: false };
+        }
+
+        const totalQtyPurchasedMap = new Map<number, number>();
+        purchase.PurchaseItem.forEach(pi => totalQtyPurchasedMap.set(pi.ItemId, (totalQtyPurchasedMap.get(pi.ItemId) || 0) + pi.Qty));
+
+        const totalQtyReturnedMap = new Map<number, number>();
+        returnedItemsData.forEach(pri => totalQtyReturnedMap.set(pri.ItemId, (totalQtyReturnedMap.get(pri.ItemId) || 0) + pri.Qty));
+
+        let hasAnyItemAvailableForReturn = false;
+        for (const [itemId, qtyPurchased] of totalQtyPurchasedMap.entries()) {
+          const qtyReturned = totalQtyReturnedMap.get(itemId) || 0;
+          if (qtyPurchased > qtyReturned) {
+            hasAnyItemAvailableForReturn = true;
+            break;
+          }
+        }
+        return { ...purchase, hasAnyItemAvailableForReturn };
+      }));
+
+      const filteredPurchases = purchasesWithReturnInfo.filter(purchase => purchase.hasAnyItemAvailableForReturn);
+      setPurchaseSuggestions(filteredPurchases as unknown as PurchaseWithItems[]);
     }
   }, []); // Removed user.id from dependencies
 
@@ -92,41 +123,71 @@ function NewPurchaseReturnPage() {
   }, [fetchPurchaseSuggestions]);
 
   useEffect(() => {
-    if (watchedPurchaseId) {
-      const purchase = purchaseSuggestions.find(s => s.PurchaseId === watchedPurchaseId);
-      setSelectedPurchase(purchase || null);
-      if (purchase) {
-        setDisplayPurchaseName(purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`);
-        // Initialize returnable items from the selected purchase's items
-        const items = purchase.PurchaseItem.map(item => ({
-          PurchaseItemId: item.PurchaseItemId,
-          ItemId: item.ItemId,
-          ItemName: item.ItemMaster?.ItemName || 'Unknown Item',
-          ItemCode: item.ItemMaster?.ItemCode || generateItemCode(item.ItemMaster?.CategoryMaster?.CategoryName, item.ItemId),
-          CategoryName: item.ItemMaster?.CategoryMaster?.CategoryName,
-          QtyPurchased: item.Qty,
-          QtyReturned: 0, // Default to 0 returned
-          Unit: item.Unit,
-          UnitPrice: item.UnitPrice,
-          TotalPrice: 0,
-        }));
-        setReturnableItems(items);
+    const loadPurchaseDetails = async () => {
+      if (watchedPurchaseId) {
+        const purchase = purchaseSuggestions.find(s => s.PurchaseId === watchedPurchaseId);
+        setSelectedPurchase(purchase || null);
+        if (purchase) {
+          setDisplayPurchaseName(purchase.ReferenceNo || `Purchase ${purchase.PurchaseId} (${purchase.SupplierMaster?.SupplierName || 'N/A'})`);
+
+          // Fetch all PurchaseReturnItems related to this specific PurchaseId
+          const { data: purchaseReturnItemsForPurchase, error: priError } = await supabase
+            .from("PurchaseReturnItem")
+            .select(`
+              ItemId,
+              Qty,
+              PurchaseReturn(PurchaseId)
+            `)
+            .eq("PurchaseReturn.PurchaseId", purchase.PurchaseId);
+
+          if (priError) {
+            toast.error("Failed to fetch existing return quantities.", { description: priError.message });
+            setReturnableItems([]);
+            return;
+          }
+
+          const returnedQtyMap = new Map<number, number>();
+          purchaseReturnItemsForPurchase.forEach(pri => {
+            returnedQtyMap.set(pri.ItemId, (returnedQtyMap.get(pri.ItemId) || 0) + pri.Qty);
+          });
+
+          const items = purchase.PurchaseItem.map(item => {
+            const qtyAlreadyReturned = returnedQtyMap.get(item.ItemId) || 0;
+            return {
+              OriginalItemId: item.PurchaseItemId, // Store original PurchaseItemId
+              ItemId: item.ItemId,
+              ItemName: item.ItemMaster?.ItemName || 'Unknown Item',
+              ItemCode: item.ItemMaster?.ItemCode || generateItemCode(item.ItemMaster?.CategoryMaster?.CategoryName, item.ItemId),
+              CategoryName: item.ItemMaster?.CategoryMaster?.CategoryName,
+              QtyOriginal: item.Qty, // Original quantity purchased
+              QtyAlreadyReturned: qtyAlreadyReturned,
+              QtyToReturn: 0, // Default to 0 returned
+              Unit: item.Unit,
+              UnitPrice: item.UnitPrice,
+              TotalPrice: 0,
+            };
+          }).filter(item => item.QtyOriginal > item.QtyAlreadyReturned); // Filter out items already fully returned
+
+          setReturnableItems(items);
+        } else {
+          setDisplayPurchaseName("");
+          setReturnableItems([]);
+        }
       } else {
+        setSelectedPurchase(null);
         setDisplayPurchaseName("");
         setReturnableItems([]);
       }
-    } else {
-      setSelectedPurchase(null);
-      setDisplayPurchaseName("");
-      setReturnableItems([]);
-    }
+    };
+    loadPurchaseDetails();
   }, [watchedPurchaseId, purchaseSuggestions]);
 
   const handleQtyReturnedChange = (index: number, value: number) => {
     const updatedItems = [...returnableItems];
     const item = updatedItems[index];
-    const newQty = Math.max(0, Math.min(value, item.QtyPurchased)); // Cannot return more than purchased
-    item.QtyReturned = newQty;
+    const maxReturnable = item.QtyOriginal - item.QtyAlreadyReturned;
+    const newQty = Math.max(0, Math.min(value, maxReturnable)); // Cannot return more than available
+    item.QtyToReturn = newQty;
     item.TotalPrice = parseFloat((newQty * item.UnitPrice).toFixed(2));
     setReturnableItems(updatedItems);
   };
@@ -140,7 +201,7 @@ function NewPurchaseReturnPage() {
   async function onSubmit(values: PurchaseReturnFormValues) {
     if (!selectedPurchase) return toast.error("Please select an original purchase.");
 
-    const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
+    const itemsToReturn = returnableItems.filter(item => item.QtyToReturn > 0);
     if (itemsToReturn.length === 0) return toast.error("Please specify at least one item to return.");
 
     setIsSubmitting(true);
@@ -175,7 +236,7 @@ function NewPurchaseReturnPage() {
     const purchaseReturnItems = itemsToReturn.map(item => ({
       PurchaseReturnId: purchaseReturnData.PurchaseReturnId,
       ItemId: item.ItemId,
-      Qty: item.QtyReturned,
+      Qty: item.QtyToReturn,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
       // Removed user_id: user.id, // Added user_id
@@ -201,7 +262,7 @@ function NewPurchaseReturnPage() {
         .insert({
           ItemId: item.ItemId,
           AdjustmentType: 'out', // Stock decreases on return to supplier
-          Quantity: item.QtyReturned,
+          Quantity: item.QtyToReturn,
           Reason: `Purchase Return (Ref: ${refNoData})`,
           // Removed user_id: user.id, // Added user_id
         });
@@ -308,6 +369,7 @@ function NewPurchaseReturnPage() {
                           <TableHead>Item</TableHead>
                           <TableHead>Code</TableHead>
                           <TableHead className="text-right">Qty Purchased</TableHead>
+                          <TableHead className="text-right">Qty Returned</TableHead>
                           <TableHead>Unit</TableHead>
                           <TableHead className="text-right">Unit Price</TableHead>
                           <TableHead className="text-center">Qty to Return</TableHead>
@@ -318,10 +380,11 @@ function NewPurchaseReturnPage() {
                       <TableBody>
                         {returnableItems.length > 0 ? (
                           returnableItems.map((item, index) => (
-                            <TableRow key={item.PurchaseItemId}>
+                            <TableRow key={item.OriginalItemId}>
                               <TableCell className="font-medium">{item.ItemName}</TableCell>
                               <TableCell className="font-mono text-xs">{item.ItemCode}</TableCell>
-                              <TableCell className="text-right">{item.QtyPurchased}</TableCell>
+                              <TableCell className="text-right">{item.QtyOriginal}</TableCell>
+                              <TableCell className="text-right">{item.QtyAlreadyReturned}</TableCell>
                               <TableCell>{item.Unit}</TableCell>
                               <TableCell className="text-right">{formatCurrency(item.UnitPrice)}</TableCell>
                               <TableCell className="text-center">
@@ -329,10 +392,10 @@ function NewPurchaseReturnPage() {
                                   id={`qty-return-${index}`}
                                   label=" "
                                   type="number"
-                                  value={item.QtyReturned}
+                                  value={item.QtyToReturn}
                                   onChange={(e) => handleQtyReturnedChange(index, e.target.valueAsNumber)}
                                   min={0}
-                                  max={item.QtyPurchased}
+                                  max={item.QtyOriginal - item.QtyAlreadyReturned}
                                   className="w-20 text-center"
                                 />
                               </TableCell>
@@ -346,8 +409,8 @@ function NewPurchaseReturnPage() {
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center">
-                              No items in this purchase.
+                            <TableCell colSpan={9} className="h-24 text-center">
+                              No items available for return in this purchase.
                             </TableCell>
                           </TableRow>
                         )}
