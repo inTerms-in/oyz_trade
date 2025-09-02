@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-// Removed useAuth import as user_id is no longer used for filtering
-
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,7 +79,7 @@ export function AddSupplierDialog({ open, onOpenChange, initialValue, onSupplier
       .insert([{ 
         SupplierName: values.SupplierName, 
         MobileNo: values.MobileNo || null,
-        // Removed user_id
+        // Removed user_id: user.id,
       }])
       .select();
 

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+// Removed useAuth import as user.id is no longer used for filtering
 
 interface RecentItem {
   ItemName: string;
@@ -14,16 +14,12 @@ interface RecentItem {
 }
 
 export function RecentPurchaseItems() {
-  const { user } = useAuth(); // Use useAuth
+  // Removed user from useAuth destructuring
   const [items, setItems] = useState<RecentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRecentItems = async () => {
-      if (!user?.id) { // Ensure user is logged in
-        setLoading(false);
-        return;
-      }
       setLoading(true);
       const { data, error } = await supabase
         .from("Purchase") // Query from Purchase table
@@ -35,7 +31,7 @@ export function RecentPurchaseItems() {
             ItemMaster(ItemName)
           )
         `)
-        .eq("user_id", user.id) // Added user_id filter
+        // Removed .eq("user_id", user.id)
         .order("PurchaseDate", { ascending: false })
         .limit(10);
 
@@ -59,7 +55,7 @@ export function RecentPurchaseItems() {
     };
 
     fetchRecentItems();
-  }, [user?.id]); // Added user.id to dependencies
+  }, []); // Removed user.id from dependencies
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

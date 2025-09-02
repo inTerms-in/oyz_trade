@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { SaleWithItems } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -54,7 +54,7 @@ interface ReturnableItem {
 
 function NewSalesReturnPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  // Removed user from useAuth
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [saleSuggestions, setSaleSuggestions] = useState<SaleWithItems[]>([]);
@@ -72,11 +72,10 @@ function NewSalesReturnPage() {
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchSalesSuggestions = useCallback(async () => {
-    if (!user?.id) return;
     const { data, error } = await supabase
       .from("Sales")
       .select("*, SalesItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), CustomerMaster(CustomerName))")
-      .eq("user_id", user.id) // Filter by user_id
+      // Removed .eq("user_id", user.id)
       .order("SaleDate", { ascending: false })
       .limit(20); // Fetch recent sales for suggestions
 
@@ -85,7 +84,7 @@ function NewSalesReturnPage() {
     } else {
       setSaleSuggestions(data as unknown as SaleWithItems[]); // Explicit cast
     }
-  }, [user?.id]);
+  }, []); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchSalesSuggestions();
@@ -138,7 +137,6 @@ function NewSalesReturnPage() {
   };
 
   async function onSubmit(values: SalesReturnFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     if (!selectedSale) return toast.error("Please select an original sale.");
 
     const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
@@ -146,7 +144,7 @@ function NewSalesReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no', { p_user_id: user.id }); // Added p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no'); // Removed p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate sales return reference number", { description: refNoError?.message });
@@ -162,7 +160,7 @@ function NewSalesReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
-        user_id: user.id, // Added user_id
+        // Removed user_id: user.id,
       })
       .select()
       .single();
@@ -179,7 +177,7 @@ function NewSalesReturnPage() {
       Qty: item.QtyReturned,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      user_id: user.id, // Added user_id
+      // Removed user_id: user.id,
     }));
 
     const { error: salesReturnItemsError } = await supabase
@@ -190,7 +188,7 @@ function NewSalesReturnPage() {
       toast.error("Failed to save sales return items. Rolling back.", {
         description: salesReturnItemsError.message || "An unknown error occurred. The sales return was not saved."
       });
-      await supabase.from("SalesReturn").delete().eq("SalesReturnId", salesReturnData.SalesReturnId).eq("user_id", user.id); // Added user_id
+      await supabase.from("SalesReturn").delete().eq("SalesReturnId", salesReturnData.SalesReturnId); // Removed user_id
       setIsSubmitting(false);
       return;
     }
@@ -204,7 +202,7 @@ function NewSalesReturnPage() {
           AdjustmentType: 'in', // Stock increases on return
           Quantity: item.QtyReturned,
           Reason: `Sales Return (Ref: ${refNoData})`,
-          user_id: user.id, // Added user_id
+          // Removed user_id: user.id,
         });
       if (stockError) {
         console.error(`Failed to update stock for item ${item.ItemName}:`, stockError.message);

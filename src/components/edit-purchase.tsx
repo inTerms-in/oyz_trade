@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, PurchaseWithItems, Supplier } from "@/types";
-// Removed useAuth import as user_id is no longer used for filtering
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -159,7 +159,7 @@ function EditPurchasePage() {
     else setSupplierSuggestions(suppliersData || []);
     
     setLoading(false);
-  }, [purchaseId, navigate, form]); // Removed user from dependencies
+  }, [purchaseId, navigate, form]);
 
   useEffect(() => {
     fetchData();
@@ -380,7 +380,6 @@ function EditPurchasePage() {
       toast.error("Please add at least one item.");
       return false;
     }
-    // Removed user_id check
     
     setIsSubmitting(true);
 
@@ -395,7 +394,7 @@ function EditPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }]) // Removed user_id
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
         .select()
         .single();
 
@@ -413,7 +412,7 @@ function EditPurchasePage() {
       const { error: updateMobileError } = await supabase
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
-        .eq("SupplierId", supplierToUpdate.SupplierId); // Removed user_id filter
+        .eq("SupplierId", supplierToUpdate.SupplierId);
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -430,7 +429,7 @@ function EditPurchasePage() {
         PurchaseDate: values.PurchaseDate.toISOString(),
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
-      }).eq("PurchaseId", purchaseId); // Removed user_id filter
+      }).eq("PurchaseId", purchaseId);
 
     if (purchaseError) {
       toast.error("Failed to update purchase", { description: purchaseError.message });
@@ -451,7 +450,7 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // Removed user_id
+      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

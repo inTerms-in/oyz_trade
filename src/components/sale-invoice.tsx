@@ -2,7 +2,7 @@ import React from "react";
 import { SaleWithItems } from "@/types";
 import { generateItemCode } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client"; // Import supabase client
-// Removed useAuth import as user_id is no longer used for filtering
+// Removed useAuth import as user.id is no longer used for filtering
 import { toast } from "sonner";
 
 interface SaleInvoiceProps {
@@ -22,10 +22,10 @@ export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
 
     React.useEffect(() => {
       async function fetchShopDetails() {
+        // Removed user.id check here as shop details are now global
         const { data, error } = await supabase
           .from("shop")
           .select("shop_name, mobile_no, address")
-          // Removed .eq("user_id", user.id) filter
           .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -35,7 +35,7 @@ export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
         }
       }
       fetchShopDetails();
-    }, []); // Removed user?.id from dependencies
+    }, []); // Removed user.id from dependencies
 
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

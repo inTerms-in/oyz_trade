@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-// Removed useAuth import as user_id is no longer used for filtering
+// Removed useAuth import as user.id is no longer used for filtering
 
 interface RecentItem {
   ItemName: string;
@@ -14,7 +14,7 @@ interface RecentItem {
 }
 
 export function RecentSaleItems() {
-  // Removed user from useAuth
+  // Removed user from useAuth destructuring
   const [items, setItems] = useState<RecentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +28,7 @@ export function RecentSaleItems() {
           ItemMaster (ItemName),
           Sales (CustomerMaster(CustomerName), SaleDate)
         `)
-        // Removed .eq("user_id", user.id) filter
+        // Removed .eq("user_id", user.id)
         .order("SaleId", { ascending: false })
         .limit(10);
 

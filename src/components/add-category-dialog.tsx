@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-// Removed useAuth import as user_id is no longer used for filtering
-
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import {
@@ -45,7 +44,6 @@ interface AddCategoryDialogProps {
 export function AddCategoryDialog({ open, onOpenChange, initialValue = "", onCategoryAdded }: AddCategoryDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Removed user from useAuth
-  
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
@@ -71,7 +69,7 @@ export function AddCategoryDialog({ open, onOpenChange, initialValue = "", onCat
       .from("CategoryMaster")
       .insert([{ 
         CategoryName: values.CategoryName, 
-        // Removed user_id
+        // Removed user_id: user.id,
       }])
       .select();
 

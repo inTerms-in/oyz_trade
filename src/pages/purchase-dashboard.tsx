@@ -4,7 +4,7 @@ import { PurchaseWithItems } from "@/types";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-// Removed useAuth import as user_id is no longer used for filtering
+// Removed useAuth import as user.id is no longer used for filtering
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -37,7 +37,7 @@ interface MonthlyTotal {
 }
 
 function PurchaseDashboardPage() {
-  // Removed user from useAuth
+  // Removed user from useAuth destructuring
   const [loading, setLoading] = useState(true);
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalPurchases, setTotalPurchases] = useState(0);

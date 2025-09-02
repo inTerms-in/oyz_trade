@@ -64,7 +64,7 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
   });
 
   const fetchShopDetails = useCallback(async () => {
-    // Removed user?.id check as shop details are now global
+    // Removed user.id check here as shop details are now global
     const { data, error } = await supabase
       .from("shop")
       .select("shop_name, mobile_no, address")
@@ -77,7 +77,7 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
     } else {
       form.reset({ shop_name: "", mobile_no: "", address: "" });
     }
-  }, [form]); // Removed user?.id from dependencies
+  }, [form]); // Removed user.id from dependencies
 
   useEffect(() => {
     if (open) {
@@ -88,7 +88,7 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
   const { formState: { isValid } } = form;
 
   async function onSubmit(values: ShopDetailsFormValues) {
-    if (!user) {
+    if (!user) { // Still need user for authentication, but not for data filtering
       toast.error("You must be logged in to update shop details.");
       return;
     }
@@ -98,12 +98,12 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
       .from("shop")
       .upsert(
         { 
-          // Removed user_id
+          // Removed user_id: user.id,
           shop_name: values.shop_name, 
           mobile_no: values.mobile_no || null,
           address: values.address || null,
         }, 
-        { onConflict: 'id' } // Upsert based on id, assuming a single row for global settings
+        { onConflict: 'id' } // Upsert based on primary key 'id'
       );
 
     setIsSubmitting(false);

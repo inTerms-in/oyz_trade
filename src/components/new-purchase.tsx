@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, Supplier } from "@/types";
-// Removed useAuth import as user_id is no longer used for filtering
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -90,7 +90,7 @@ function NewPurchasePage() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isUpdateSellPriceDialogOpen, setIsUpdateSellPriceDialogOpen] = useState(false);
-  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(itemToUpdateSellPrice);
+  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(null);
   const [newSellPrice, setNewSellPrice] = useState<number | string>("");
   const [existingSellPriceForDialog, setExistingSellPriceForDialog] = useState<number | null>(null);
 
@@ -116,13 +116,13 @@ function NewPurchasePage() {
   const fetchData = useCallback(async () => {
     const { data: itemsData, error: itemsError } = await supabase
       .from("ItemMaster").select("*, CategoryMaster(*)")
-      // Removed .eq("user_id", user.id) filter
+      // Removed .eq("user_id", user.id)
       .order("ItemName");
     if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
     else setItemSuggestions(itemsData as ItemWithCategory[]);
 
     const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo")
-    // Removed .eq("user_id", user.id) filter
+    // Removed .eq("user_id", user.id)
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []);
   }, []); // Removed user.id from dependencies
@@ -327,7 +327,7 @@ function NewPurchasePage() {
     const { error } = await supabase
       .from("ItemMaster")
       .update({ SellPrice: newSellPrice })
-      .eq("ItemId", itemToUpdateSellPrice.ItemId); // Removed user_id filter
+      .eq("ItemId", itemToUpdateSellPrice.ItemId);
     setIsSubmitting(false);
 
     if (error) {
@@ -349,7 +349,6 @@ function NewPurchasePage() {
 
   async function onSubmit(values: PurchaseFormValues) {
     if (addedItems.length === 0) return toast.error("Please add at least one item.");
-    // Removed user_id check
     
     setIsSubmitting(true);
 
@@ -364,7 +363,7 @@ function NewPurchasePage() {
     } else {
       const { data: newSupplier, error: createSupplierError } = await supabase
         .from("SupplierMaster")
-        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }]) // Removed user_id
+        .insert([{ SupplierName: values.SupplierName, MobileNo: values.supplierMobileNo || null }])
         .select()
         .single();
 
@@ -382,7 +381,7 @@ function NewPurchasePage() {
       const { error: updateMobileError } = await supabase
         .from("SupplierMaster")
         .update({ MobileNo: values.supplierMobileNo || null })
-        .eq("SupplierId", supplierToUpdate.SupplierId); // Removed user_id filter
+        .eq("SupplierId", supplierToUpdate.SupplierId);
       if (updateMobileError) {
         toast.error("Failed to update supplier mobile number", { description: updateMobileError.message });
         setIsSubmitting(false);
@@ -390,7 +389,7 @@ function NewPurchasePage() {
       }
     }
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no');
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase reference number", { description: refNoError?.message });
@@ -408,7 +407,7 @@ function NewPurchasePage() {
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
         ReferenceNo: refNoData,
-        // Removed user_id
+        // Removed user_id: user.id,
       }).select().single();
 
     if (purchaseError || !purchaseData) {
@@ -423,7 +422,7 @@ function NewPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // Removed user_id
+      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -435,7 +434,7 @@ function NewPurchasePage() {
       toast.error("Failed to save purchase items. Rolling back.", { 
         description: itemsError?.message || "An unknown error occurred. The purchase was not saved." 
       });
-      await supabase.from("Purchase").delete().eq("PurchaseId", purchaseData.PurchaseId); // Removed user_id filter
+      await supabase.from("Purchase").delete().eq("PurchaseId", purchaseData.PurchaseId);
       setIsSubmitting(false);
       return;
     }

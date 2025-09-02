@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import *s z from "zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-// Removed useAuth import as user_id is no longer used for filtering
-
+// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +73,7 @@ export function AddExpenseCategoryDialog({ open, onOpenChange, initialValue = ""
       .insert([{ 
         CategoryName: values.CategoryName, 
         Description: values.Description || null,
-        // Removed user_id
+        // Removed user_id: user.id,
       }])
       .select();
 

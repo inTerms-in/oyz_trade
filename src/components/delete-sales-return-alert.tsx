@@ -49,7 +49,7 @@ export function DeleteSalesReturnAlert({ salesReturn, onSalesReturnDeleted }: De
     const { error } = await supabase
       .from("SalesReturn")
       .delete()
-      .eq("SalesReturnId", salesReturn.SalesReturnId); // Removed user_id filter
+      .eq("SalesReturnId", salesReturn.SalesReturnId);
     
     setIsDeleting(false);
 

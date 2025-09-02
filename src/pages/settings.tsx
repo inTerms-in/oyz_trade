@@ -54,11 +54,10 @@ function SettingsPage() {
   ];
 
   const fetchSettings = useCallback(async () => {
-    // Removed user?.id check as settings are now global
+    // Removed user.id check here as settings are now global
     const { data, error } = await supabase
       .from("settings")
       .select("financial_year_start_month")
-      // Removed .eq("user_id", user.id) filter
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -66,21 +65,21 @@ function SettingsPage() {
     } else if (data) {
       setFinancialYearStartMonth(data.financial_year_start_month);
     }
-  }, []); // Removed user?.id from dependencies
+  }, []); // Removed user.id from dependencies
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
   const handleSaveSettings = async () => {
-    if (!user?.id) {
+    if (!user?.id) { // Still need user for authentication, but not for data filtering
       toast.error("Authentication error. Please log in again.");
       return;
     }
     setIsSavingSettings(true);
     const { error } = await supabase
       .from("settings")
-      .upsert({ financial_year_start_month: financialYearStartMonth }, { onConflict: 'id' }); // Upsert based on id, assuming a single row for global settings
+      .upsert({ financial_year_start_month: financialYearStartMonth }, { onConflict: 'id' }); // Upsert based on primary key 'id'
 
     setIsSavingSettings(false);
     if (error) {
@@ -143,7 +142,7 @@ function SettingsPage() {
       if (stockAdjustments) zip.file("stock_adjustments.csv", Papa.unparse(stockAdjustments));
 
       // Fetch and add shop details (now global)
-      const { data: shopData } = await supabase.from("shop").select("*"); // Removed user_id filter
+      const { data: shopData } = await supabase.from("shop").select("*");
       if (shopData) zip.file("shop_details.csv", Papa.unparse(shopData));
 
       // Fetch and add reference number sequences (global)

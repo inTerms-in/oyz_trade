@@ -172,7 +172,7 @@ export interface PrintableItem extends ItemWithCategory {
 
 export interface Settings {
   id: string;
-  user_id: string; // This remains user-specific
+  // user_id: string; // Removed
   financial_year_start_month: number;
   created_at: string;
   updated_at: string;
