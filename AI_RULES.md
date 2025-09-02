@@ -1,12 +1,12 @@
 # AI Development Rules
 
-This document outlines the technology stack and specific library usage guidelines for this Next.js application. Adhering to these rules will help maintain consistency, improve collaboration, and ensure the AI assistant can effectively understand and modify the codebase.
+This document outlines the technology stack and specific library usage guidelines for this React application. Adhering to these rules will help maintain consistency, improve collaboration, and ensure the AI assistant can effectively understand and modify the codebase.
 
 ## Tech Stack Overview
 
 The application is built using the following core technologies:
 
-*   **Framework**: Next.js (App Router)
+*   **Framework**: React (Vite)
 *   **Language**: TypeScript
 *   **UI Components**: Shadcn/UI - A collection of re-usable UI components built with Radix UI and Tailwind CSS.
 *   **Styling**: Tailwind CSS - A utility-first CSS framework for rapid UI development.
@@ -16,6 +16,7 @@ The application is built using the following core technologies:
 *   **Notifications/Toasts**: Sonner for displaying non-intrusive notifications.
 *   **Charts**: Recharts for data visualization.
 *   **Animation**: `tailwindcss-animate` and animation capabilities built into Radix UI components.
+*   **Routing**: React Router DOM - For client-side routing.
 
 ## Library Usage Guidelines
 
@@ -28,7 +29,7 @@ To ensure consistency and leverage the chosen stack effectively, please follow t
 
 2.  **Styling**:
     *   **Primary Choice**: Exclusively use Tailwind CSS utility classes for all styling.
-    *   **Global Styles**: Reserve `src/app/globals.css` for base Tailwind directives, global CSS variable definitions, and minimal base styling. Avoid adding component-specific styles here.
+    *   **Global Styles**: Reserve `src/app/globals.css` (or `src/index.css` in this project) for base Tailwind directives, global CSS variable definitions, and minimal base styling. Avoid adding component-specific styles here.
     *   **CSS-in-JS**: Do not use CSS-in-JS libraries (e.g., Styled Components, Emotion).
 
 3.  **Icons**:
@@ -44,11 +45,11 @@ To ensure consistency and leverage the chosen stack effectively, please follow t
     *   **Complex Global State**: If application state becomes significantly complex, discuss the potential introduction of a dedicated state management library (e.g., Zustand, Jotai) before implementing.
 
 6.  **Routing**:
-    *   Utilize the Next.js App Router (file-system based routing in the `src/app/` directory).
+    *   Utilize `react-router-dom` for all routing.
 
 7.  **API Calls & Data Fetching**:
     *   **Client-Side**: Use the native `fetch` API or a simple wrapper around it.
-    *   **Server-Side (Next.js)**: Leverage Next.js Route Handlers (in `src/app/api/`) or Server Actions for server-side logic and data fetching.
+    *   **Server-Side (Supabase)**: Leverage Supabase for server-side logic and data fetching.
 
 8.  **Animations**:
     *   Use `tailwindcss-animate` plugin and the animation utilities provided by Radix UI components.
@@ -72,23 +73,7 @@ To ensure consistency and leverage the chosen stack effectively, please follow t
 
 By following these guidelines, we can build a more robust, maintainable, and consistent application.
 
-
-Directory names MUST be all lower-case (src/pages, src/components, etc.). File names may use mixed-case if you like.
-
-# REMEMBER
-
-> **CODE FORMATTING IS NON-NEGOTIABLE:**
-> **NEVER, EVER** use markdown code blocks (```) for code.
-> **ONLY** use <dyad-write> tags for **ALL** code output.
-> Using ``` for code is **PROHIBITED**.
-> Using <dyad-write> for code is **MANDATORY**.
-> Any instance of code within ``` is a **CRITICAL FAILURE**.
-> **REPEAT: NO MARKDOWN CODE BLOCKS. USE <dyad-write> EXCLUSIVELY FOR CODE.**
-> Do NOT use <dyad-file> tags in the output. ALWAYS use <dyad-write> to generate code.
-
-
-
-# Supabase Instructions
+## Supabase Instructions (Updated for no `user_id` dependencies in client-side operations)
 
 The user has Supabase available for their app so use it for any auth, database or server-side functions.
 
