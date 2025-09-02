@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, Supplier } from "@/types";
-// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -56,6 +55,8 @@ const purchaseFormSchema = z.object({
     }),
   PurchaseDate: z.date(),
   AdditionalCost: z.coerce.number().optional().nullable(),
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
+  PaymentMode: z.string().optional().nullable(), // New field
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseFormSchema>;
@@ -77,7 +78,6 @@ const EMPTY_ITEM: Omit<PurchaseListItem, 'ItemId'> & { ItemId: number | string }
 
 function NewPurchasePage() {
   const navigate = useNavigate();
-  // Removed user from useAuth
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithCategory[]>([]);
   const [supplierSuggestions, setSupplierSuggestions] = useState<Supplier[]>([]);
@@ -101,10 +101,18 @@ function NewPurchasePage() {
   const form = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseFormSchema),
     mode: "onChange",
-    defaultValues: { SupplierName: "", supplierMobileNo: "", PurchaseDate: new Date(), AdditionalCost: 0 },
+    defaultValues: { 
+      SupplierName: "", 
+      supplierMobileNo: "", 
+      PurchaseDate: new Date(), 
+      AdditionalCost: 0,
+      PaymentType: 'Cash', // Default payment type
+      PaymentMode: '', // Default empty
+    },
   });
 
   const watchedAdditionalCost = form.watch("AdditionalCost");
+  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
   const { formState: { isValid } } = form;
 
   const itemsTotalRaw = addedItems.reduce((sum, item) => sum + item.TotalPrice, 0);
@@ -116,16 +124,14 @@ function NewPurchasePage() {
   const fetchData = useCallback(async () => {
     const { data: itemsData, error: itemsError } = await supabase
       .from("ItemMaster").select("*, CategoryMaster(*)")
-      // Removed .eq("user_id", user.id)
       .order("ItemName");
     if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
     else setItemSuggestions(itemsData as ItemWithCategory[]);
 
     const { data: suppliersData, error: suppliersError } = await supabase.from("SupplierMaster").select("SupplierId, SupplierName, MobileNo")
-    // Removed .eq("user_id", user.id)
     if (suppliersError) toast.error("Failed to fetch suppliers", { description: suppliersError.message });
     else setSupplierSuggestions(suppliersData || []);
-  }, []); // Removed user.id from dependencies
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -268,8 +274,7 @@ function NewPurchasePage() {
       UnitPrice: 0,
       TotalPrice: 0,
     });
-    // Automatically add the newly created item to the list
-    setTimeout(() => { // Use a timeout to ensure state updates are processed
+    setTimeout(() => {
       handleAddItem();
     }, 0);
   };
@@ -407,7 +412,8 @@ function NewPurchasePage() {
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
         ReferenceNo: refNoData,
-        // Removed user_id: user.id,
+        PaymentType: values.PaymentType, // New field
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
       }).select().single();
 
     if (purchaseError || !purchaseData) {
@@ -422,7 +428,6 @@ function NewPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -540,6 +545,46 @@ function NewPurchasePage() {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* New Payment Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="PaymentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <FloatingLabelSelect
+                          label="Payment Type"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          id="payment-type-select"
+                        >
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Bank">Bank</SelectItem>
+                          <SelectItem value="Credit">Credit</SelectItem>
+                          <SelectItem value="Mixed">Mixed</SelectItem>
+                        </FloatingLabelSelect>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {(watchedPaymentType === 'Bank' || watchedPaymentType === 'Mixed') && (
+                  <FormField
+                    control={form.control}
+                    name="PaymentMode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <FloatingLabelInput id="payment-mode" label="Payment Mode (UPI/Transfer/Cheque)" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
               <div className="space-y-2">

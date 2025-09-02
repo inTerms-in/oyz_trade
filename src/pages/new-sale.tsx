@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, Customer } from "@/types";
-// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -34,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SalePostSaveActionsDialog } from "@/components/sale-post-save-actions-dialog"; // New import
+import { SalePostSaveActionsDialog } from "@/components/sale-post-save-actions-dialog";
 
 const saleFormSchema = z.object({
   CustomerName: z.string().optional().nullable(),
@@ -47,6 +46,8 @@ const saleFormSchema = z.object({
   SaleDate: z.date(),
   AdditionalDiscount: z.coerce.number().optional().nullable(),
   DiscountPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
+  PaymentMode: z.string().optional().nullable(), // New field
 });
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
@@ -68,7 +69,6 @@ const EMPTY_ITEM: Omit<SaleListItem, 'ItemId'> & { ItemId: number | string } = {
 
 function NewSalePage() {
   const navigate = useNavigate();
-  // Removed user from useAuth
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithCategory[]>([]);
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
@@ -82,8 +82,8 @@ function NewSalePage() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastDiscountChangeSource, setLastDiscountChangeSource] = useState<'amount' | 'percentage' | null>(null);
 
-  const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false); // New state
-  const [newlyCreatedSaleId, setNewlyCreatedSaleId] = useState<number | null>(null); // New state
+  const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false);
+  const [newlyCreatedSaleId, setNewlyCreatedSaleId] = useState<number | null>(null);
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -91,11 +91,20 @@ function NewSalePage() {
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
     mode: "onChange",
-    defaultValues: { CustomerName: "", customerMobileNo: "", SaleDate: new Date(), AdditionalDiscount: 0, DiscountPercentage: 0 },
+    defaultValues: { 
+      CustomerName: "", 
+      customerMobileNo: "", 
+      SaleDate: new Date(), 
+      AdditionalDiscount: 0, 
+      DiscountPercentage: 0,
+      PaymentType: 'Cash', // Default payment type
+      PaymentMode: '', // Default empty
+    },
   });
 
   const watchedAdditionalDiscount = form.watch("AdditionalDiscount");
   const watchedDiscountPercentage = form.watch("DiscountPercentage");
+  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
   const { formState: { isValid } } = form;
 
   const itemsTotal = addedItems.reduce((sum: number, item: SaleListItem) => sum + item.TotalPrice, 0);
@@ -139,18 +148,16 @@ function NewSalePage() {
     async function fetchData() {
       const { data: itemsData, error: itemsError } = await supabase
         .from("ItemMaster").select("*, CategoryMaster(*)")
-        // Removed .eq("user_id", user.id)
         .order("ItemName");
       if (itemsError) toast.error("Failed to fetch items", { description: itemsError.message });
       else setItemSuggestions(itemsData as ItemWithCategory[]);
 
       const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
-      // Removed .eq("user_id", user.id)
       if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
       else setCustomerSuggestions(customersData || []);
     }
     fetchData();
-  }, []); // Removed user.id from dependencies
+  }, []);
 
   // Effect to update mobile number when customer is selected from autocomplete
   useEffect(() => {
@@ -373,7 +380,8 @@ function NewSalePage() {
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
         ReferenceNo: refNoData,
-        // Removed user_id: user.id,
+        PaymentType: values.PaymentType, // New field
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
       }).select().single();
 
     if (saleError || !saleData) {
@@ -388,7 +396,6 @@ function NewSalePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -407,10 +414,10 @@ function NewSalePage() {
 
     setIsSubmitting(false);
     toast.success(`Sale ${refNoData} added successfully!`);
-    setNewlyCreatedSaleId(saleData.SaleId); // Store the new sale ID
-    setIsPostSaveActionsDialogOpen(true); // Open the dialog
-    form.reset(); // Reset form after successful submission
-    setAddedItems([]); // Clear added items
+    setNewlyCreatedSaleId(saleData.SaleId);
+    setIsPostSaveActionsDialogOpen(true);
+    form.reset();
+    setAddedItems([]);
   }
 
   const formatCurrency = (amount: number) => {
@@ -419,11 +426,7 @@ function NewSalePage() {
 
   const grandTotal = itemsTotal - (watchedAdditionalDiscount || 0);
 
-  // Handlers for the post-save dialog
   const handleSendWhatsAppFromDialog = (saleId: number) => {
-    // This page doesn't have shop details or the full saleData to generate a rich message.
-    // For a new sale, we'd need to fetch the full saleData again.
-    // For simplicity, we'll navigate to the edit page and let it handle WhatsApp.
     navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'send-whatsapp' } });
   };
 
@@ -552,6 +555,46 @@ function NewSalePage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* New Payment Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="PaymentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <FloatingLabelSelect
+                          label="Payment Type"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          id="payment-type-select"
+                        >
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Bank">Bank</SelectItem>
+                          <SelectItem value="Credit">Credit</SelectItem>
+                          <SelectItem value="Mixed">Mixed</SelectItem>
+                        </FloatingLabelSelect>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {(watchedPaymentType === 'Bank' || watchedPaymentType === 'Mixed') && (
+                  <FormField
+                    control={form.control}
+                    name="PaymentMode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <FloatingLabelInput id="payment-mode" label="Payment Mode (UPI/Transfer/Cheque)" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
               <div className="space-y-2">

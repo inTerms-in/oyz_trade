@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, PurchaseWithItems, Supplier } from "@/types";
-// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -51,6 +50,8 @@ const purchaseFormSchema = z.object({
     }),
   PurchaseDate: z.date(),
   AdditionalCost: z.coerce.number().optional().nullable(),
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
+  PaymentMode: z.string().optional().nullable(), // New field
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseFormSchema>;
@@ -73,7 +74,6 @@ const EMPTY_ITEM: Omit<PurchaseListItem, 'ItemId'> & { ItemId: number | string }
 function EditPurchasePage() {
   const { purchaseId } = useParams();
   const navigate = useNavigate();
-  // Removed user from useAuth
   const [loading, setLoading] = useState(true);
   const [purchaseData, setPurchaseData] = useState<PurchaseWithItems | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,6 +102,7 @@ function EditPurchasePage() {
   });
 
   const watchedAdditionalCost = form.watch("AdditionalCost");
+  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
   const { formState: { isValid } } = form;
 
   const itemsTotalRaw = addedItems.reduce((sum, item) => sum + item.TotalPrice, 0);
@@ -132,6 +133,8 @@ function EditPurchasePage() {
       supplierMobileNo: typedPurchase.SupplierMaster?.MobileNo || "",
       PurchaseDate: parseISO(typedPurchase.PurchaseDate),
       AdditionalCost: typedPurchase.AdditionalCost || 0,
+      PaymentType: typedPurchase.PaymentType || 'Cash', // Set new field
+      PaymentMode: typedPurchase.PaymentMode || '', // Set new field
     });
     if (typedPurchase.SupplierMaster) {
       setSelectedSupplier(typedPurchase.SupplierMaster);
@@ -429,6 +432,8 @@ function EditPurchasePage() {
         PurchaseDate: values.PurchaseDate.toISOString(),
         TotalAmount: itemsTotalSum + additionalCost,
         AdditionalCost: additionalCost,
+        PaymentType: values.PaymentType, // New field
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
       }).eq("PurchaseId", purchaseId);
 
     if (purchaseError) {
@@ -450,7 +455,6 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -636,6 +640,46 @@ function EditPurchasePage() {
                 />
               </div>
 
+              {/* New Payment Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="PaymentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <FloatingLabelSelect
+                          label="Payment Type"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          id="payment-type-select"
+                        >
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Bank">Bank</SelectItem>
+                          <SelectItem value="Credit">Credit</SelectItem>
+                          <SelectItem value="Mixed">Mixed</SelectItem>
+                        </FloatingLabelSelect>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {(watchedPaymentType === 'Bank' || watchedPaymentType === 'Mixed') && (
+                  <FormField
+                    control={form.control}
+                    name="PaymentMode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <FloatingLabelInput id="payment-mode" label="Payment Mode (UPI/Transfer/Cheque)" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Add Items</Label>
@@ -701,7 +745,7 @@ function EditPurchasePage() {
                     </Tooltip>
                   </div>
                 </div>
-              </div>
+              )}
 
               {addedItems.length > 0 && (
                 <div className="w-full overflow-x-auto">
@@ -771,7 +815,7 @@ function EditPurchasePage() {
                         <span className="text-muted-foreground">Additional Cost</span>
                         <span>{formatCurrency(watchedAdditionalCost || 0)}</span>
                     </div>
-                    <div className="flex justify-between font-semibold border-t pt-1 mt-1">
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1 text-base">
                         <span>Grand Total</span>
                         <span>{formatCurrency(displayGrandTotal)}</span>
                     </div>

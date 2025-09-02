@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { Item, ItemWithCategory, SaleWithItems, Customer, ShopDetails } from "@/types";
-import { useAuth } from "@/contexts/auth-provider";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -29,7 +28,7 @@ import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SaleInvoice } from "@/components/sale-invoice";
-import { SalePostSaveActionsDialog } from "@/components/sale-post-save-actions-dialog"; // Re-added import
+import { SalePostSaveActionsDialog } from "@/components/sale-post-save-actions-dialog";
 
 const saleFormSchema = z.object({
   CustomerName: z.string().optional().nullable(),
@@ -42,6 +41,8 @@ const saleFormSchema = z.object({
   SaleDate: z.date(),
   AdditionalDiscount: z.coerce.number().optional().nullable(),
   DiscountPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
+  PaymentMode: z.string().optional().nullable(), // New field
 });
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
@@ -61,11 +62,10 @@ interface SaleListItem {
 const UNITS = ["Piece", "Pack", "Box", "Dozen", "Ream", "Kg", "Gram", "Liter", "ml"];
 const EMPTY_ITEM: Omit<SaleListItem, 'ItemId'> & { ItemId: number | string } = { ItemId: "", ItemName: "", CategoryName: "", Barcode: "", ItemCode: "", Qty: 1, Unit: "Piece", UnitPrice: 0, TotalPrice: 0 };
 
-export default function EditSalePage() { // Exported as default
+export default function EditSalePage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const {  } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saleData, setSaleData] = useState<SaleWithItems | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,8 +82,7 @@ export default function EditSalePage() { // Exported as default
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastDiscountChangeSource, setLastDiscountChangeSource] = useState<'amount' | 'percentage' | null>(null);
 
-  const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false); // New state
-  // Removed newlyCreatedSaleId as it's not a new sale, but an existing one being edited
+  const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false);
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +95,7 @@ export default function EditSalePage() { // Exported as default
 
   const watchedAdditionalDiscount = form.watch("AdditionalDiscount");
   const watchedDiscountPercentage = form.watch("DiscountPercentage");
+  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
   const { formState: { isValid } = {} } = form;
 
   const itemsTotal = addedItems.reduce((sum: number, item: SaleListItem) => sum + item.TotalPrice, 0);
@@ -158,6 +158,8 @@ export default function EditSalePage() { // Exported as default
       SaleDate: parseISO(typedSale.SaleDate),
       AdditionalDiscount: typedSale.AdditionalDiscount || 0,
       DiscountPercentage: typedSale.DiscountPercentage || 0,
+      PaymentType: typedSale.PaymentType || 'Cash', // Set new field
+      PaymentMode: typedSale.PaymentMode || '', // Set new field
     });
     if (typedSale.CustomerMaster) {
       setSelectedCustomer(typedSale.CustomerMaster);
@@ -184,8 +186,6 @@ export default function EditSalePage() { // Exported as default
     if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
     else setCustomerSuggestions(customersData || []);
 
-    // Fetch shop details for WhatsApp message
-    // Removed user.id check here as shop details are now global
     const { data: shopData, error: shopError } = await supabase
       .from("shop")
       .select("shop_name, mobile_no, address")
@@ -269,6 +269,8 @@ export default function EditSalePage() { // Exported as default
         TotalAmount: itemsTotal - additionalDiscount,
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
+        PaymentType: values.PaymentType, // New field
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
       }).eq("SaleId", saleId);
 
     if (saleError) {
@@ -290,7 +292,6 @@ export default function EditSalePage() { // Exported as default
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase
@@ -344,7 +345,6 @@ export default function EditSalePage() { // Exported as default
       return;
     }
 
-    // Get customer mobile number directly from saleData, which is guaranteed to be loaded
     const customerMobileNo = saleData.CustomerMaster?.MobileNo; 
     if (!customerMobileNo) {
       toast.error("Customer mobile number is required to send via WhatsApp.");
@@ -355,9 +355,8 @@ export default function EditSalePage() { // Exported as default
     toast.info("Preparing WhatsApp message...", { description: "This may take a moment." });
 
     try {
-      // Ensure the sale data is up-to-date before sending
       await saveSale(form.getValues());
-      await fetchData(); // Re-fetch to get the latest data
+      await fetchData();
 
       if (!saleData) {
         throw new Error("Sale data not available for message generation.");
@@ -407,11 +406,9 @@ export default function EditSalePage() { // Exported as default
     }
   }, [form, saleData, grandTotal, shopDetails, saveSale, fetchData, itemsTotal]);
 
-  // Handle actions passed via location state (from NewSalePage)
   useEffect(() => {
     if (location.state?.action && saleId && !loading) {
       const action = location.state.action;
-      // Clear the state immediately to prevent re-triggering on subsequent renders
       window.history.replaceState({}, document.title); 
 
       if (action === 'send-whatsapp') {
@@ -422,7 +419,6 @@ export default function EditSalePage() { // Exported as default
     }
   }, [location.state, saleId, loading, handleSendWhatsApp, handlePrint]);
 
-  // Effect to update mobile number when customer is selected from autocomplete
   useEffect(() => {
     const currentMobileNo = form.getValues("customerMobileNo");
     if (selectedCustomer) {
@@ -437,7 +433,6 @@ export default function EditSalePage() { // Exported as default
     }
   }, [selectedCustomer, form]);
 
-  // Effect to clear selectedCustomer if CustomerName input changes and no longer matches
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "CustomerName") {
@@ -554,8 +549,7 @@ export default function EditSalePage() { // Exported as default
       Unit: "Piece",
       TotalPrice: newItem.SellPrice || 0,
     });
-    // Automatically add the newly created item to the list
-    setTimeout(() => { // Use a timeout to ensure state updates are processed
+    setTimeout(() => {
       handleAddItem();
     }, 0);
   };
@@ -577,25 +571,23 @@ export default function EditSalePage() { // Exported as default
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
     if (success) {
-      // Open the post-save actions dialog for edited sales too
       setIsPostSaveActionsDialogOpen(true);
     }
   };
 
-  // Handlers for the post-save dialog (re-using existing logic)
   const handleSendWhatsAppFromDialog = (saleId: number) => {
     handleSendWhatsApp(saleId);
-    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+    setIsPostSaveActionsDialogOpen(false);
   };
 
   const handlePrintFromDialog = (saleId: number) => {
     handlePrint(saleId);
-    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+    setIsPostSaveActionsDialogOpen(false);
   };
 
   const handleReturnToListFromDialog = () => {
     navigate("/sales-module/sales-invoice");
-    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+    setIsPostSaveActionsDialogOpen(false);
   };
 
   const invoiceDataForPrint = saleData;
@@ -624,7 +616,6 @@ export default function EditSalePage() { // Exported as default
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Edit Sale</CardTitle>
-          {/* Removed direct WhatsApp and Print buttons, now handled by dialog */}
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -739,6 +730,46 @@ export default function EditSalePage() { // Exported as default
                 </div>
               </div>
 
+              {/* New Payment Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="PaymentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <FloatingLabelSelect
+                          label="Payment Type"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          id="payment-type-select"
+                        >
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Bank">Bank</SelectItem>
+                          <SelectItem value="Credit">Credit</SelectItem>
+                          <SelectItem value="Mixed">Mixed</SelectItem>
+                        </FloatingLabelSelect>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {(watchedPaymentType === 'Bank' || watchedPaymentType === 'Mixed') && (
+                  <FormField
+                    control={form.control}
+                    name="PaymentMode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <FloatingLabelInput id="payment-mode" label="Payment Mode (UPI/Transfer/Cheque)" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Add Items</Label>
@@ -825,7 +856,7 @@ export default function EditSalePage() { // Exported as default
       <SalePostSaveActionsDialog
         open={isPostSaveActionsDialogOpen}
         onOpenChange={setIsPostSaveActionsDialogOpen}
-        saleId={Number(saleId)} // Pass the current saleId
+        saleId={Number(saleId)}
         onSendWhatsApp={handleSendWhatsAppFromDialog}
         onPrint={handlePrintFromDialog}
         onReturnToList={handleReturnToListFromDialog}

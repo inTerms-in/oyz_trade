@@ -69,6 +69,8 @@ export interface Purchase {
   // created_at: string; // Removed
   ReferenceNo?: string;
   AdditionalCost?: number | null;
+  PaymentType: 'Cash' | 'Bank' | 'Credit' | 'Mixed'; // Added PaymentType
+  PaymentMode?: string | null; // Added PaymentMode
 }
 
 export interface PurchaseWithItems extends Purchase {
@@ -111,6 +113,8 @@ export interface Sale {
   AdditionalDiscount?: number | null;
   DiscountPercentage?: number | null; // Added DiscountPercentage
   ReferenceNo?: string;
+  PaymentType: 'Cash' | 'Bank' | 'Credit' | 'Mixed'; // Added PaymentType
+  PaymentMode?: string | null; // Added PaymentMode
 }
 
 export interface SaleWithItems extends Sale {
@@ -264,4 +268,26 @@ export interface ReturnableItem {
   Unit: string;
   UnitPrice: number; // Original unit price
   TotalPrice: number; // QtyToReturn * UnitPrice
+}
+
+export interface Receivable {
+  ReceivableId: number;
+  SaleId: number | null;
+  CustomerId: number | null;
+  Amount: number;
+  Balance: number;
+  DueDate?: string | null;
+  Status: 'Outstanding' | 'Partially Paid' | 'Paid' | 'Overdue';
+  created_at: string;
+}
+
+export interface Payable {
+  PayableId: number;
+  PurchaseId: number | null;
+  SupplierId: number | null;
+  Amount: number;
+  Balance: number;
+  DueDate?: string | null;
+  Status: 'Outstanding' | 'Partially Paid' | 'Paid' | 'Overdue';
+  created_at: string;
 }
