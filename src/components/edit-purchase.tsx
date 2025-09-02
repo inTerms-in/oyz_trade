@@ -450,7 +450,6 @@ function EditPurchasePage() {
       Qty: item.Qty,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // Removed user_id: user.id,
     }));
 
     const { data: insertedItems, error: itemsError } = await supabase

@@ -64,7 +64,6 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
   });
 
   const fetchShopDetails = useCallback(async () => {
-    // Removed user.id check here as shop details are now global
     const { data, error } = await supabase
       .from("shop")
       .select("shop_name, mobile_no, address")
@@ -77,7 +76,7 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
     } else {
       form.reset({ shop_name: "", mobile_no: "", address: "" });
     }
-  }, [form]); // Removed user.id from dependencies
+  }, [form]);
 
   useEffect(() => {
     if (open) {
@@ -98,7 +97,6 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
       .from("shop")
       .upsert(
         { 
-          // Removed user_id: user.id,
           shop_name: values.shop_name, 
           mobile_no: values.mobile_no || null,
           address: values.address || null,

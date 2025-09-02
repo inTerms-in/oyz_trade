@@ -60,14 +60,13 @@ function StockAdjustmentPage() {
     const { data, error } = await supabase
       .from("item_stock_details")
       .select("ItemId, ItemName, ItemCode, current_stock");
-      // Removed .eq("user_id", user.id) filter
     if (error) {
       toast.error("Failed to fetch items", { description: error.message });
     } else {
       setItemSuggestions(data as ItemWithStock[]);
     }
     setLoadingSuggestions(false);
-  }, []); // Removed user.id from dependencies
+  }, []);
 
   const fetchRecentAdjustments = useCallback(async (itemId: number) => {
     setLoadingAdjustments(true);
@@ -75,7 +74,6 @@ function StockAdjustmentPage() {
       .from("StockAdjustment")
       .select("*, ItemMaster(ItemName, ItemCode)")
       .eq("ItemId", itemId)
-      // Removed .eq("user_id", user.id) filter
       .order("AdjustmentDate", { ascending: false })
       .limit(5);
     if (error) {
@@ -85,7 +83,7 @@ function StockAdjustmentPage() {
       setRecentAdjustments(data as StockAdjustmentType[]);
     }
     setLoadingAdjustments(false);
-  }, []); // Removed user.id from dependencies
+  }, []);
 
   useEffect(() => {
     fetchItemSuggestions();
@@ -119,7 +117,6 @@ function StockAdjustmentPage() {
   };
 
   async function onSubmit(values: StockAdjustmentFormValues) {
-    // Removed user_id check
     setIsSubmitting(true);
 
     // Ensure ItemId is a number before inserting
@@ -136,7 +133,6 @@ function StockAdjustmentPage() {
         AdjustmentType: values.AdjustmentType,
         Quantity: values.Quantity,
         Reason: values.Reason,
-        // Removed user_id
       });
 
     setIsSubmitting(false);

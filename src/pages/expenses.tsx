@@ -66,8 +66,7 @@ function ExpensesPage() {
 
     let query = supabase
       .from("Expenses")
-      .select("*, ExpenseCategoryMaster(CategoryName)", { count: "exact" })
-      .eq("user_id", user.id); // Filter by user_id
+      .select("*, ExpenseCategoryMaster(CategoryName)", { count: "exact" });
 
     if (debouncedSearchTerm) {
       query = query.or(`Description.ilike.%${debouncedSearchTerm}%,ReferenceNo.ilike.%${debouncedSearchTerm}%`);
@@ -98,7 +97,6 @@ function ExpensesPage() {
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
-      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });

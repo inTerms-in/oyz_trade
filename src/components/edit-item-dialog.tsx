@@ -88,9 +88,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
 
   useEffect(() => {
     async function fetchCategories() {
-      if (!user?.id) return; // Ensure user is logged in
       const { data } = await supabase.from("CategoryMaster").select("*")
-      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
       if (data) {
         setCategories(data);
@@ -99,7 +97,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
     if (open) {
       fetchCategories();
     }
-  }, [open, user?.id]);
+  }, [open]);
 
   useEffect(() => {
     form.reset({
@@ -140,8 +138,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
         ItemCode: values.ItemCode,
         RackNo: values.RackNo,
       })
-      .eq("ItemId", item.ItemId)
-      .eq("user_id", user.id); // Added user_id
+      .eq("ItemId", item.ItemId);
 
     setIsSubmitting(false);
 

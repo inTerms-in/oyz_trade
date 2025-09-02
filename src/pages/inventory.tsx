@@ -44,7 +44,6 @@ function InventoryPage() {
     let query = supabase
       .from("item_stock_details")
       .select("*", { count: "exact" });
-      // Removed .eq("user_id", user.id)
 
     if (debouncedSearchTerm) {
       query = query.ilike("ItemName", `%${debouncedSearchTerm}%`);
@@ -64,7 +63,7 @@ function InventoryPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]); // Removed user.id from dependencies
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
 
   useEffect(() => {
     fetchInventory();

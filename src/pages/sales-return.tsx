@@ -54,14 +54,12 @@ function SalesReturnPage() {
 
     let query = supabase
       .from("SalesReturn")
-      .select("*, SalesReturnItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), Sales(ReferenceNo, CustomerMaster(CustomerName))", { count: "exact" })
-      .eq("user_id", user.id); // Filter by user_id
+      .select("*, SalesReturnItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), Sales(ReferenceNo, CustomerMaster(CustomerName))", { count: "exact" });
 
     if (debouncedSearchTerm) {
       const { data: matchingSales, error: salesError } = await supabase
         .from("Sales")
-        .select("SaleId, ReferenceNo, CustomerMaster(CustomerName)")
-        .eq("user_id", user.id); // Filter by user_id
+        .select("SaleId, ReferenceNo, CustomerMaster(CustomerName)");
 
       if (salesError) {
         console.error("Error fetching matching sales:", salesError);

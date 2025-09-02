@@ -141,7 +141,7 @@ function PurchaseDashboardPage() {
     }
 
     setLoading(false);
-  }, [dateRange]); // Removed user.id from dependencies
+  }, [dateRange]);
 
   useEffect(() => {
     fetchData();

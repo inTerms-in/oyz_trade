@@ -73,9 +73,7 @@ export function AddNewItemInlineDialog({
 
   useEffect(() => {
     async function fetchCategories() {
-      // Removed user.id check here
       const { data } = await supabase.from("CategoryMaster").select("*")
-      // Removed .eq("user_id", user.id)
       .order("CategoryName");
       if (data) {
         setCategories(data);
@@ -87,7 +85,7 @@ export function AddNewItemInlineDialog({
     if (open) {
       fetchCategories();
     }
-  }, [open, form]); // Removed user.id from dependencies
+  }, [open, form]);
 
   async function onSubmit(values: ItemFormValues) {
     setIsSubmitting(true);
@@ -98,7 +96,6 @@ export function AddNewItemInlineDialog({
       .insert([{ 
         ItemName: values.ItemName, 
         CategoryId: values.CategoryId, 
-        // Removed user_id: user.id,
       }])
       .select()
       .single();
@@ -118,7 +115,7 @@ export function AddNewItemInlineDialog({
 
     if (newItemCode.error) {
       toast.error("Failed to generate item code", { description: newItemCode.error.message });
-      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId); // Removed user_id
+      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId);
       setIsSubmitting(false);
       return;
     }
@@ -127,7 +124,6 @@ export function AddNewItemInlineDialog({
       .from("ItemMaster")
       .update({ ItemCode: newItemCode.data })
       .eq("ItemId", insertedItem.ItemId);
-      // Removed .eq("user_id", user.id); // Added user_id
 
     if (updateError) {
       toast.error("Failed to update item with generated code", { description: updateError.message });

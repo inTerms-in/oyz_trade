@@ -54,14 +54,12 @@ function PurchaseReturnPage() {
 
     let query = supabase
       .from("PurchaseReturn")
-      .select("*, PurchaseReturnItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), Purchase(ReferenceNo, SupplierMaster(SupplierName))", { count: "exact" })
-      .eq("user_id", user.id); // Filter by user_id
+      .select("*, PurchaseReturnItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), Purchase(ReferenceNo, SupplierMaster(SupplierName))", { count: "exact" });
 
     if (debouncedSearchTerm) {
       const { data: matchingPurchases, error: purchaseError } = await supabase
         .from("Purchase")
-        .select("PurchaseId, ReferenceNo, SupplierMaster(SupplierName)")
-        .eq("user_id", user.id); // Filter by user_id
+        .select("PurchaseId, ReferenceNo, SupplierMaster(SupplierName)");
 
       if (purchaseError) {
         console.error("Error fetching matching purchases:", purchaseError);

@@ -79,7 +79,6 @@ export function AddSupplierDialog({ open, onOpenChange, initialValue, onSupplier
       .insert([{ 
         SupplierName: values.SupplierName, 
         MobileNo: values.MobileNo || null,
-        // Removed user_id: user.id,
       }])
       .select();
 

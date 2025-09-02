@@ -78,7 +78,6 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
-      // Removed .eq("user_id", user.id)
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
@@ -89,7 +88,7 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         form.setValue("ExpenseCategoryId", data[0].ExpenseCategoryId, { shouldValidate: true });
       }
     }
-  }, [form]); // Removed user.id from dependencies
+  }, [form]);
 
   useEffect(() => {
     if (open) {
@@ -117,7 +116,6 @@ export function AddExpenseDialog({ open, onOpenChange, onExpenseAdded }: AddExpe
         Description: values.Description || null,
         ExpenseCategoryId: values.ExpenseCategoryId,
         ReferenceNo: values.ReferenceNo || null,
-        // Removed user_id: user.id, // Add user_id
       }])
       .select();
 

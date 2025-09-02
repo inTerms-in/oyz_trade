@@ -100,7 +100,6 @@ function SalesDashboardPage() {
     let query = supabase
       .from("Sales")
       .select("*, SalesItem(*), CustomerMaster(CustomerName)")
-      // Removed .eq("user_id", user.id)
       .order("SaleDate", { ascending: false });
 
     if (dateRange?.from) query = query.gte("SaleDate", dateRange.from.toISOString());
@@ -181,7 +180,7 @@ function SalesDashboardPage() {
     setMonthlySales(sortedMonthlySales);
 
     setLoading(false);
-  }, [dateRange]); // Removed user.id from dependencies
+  }, [dateRange]);
 
   useEffect(() => {
     fetchData();
