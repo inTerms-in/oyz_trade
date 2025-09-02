@@ -145,7 +145,7 @@ export default function EditSalePage() { // Exported as default
     
     const { data, error } = await supabase
       .from("Sales")
-      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo, user_id)")
+      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo)")
       .eq("SaleId", saleId)
       .single();
 
@@ -185,7 +185,7 @@ export default function EditSalePage() { // Exported as default
     .order("ItemName");
     if (itemsData) setItemSuggestions(itemsData as ItemWithCategory[]);
 
-    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo, user_id");
+    const { data: customersData, error: customersError } = await supabase.from("CustomerMaster").select("CustomerId, CustomerName, MobileNo");
     if (customersError) toast.error("Failed to fetch customers", { description: customersError.message });
     else setCustomerSuggestions(customersData || []);
 

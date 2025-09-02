@@ -351,7 +351,7 @@ function NewSalePage() {
       }
     }
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sale_reference_no', { p_user_id: user.id });
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sale_reference_no'); // Removed p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate sale reference number", { description: refNoError?.message });

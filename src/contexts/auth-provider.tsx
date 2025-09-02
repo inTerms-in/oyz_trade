@@ -1,13 +1,11 @@
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-// Removed Profile import
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  // Removed profile from AuthContextType
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,11 +18,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  // Removed profile state
   
-  // Removed fetchProfile function
-  // Removed checkDefaultUserSettings function
-
   useEffect(() => {
     let isMounted = true;
 
@@ -36,11 +30,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        // Removed profile fetching and setting logic
-        // Removed checkDefaultUserSettings call
-
         setLoading(false);
         console.log("[AuthProvider] Auth state change handler finished. Loading set to false.");
+
+        // Explicitly navigate to the dashboard if logged in and currently on the login page
+        if (event === 'SIGNED_IN' && currentSession?.user && window.location.pathname === '/login') {
+          console.log("[AuthProvider] SIGNED_IN event on login page, navigating to /");
+          window.location.href = '/'; // Force a full reload to the root
+        }
       }
     );
 
@@ -49,9 +46,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("[AuthProvider] Initial session check:", initialSession);
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
-
-      // Removed profile fetching and setting logic
-      // Removed checkDefaultUserSettings call
 
       setLoading(false);
       console.log("[AuthProvider] Initial session check finished. Loading set to false.");
@@ -71,7 +65,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     session,
     user,
     loading,
-    // Removed profile from value
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

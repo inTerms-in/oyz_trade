@@ -763,7 +763,7 @@ function EditPurchasePage() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Save Changes (Ctrl+S)</p>
+                        <p>Save Changes (Ctrl+S)</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>

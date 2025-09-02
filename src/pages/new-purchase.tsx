@@ -386,7 +386,7 @@ function NewPurchasePage() {
       }
     }
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no', { p_user_id: user.id });
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_reference_no'); // Removed p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase reference number", { description: refNoError?.message });
