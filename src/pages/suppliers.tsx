@@ -24,7 +24,7 @@ type SortDirection = "asc" | "desc";
 
 function SuppliersPage() {
   const location = useLocation();
-  const { user } = useAuth(); // Use useAuth
+  const {  } = useAuth(); // Use useAuth
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);

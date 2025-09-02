@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
-import { Item, ItemWithCategory, SaleWithItems, Customer } from "@/types";
+import { Item, ItemWithCategory, SaleWithItems, Customer, ShopDetails } from "@/types";
 import { useAuth } from "@/contexts/auth-provider";
 
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,7 @@ export default function EditSalePage() { // Exported as default
   const { saleId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const {  } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saleData, setSaleData] = useState<SaleWithItems | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -810,7 +810,7 @@ export default function EditSalePage() { // Exported as default
                         <span className="text-muted-foreground">Discount</span>
                         <span>- {formatCurrency(watchedAdditionalDiscount || 0)}</span>
                     </div>
-                    <div className="flex justify-between font-semibold border-t pt-1 mt-1 text-base">
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1">
                         <span>Grand Total</span>
                         <span>{formatCurrency(grandTotal)}</span>
                     </div>

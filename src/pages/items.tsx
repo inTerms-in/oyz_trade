@@ -28,7 +28,7 @@ type SortDirection = "asc" | "desc";
 function ItemsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth(); // Use useAuth
+  const {  } = useAuth(); // Use useAuth
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);

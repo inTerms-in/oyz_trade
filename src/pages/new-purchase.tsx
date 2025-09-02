@@ -90,7 +90,7 @@ function NewPurchasePage() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isUpdateSellPriceDialogOpen, setIsUpdateSellPriceDialogOpen] = useState(false);
-  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(itemToUpdateSellPrice);
+  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(null);
   const [newSellPrice, setNewSellPrice] = useState<number | string>("");
   const [existingSellPriceForDialog, setExistingSellPriceForDialog] = useState<number | null>(null);
 

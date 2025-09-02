@@ -88,7 +88,7 @@ function EditPurchasePage() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isUpdateSellPriceDialogOpen, setIsUpdateSellPriceDialogOpen] = useState(false);
-  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(itemToUpdateSellPrice);
+  const [itemToUpdateSellPrice, setItemToUpdateSellPrice] = useState<PurchaseListItem | null>(null);
   const [newSellPrice, setNewSellPrice] = useState<number | string>("");
   const [existingSellPriceForDialog, setExistingSellPriceForDialog] = useState<number | null>(null);
 
@@ -771,7 +771,7 @@ function EditPurchasePage() {
                         <span className="text-muted-foreground">Additional Cost</span>
                         <span>{formatCurrency(watchedAdditionalCost || 0)}</span>
                     </div>
-                    <div className="flex justify-between font-semibold border-t pt-1 mt-1 text-base">
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1">
                         <span>Grand Total</span>
                         <span>{formatCurrency(displayGrandTotal)}</span>
                     </div>
