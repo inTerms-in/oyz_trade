@@ -73,7 +73,9 @@ export function AddNewItemInlineDialog({
 
   useEffect(() => {
     async function fetchCategories() {
+      if (!user?.id) return; // Ensure user is logged in
       const { data } = await supabase.from("CategoryMaster").select("*")
+      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
       if (data) {
         setCategories(data);
@@ -85,7 +87,7 @@ export function AddNewItemInlineDialog({
     if (open) {
       fetchCategories();
     }
-  }, [open, form]);
+  }, [open, form, user?.id]);
 
   async function onSubmit(values: ItemFormValues) {
     if (!user?.id) return toast.error("Authentication error. Please log in again.");
@@ -117,27 +119,26 @@ export function AddNewItemInlineDialog({
 
     if (newItemCode.error) {
       toast.error("Failed to generate item code", { description: newItemCode.error.message });
-      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId);
+      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId).eq("user_id", user.id); // Added user_id
       setIsSubmitting(false);
       return;
     }
 
-    const { data: updatedItem, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from("ItemMaster")
       .update({ ItemCode: newItemCode.data })
       .eq("ItemId", insertedItem.ItemId)
-      .select()
-      .single();
+      .eq("user_id", user.id); // Added user_id
 
-    if (updateError || !updatedItem) {
-      toast.error("Failed to update item with generated code", { description: updateError?.message });
+    if (updateError) {
+      toast.error("Failed to update item with generated code", { description: updateError.message });
       setIsSubmitting(false);
       return;
     }
 
     setIsSubmitting(false);
     toast.success(`Item "${values.ItemName}" added successfully!`);
-    onItemAdded(updatedItem as Item);
+    onItemAdded(insertedItem as Item); // Pass the inserted item with its ID
     form.reset();
     onOpenChange(false);
   }

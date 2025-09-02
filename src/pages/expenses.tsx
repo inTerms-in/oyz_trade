@@ -34,7 +34,7 @@ type SortDirection = "asc" | "desc";
 
 function ExpensesPage() {
   const location = useLocation();
-  const { } = useAuth();
+  const { user } = useAuth(); // Use useAuth
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -56,13 +56,18 @@ function ExpensesPage() {
 
 
   const fetchExpenses = useCallback(async () => {
+    if (!user?.id) { // Ensure user is logged in
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase
       .from("Expenses")
-      .select("*, ExpenseCategoryMaster(CategoryName)", { count: "exact" });
+      .select("*, ExpenseCategoryMaster(CategoryName)", { count: "exact" })
+      .eq("user_id", user.id); // Filter by user_id
 
     if (debouncedSearchTerm) {
       query = query.or(`Description.ilike.%${debouncedSearchTerm}%,ReferenceNo.ilike.%${debouncedSearchTerm}%`);
@@ -86,19 +91,21 @@ function ExpensesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, filterCategory, user?.id]);
 
   const fetchExpenseCategories = useCallback(async () => {
+    if (!user?.id) return; // Ensure user is logged in
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
+      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
     } else {
       setExpenseCategories(data || []);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchExpenses();

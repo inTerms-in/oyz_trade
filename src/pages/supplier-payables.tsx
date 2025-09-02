@@ -36,7 +36,8 @@ export default function SupplierPayablesPage() {
           user_id,
           Purchase(TotalAmount),
           PurchaseReturn(TotalRefundAmount)
-        `);
+        `)
+        .eq("user_id", user.id); // Filter by user_id
 
       if (error) {
         toast.error("Failed to fetch supplier payables", { description: error.message });
@@ -133,3 +134,5 @@ export default function SupplierPayablesPage() {
     </div>
   );
 }
+
+export default SupplierPayablesPage;

@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function PurchaseReturnPage() {
-  const { } = useAuth();
+  const { user } = useAuth(); // Use useAuth
   const [purchaseReturns, setPurchaseReturns] = useState<PurchaseReturnWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -44,18 +44,24 @@ function PurchaseReturnPage() {
   });
 
   const fetchPurchaseReturns = useCallback(async () => {
+    if (!user?.id) { // Ensure user is logged in
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase
       .from("PurchaseReturn")
-      .select("*, PurchaseReturnItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), Purchase(ReferenceNo, SupplierMaster(SupplierName))", { count: "exact" });
+      .select("*, PurchaseReturnItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), Purchase(ReferenceNo, SupplierMaster(SupplierName))", { count: "exact" })
+      .eq("user_id", user.id); // Filter by user_id
 
     if (debouncedSearchTerm) {
       const { data: matchingPurchases, error: purchaseError } = await supabase
         .from("Purchase")
-        .select("PurchaseId, ReferenceNo, SupplierMaster(SupplierName)");
+        .select("PurchaseId, ReferenceNo, SupplierMaster(SupplierName)")
+        .eq("user_id", user.id); // Filter by user_id
 
       if (purchaseError) {
         console.error("Error fetching matching purchases:", purchaseError);
@@ -92,7 +98,7 @@ function PurchaseReturnPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
 
   useEffect(() => {
     fetchPurchaseReturns();

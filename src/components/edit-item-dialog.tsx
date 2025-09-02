@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Category, ItemWithCategory } from "@/types";
 import { generateItemCode } from "@/lib/utils";
 import Barcode from "@/components/barcode";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +54,7 @@ interface EditItemDialogProps {
 }
 
 export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
+  const { user } = useAuth(); // Use useAuth
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -86,7 +88,10 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
 
   useEffect(() => {
     async function fetchCategories() {
-      const { data } = await supabase.from("CategoryMaster").select("*").order("CategoryName");
+      if (!user?.id) return; // Ensure user is logged in
+      const { data } = await supabase.from("CategoryMaster").select("*")
+      .eq("user_id", user.id) // Filter by user_id
+      .order("CategoryName");
       if (data) {
         setCategories(data);
       }
@@ -94,7 +99,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
     if (open) {
       fetchCategories();
     }
-  }, [open]);
+  }, [open, user?.id]);
 
   useEffect(() => {
     form.reset({
@@ -120,6 +125,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
   };
 
   async function onSubmit(values: ItemFormValues) {
+    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
     setIsSubmitting(true);
     // Ensure empty string barcode is converted to null
     const barcodeToUpdate = values.Barcode === "" ? null : values.Barcode;
@@ -134,7 +140,8 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
         ItemCode: values.ItemCode,
         RackNo: values.RackNo,
       })
-      .eq("ItemId", item.ItemId);
+      .eq("ItemId", item.ItemId)
+      .eq("user_id", user.id); // Added user_id
 
     setIsSubmitting(false);
 

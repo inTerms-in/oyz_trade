@@ -87,7 +87,9 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
 
   useEffect(() => {
     async function fetchCategories() {
+      if (!user?.id) return; // Ensure user is logged in
       const { data } = await supabase.from("CategoryMaster").select("*")
+      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
       if (data) {
         setCategories(data);
@@ -99,7 +101,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
     if (open) {
       fetchCategories();
     }
-  }, [open, form, initialValues]);
+  }, [open, form, initialValues, user?.id]);
 
   const handleGenerateBarcode = async () => {
     
@@ -148,7 +150,7 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
 
     if (newItemCode.error) {
       toast.error("Failed to generate item code", { description: newItemCode.error.message });
-      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId);
+      await supabase.from("ItemMaster").delete().eq("ItemId", insertedItem.ItemId).eq("user_id", user.id); // Added user_id
       setIsSubmitting(false);
       return;
     }
@@ -156,7 +158,8 @@ export function AddItemDialog({ open, onOpenChange, initialValues, onItemAdded }
     const { error: updateError } = await supabase
       .from("ItemMaster")
       .update({ ItemCode: newItemCode.data })
-      .eq("ItemId", insertedItem.ItemId);
+      .eq("ItemId", insertedItem.ItemId)
+      .eq("user_id", user.id); // Added user_id
 
     if (updateError) {
       toast.error("Failed to update item with generated code", { description: updateError.message });

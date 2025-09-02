@@ -24,7 +24,7 @@ type SortDirection = "asc" | "desc";
 
 function CategoriesPage() {
   const location = useLocation();
-  const { } = useAuth();
+  const { user } = useAuth(); // Use useAuth
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -43,13 +43,18 @@ function CategoriesPage() {
   });
 
   const fetchCategories = useCallback(async () => {
+    if (!user?.id) { // Ensure user is logged in
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase
       .from("CategoryMaster")
-      .select("*", { count: "exact" });
+      .select("*", { count: "exact" })
+      .eq("user_id", user.id); // Filter by user_id
 
     if (debouncedSearchTerm) {
       query = query.ilike("CategoryName", `%${debouncedSearchTerm}%`);
@@ -69,7 +74,7 @@ function CategoriesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, user?.id]);
 
   useEffect(() => {
     fetchCategories();

@@ -24,7 +24,7 @@ type SortDirection = "asc" | "desc";
 
 function CustomersPage() {
   const location = useLocation();
-  const { } = useAuth();
+  const { user } = useAuth(); // Use useAuth
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -43,13 +43,18 @@ function CustomersPage() {
   });
 
   const fetchCustomers = useCallback(async () => {
+    if (!user?.id) { // Ensure user is logged in
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase
       .from("CustomerMaster")
-      .select("*", { count: "exact" });
+      .select("*", { count: "exact" })
+      .eq("user_id", user.id); // Filter by user_id
 
     if (debouncedSearchTerm) {
       query = query.or(`CustomerName.ilike.%${debouncedSearchTerm}%,MobileNo.ilike.%${debouncedSearchTerm}%`);
@@ -69,7 +74,7 @@ function CustomersPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, user?.id]);
 
   useEffect(() => {
     fetchCustomers();

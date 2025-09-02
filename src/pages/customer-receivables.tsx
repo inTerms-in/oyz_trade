@@ -22,7 +22,7 @@ export default function CustomerReceivablesPage() {
 
   useEffect(() => {
     const fetchCustomerReceivables = async () => {
-      if (!user?.id) { // Still need user for authentication, but not for data filtering
+      if (!user?.id) { // Ensure user is logged in
         setLoading(false);
         return;
       }
@@ -36,7 +36,8 @@ export default function CustomerReceivablesPage() {
           user_id,
           Sales(TotalAmount),
           SalesReturn(TotalRefundAmount)
-        `);
+        `)
+        .eq("user_id", user.id); // Filter by user_id
 
       if (error) {
         toast.error("Failed to fetch customer receivables", { description: error.message });

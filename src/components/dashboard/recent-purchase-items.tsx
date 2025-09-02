@@ -14,13 +14,16 @@ interface RecentItem {
 }
 
 export function RecentPurchaseItems() {
-  const {  } = useAuth(); // Use useAuth
+  const { user } = useAuth(); // Use useAuth
   const [items, setItems] = useState<RecentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRecentItems = async () => {
-      // No user_id check here as per new global access policy for transaction data
+      if (!user?.id) { // Ensure user is logged in
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const { data, error } = await supabase
         .from("Purchase") // Query from Purchase table
@@ -32,7 +35,7 @@ export function RecentPurchaseItems() {
             ItemMaster(ItemName)
           )
         `)
-        // .eq("user_id", user.id) // Removed user_id filter
+        .eq("user_id", user.id) // Added user_id filter
         .order("PurchaseDate", { ascending: false })
         .limit(10);
 
@@ -56,8 +59,7 @@ export function RecentPurchaseItems() {
     };
 
     fetchRecentItems();
-  }, []); // Removed user.id from dependencies
-  // The user.id is still needed for the `useAuth` hook, but not for filtering the data itself.
+  }, [user?.id]); // Added user.id to dependencies
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);

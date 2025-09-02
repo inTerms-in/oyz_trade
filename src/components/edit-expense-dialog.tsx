@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Expense, ExpenseCategory } from "@/types";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
 
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +54,7 @@ interface EditExpenseDialogProps {
 }
 
 export function EditExpenseDialog({ expense, onExpenseUpdated }: EditExpenseDialogProps) {
+  const { user } = useAuth(); // Import useAuth
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
@@ -71,16 +73,18 @@ export function EditExpenseDialog({ expense, onExpenseUpdated }: EditExpenseDial
   });
 
   const fetchExpenseCategories = useCallback(async () => {
+    if (!user?.id) return; // Ensure user is logged in
     const { data, error } = await supabase
       .from("ExpenseCategoryMaster")
       .select("*")
+      .eq("user_id", user.id) // Filter by user_id
       .order("CategoryName");
     if (error) {
       toast.error("Failed to fetch expense categories", { description: error.message });
     } else {
       setExpenseCategories(data || []);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (open) {
@@ -96,6 +100,7 @@ export function EditExpenseDialog({ expense, onExpenseUpdated }: EditExpenseDial
   }, [open, expense, form, fetchExpenseCategories]);
 
   async function onSubmit(values: ExpenseFormValues) {
+    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
     setIsSubmitting(true);
     const { error } = await supabase
       .from("Expenses")
@@ -106,7 +111,8 @@ export function EditExpenseDialog({ expense, onExpenseUpdated }: EditExpenseDial
         ExpenseCategoryId: values.ExpenseCategoryId,
         ReferenceNo: values.ReferenceNo || null,
       })
-      .eq("ExpenseId", expense.ExpenseId);
+      .eq("ExpenseId", expense.ExpenseId)
+      .eq("user_id", user.id); // Added user_id
 
     setIsSubmitting(false);
 

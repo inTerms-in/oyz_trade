@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function PurchasesPage() {
-  const { } = useAuth();
+  const { user } = useAuth(); // Use useAuth
   const [purchases, setPurchases] = useState<PurchaseWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -42,18 +42,24 @@ function PurchasesPage() {
   });
 
   const fetchPurchases = useCallback(async () => {
+    if (!user?.id) { // Ensure user is logged in
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase
       .from("Purchase")
-      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)", { count: "exact" });
+      .select("*, PurchaseItem(*, ItemMaster(*, CategoryMaster(*))), SupplierMaster(SupplierName)", { count: "exact" })
+      .eq("user_id", user.id); // Filter by user_id
 
     if (debouncedSearchTerm) {
       const { data: matchingSuppliers, error: supplierError } = await supabase
         .from("SupplierMaster")
         .select("SupplierId")
+        .eq("user_id", user.id) // Filter by user_id
         .ilike("SupplierName", `%${debouncedSearchTerm}%`);
 
       if (supplierError) {
@@ -96,7 +102,7 @@ function PurchasesPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
 
   useEffect(() => {
     fetchPurchases();

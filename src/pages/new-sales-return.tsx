@@ -54,7 +54,7 @@ interface ReturnableItem {
 
 function NewSalesReturnPage() {
   const navigate = useNavigate();
-  const {  } = useAuth();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [saleSuggestions, setSaleSuggestions] = useState<SaleWithItems[]>([]);
@@ -72,9 +72,11 @@ function NewSalesReturnPage() {
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchSalesSuggestions = useCallback(async () => {
+    if (!user?.id) return;
     const { data, error } = await supabase
       .from("Sales")
       .select("*, SalesItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), CustomerMaster(CustomerName))")
+      .eq("user_id", user.id) // Filter by user_id
       .order("SaleDate", { ascending: false })
       .limit(20); // Fetch recent sales for suggestions
 
@@ -83,7 +85,7 @@ function NewSalesReturnPage() {
     } else {
       setSaleSuggestions(data as unknown as SaleWithItems[]); // Explicit cast
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchSalesSuggestions();
@@ -136,7 +138,7 @@ function NewSalesReturnPage() {
   };
 
   async function onSubmit(values: SalesReturnFormValues) {
-    // No user_id check here as per new global access policy for transaction data
+    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     if (!selectedSale) return toast.error("Please select an original sale.");
 
     const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
@@ -144,7 +146,7 @@ function NewSalesReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no', { p_user_id: user.id }); // Added p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate sales return reference number", { description: refNoError?.message });
@@ -160,7 +162,7 @@ function NewSalesReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
-        // user_id: user.id, // Removed user_id
+        user_id: user.id, // Added user_id
       })
       .select()
       .single();
@@ -177,7 +179,7 @@ function NewSalesReturnPage() {
       Qty: item.QtyReturned,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
+      user_id: user.id, // Added user_id
     }));
 
     const { error: salesReturnItemsError } = await supabase
@@ -188,7 +190,7 @@ function NewSalesReturnPage() {
       toast.error("Failed to save sales return items. Rolling back.", {
         description: salesReturnItemsError.message || "An unknown error occurred. The sales return was not saved."
       });
-      await supabase.from("SalesReturn").delete().eq("SalesReturnId", salesReturnData.SalesReturnId);
+      await supabase.from("SalesReturn").delete().eq("SalesReturnId", salesReturnData.SalesReturnId).eq("user_id", user.id); // Added user_id
       setIsSubmitting(false);
       return;
     }
@@ -202,7 +204,7 @@ function NewSalesReturnPage() {
           AdjustmentType: 'in', // Stock increases on return
           Quantity: item.QtyReturned,
           Reason: `Sales Return (Ref: ${refNoData})`,
-          // user_id: user.id, // Removed user_id
+          user_id: user.id, // Added user_id
         });
       if (stockError) {
         console.error(`Failed to update stock for item ${item.ItemName}:`, stockError.message);
@@ -242,10 +244,13 @@ function NewSalesReturnPage() {
                           value={displaySaleName} // Use displaySaleName for input value
                           onValueChange={(v) => {
                             setDisplaySaleName(v);
-                            // If the user types and it no longer matches the selected sale, clear the form's SaleId
-                            const matchedSale = saleSuggestions.find(s => (s.ReferenceNo === v || `Sale ${s.SaleId} (${s.CustomerMaster?.CustomerName || 'N/A'})` === v));
-                            if (!matchedSale || matchedSale.SaleId !== selectedSale?.SaleId) {
-                                field.onChange(null); // Set to null when no match
+                            // If the input is cleared, or the typed value no longer matches the currently selected sale, clear the form's SaleId
+                            const isMatch = selectedSale && (
+                              v.toLowerCase() === (selectedSale.ReferenceNo || '').toLowerCase() ||
+                              v.toLowerCase() === `sale ${selectedSale.SaleId} (${selectedSale.CustomerMaster?.CustomerName || 'n/a'})`.toLowerCase()
+                            );
+                            if (!v.trim() || (selectedSale && !isMatch)) {
+                                field.onChange(null); // Set to null when no match or cleared
                                 setSelectedSale(null); // Also clear selectedSale
                             }
                           }}

@@ -54,7 +54,7 @@ interface ReturnableItem {
 
 function NewPurchaseReturnPage() {
   const navigate = useNavigate();
-  const {  } = useAuth();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [purchaseSuggestions, setPurchaseSuggestions] = useState<PurchaseWithItems[]>([]);
@@ -72,9 +72,11 @@ function NewPurchaseReturnPage() {
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
   const fetchPurchaseSuggestions = useCallback(async () => {
+    if (!user?.id) return;
     const { data, error } = await supabase
       .from("Purchase")
       .select("*, PurchaseItem(*, ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))), SupplierMaster(SupplierName))")
+      .eq("user_id", user.id) // Filter by user_id
       .order("PurchaseDate", { ascending: false })
       .limit(20); // Fetch recent purchases for suggestions
 
@@ -83,7 +85,7 @@ function NewPurchaseReturnPage() {
     } else {
       setPurchaseSuggestions(data as unknown as PurchaseWithItems[]); // Explicit cast
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchPurchaseSuggestions();
@@ -136,7 +138,7 @@ function NewPurchaseReturnPage() {
   };
 
   async function onSubmit(values: PurchaseReturnFormValues) {
-    // No user_id check here as per new global access policy for transaction data
+    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     if (!selectedPurchase) return toast.error("Please select an original purchase.");
 
     const itemsToReturn = returnableItems.filter(item => item.QtyReturned > 0);
@@ -144,7 +146,7 @@ function NewPurchaseReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no', { p_user_id: user.id }); // Added p_user_id
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase return reference number", { description: refNoError?.message });
@@ -160,7 +162,7 @@ function NewPurchaseReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
-        // user_id: user.id, // Removed user_id
+        user_id: user.id, // Added user_id
       })
       .select()
       .single();
@@ -177,7 +179,7 @@ function NewPurchaseReturnPage() {
       Qty: item.QtyReturned,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice,
-      // user_id: user.id, // Removed user_id
+      user_id: user.id, // Added user_id
     }));
 
     const { error: purchaseReturnItemsError } = await supabase
@@ -188,7 +190,7 @@ function NewPurchaseReturnPage() {
       toast.error("Failed to save purchase return items. Rolling back.", {
         description: purchaseReturnItemsError.message || "An unknown error occurred. The purchase return was not saved."
       });
-      await supabase.from("PurchaseReturn").delete().eq("PurchaseReturnId", purchaseReturnData.PurchaseReturnId);
+      await supabase.from("PurchaseReturn").delete().eq("PurchaseReturnId", purchaseReturnData.PurchaseReturnId).eq("user_id", user.id); // Added user_id
       setIsSubmitting(false);
       return;
     }
@@ -202,7 +204,7 @@ function NewPurchaseReturnPage() {
           AdjustmentType: 'out', // Stock decreases on return to supplier
           Quantity: item.QtyReturned,
           Reason: `Purchase Return (Ref: ${refNoData})`,
-          // user_id: user.id, // Removed user_id
+          user_id: user.id, // Added user_id
         });
       if (stockError) {
         console.error(`Failed to update stock for item ${item.ItemName}:`, stockError.message);
@@ -242,10 +244,13 @@ function NewPurchaseReturnPage() {
                           value={displayPurchaseName} // Use displayPurchaseName for input value
                           onValueChange={(v) => {
                             setDisplayPurchaseName(v);
-                            // If the user types and it no longer matches the selected purchase, clear the form's PurchaseId
-                            const matchedPurchase = purchaseSuggestions.find(s => (s.ReferenceNo === v || `Purchase ${s.PurchaseId} (${s.SupplierMaster?.SupplierName || 'N/A'})` === v));
-                            if (!matchedPurchase || matchedPurchase.PurchaseId !== selectedPurchase?.PurchaseId) {
-                                field.onChange(null); // Set to null when no match
+                            // If the input is cleared, or the typed value no longer matches the currently selected purchase, clear the form's PurchaseId
+                            const isMatch = selectedPurchase && (
+                              v.toLowerCase() === (selectedPurchase.ReferenceNo || '').toLowerCase() ||
+                              v.toLowerCase() === `purchase ${selectedPurchase.PurchaseId} (${selectedPurchase.SupplierMaster?.SupplierName || 'n/a'})`.toLowerCase()
+                            );
+                            if (!v.trim() || (selectedPurchase && !isMatch)) {
+                                field.onChange(null); // Set to null when no match or cleared
                                 setSelectedPurchase(null); // Also clear selectedPurchase
                             }
                           }}
