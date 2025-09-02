@@ -120,6 +120,7 @@ function OverviewDashboardPage() {
       // Declare maps for monthly data aggregation at a higher scope
       const salesByMonth: Record<string, number> = {};
       const purchasesByMonth: Record<string, number> = {};
+      const dailySpending: { [key: string]: number } = {}; // Declared dailySpending here
 
       // Fetch total item count and items in stock for gauge
       const { count: totalItemsCount, error: totalItemsError } = await supabase
@@ -209,7 +210,7 @@ function OverviewDashboardPage() {
         purchases.forEach(purchase => {
           const purchaseDate = parseISO(purchase.PurchaseDate);
           const dateKey = format(purchaseDate, 'yyyy-MM-dd');
-          dailySpending[dateKey] = (dailySpending[dateKey] || 0) + purchase.TotalAmount;
+          purchasesByDate[dateKey] = (purchasesByDate[dateKey] || 0) + purchase.TotalAmount; // Corrected to purchasesByDate
 
           const monthKey = format(purchaseDate, 'yyyy-MM'); // Use yyyy-MM for internal key
           purchasesByMonth[monthKey] = (purchasesByMonth[monthKey] || 0) + purchase.TotalAmount;
@@ -298,7 +299,7 @@ function OverviewDashboardPage() {
     }
 
     fetchData();
-  }, [dateRange]);
+  }, [dateRange, user?.id]);
 
   // Handler for card clicks to toggle chart visibility
   const handleCardClick = (type: 'sales' | 'purchases' | 'reset') => {

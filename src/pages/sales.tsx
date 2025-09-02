@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function SalesPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [sales, setSales] = useState<SaleWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   

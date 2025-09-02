@@ -1,23 +1,14 @@
+"use client";
+
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/auth-provider';
 
-function Login() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
-
+function LoginPage() {
   return (
-    <div className="flex h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold text-center text-foreground">Welcome Back!</h2>
         <Auth
           supabaseClient={supabase}
           providers={[]}
@@ -33,10 +24,11 @@ function Login() {
             },
           }}
           theme="light"
+          redirectTo={window.location.origin} // Redirect to the app's root after login
         />
       </div>
     </div>
   );
 }
 
-export default Login;
+export default LoginPage;

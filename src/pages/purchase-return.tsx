@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function PurchaseReturnPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [purchaseReturns, setPurchaseReturns] = useState<PurchaseReturnWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   

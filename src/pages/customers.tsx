@@ -24,7 +24,7 @@ type SortDirection = "asc" | "desc";
 
 function CustomersPage() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);

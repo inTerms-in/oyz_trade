@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function SalesReturnPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [salesReturns, setSalesReturns] = useState<SalesReturnWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -173,7 +173,7 @@ function SalesReturnPage() {
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("Sales.ReferenceNo")}>
-                      <span className className="flex items-center">
+                      <span className="flex items-center">
                         <span>Original Sale Ref No.</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>

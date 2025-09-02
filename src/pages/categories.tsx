@@ -24,7 +24,7 @@ type SortDirection = "asc" | "desc";
 
 function CategoriesPage() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);

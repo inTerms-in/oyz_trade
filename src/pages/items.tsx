@@ -28,7 +28,7 @@ type SortDirection = "asc" | "desc";
 function ItemsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { } = useAuth();
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -60,7 +60,7 @@ function ItemsPage() {
     if (initialItemIds && initialItemIds.length > 0) {
       query = query.in("ItemId", initialItemIds);
     } else if (debouncedSearchTerm) {
-      query = query.or(`ItemName.ilike.%${debouncedSearchName}%,ItemCode.ilike.%${debouncedSearchTerm}%`);
+      query = query.or(`ItemName.ilike.%${debouncedSearchTerm}%,ItemCode.ilike.%${debouncedSearchTerm}%`);
     }
 
     query = query.order(sort.column, { ascending: sort.direction === "asc" });

@@ -24,7 +24,7 @@ type SortDirection = "asc" | "desc";
 
 function BarcodePrintPage() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { } = useAuth();
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");

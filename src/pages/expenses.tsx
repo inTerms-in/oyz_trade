@@ -34,7 +34,7 @@ type SortDirection = "asc" | "desc";
 
 function ExpensesPage() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
