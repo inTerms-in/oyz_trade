@@ -51,12 +51,11 @@ const saleFormSchema = z.object({
   CashAmount: z.coerce.number().optional().nullable(),
   BankAmount: z.coerce.number().optional().nullable(),
   CreditAmount: z.coerce.number().optional().nullable(),
-}).superRefine((data, ctx) => {
+}).superRefine((data, _ctx) => {
   if (data.PaymentType === 'Mixed') {
     const cash = data.CashAmount ?? 0;
     const bank = data.BankAmount ?? 0;
     const credit = data.CreditAmount ?? 0;
-    const totalPaid = cash + bank + credit;
     // The grand total is calculated based on itemsTotal - AdditionalDiscount
     // This will be handled in onSubmit for dynamic calculation.
   }
@@ -489,7 +488,8 @@ function NewSalePage() {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);
   };
 
-  const grandTotal = itemsTotal - (watchedAdditionalDiscount || 0);
+  // Removed redeclaration of grandTotal here
+  // const grandTotal = itemsTotal - (watchedAdditionalDiscount || 0);
 
   const handleSendWhatsAppFromDialog = (saleId: number) => {
     navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'send-whatsapp' } });

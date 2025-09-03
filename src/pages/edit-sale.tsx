@@ -46,12 +46,11 @@ const saleFormSchema = z.object({
   CashAmount: z.coerce.number().optional().nullable(),
   BankAmount: z.coerce.number().optional().nullable(),
   CreditAmount: z.coerce.number().optional().nullable(),
-}).superRefine((data, ctx) => {
+}).superRefine((data, _ctx) => {
   if (data.PaymentType === 'Mixed') {
     const cash = data.CashAmount ?? 0;
     const bank = data.BankAmount ?? 0;
     const credit = data.CreditAmount ?? 0;
-    const totalPaid = cash + bank + credit;
     // The grand total is calculated based on itemsTotal - AdditionalDiscount
     // This will be handled in onSubmit for dynamic calculation.
   }
