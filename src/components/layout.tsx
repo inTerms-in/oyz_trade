@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText,
   ChevronDown, DollarSign, FileText, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Calendar,
-  AlertCircle, Settings, ArrowLeftRight, Clock 
+  AlertCircle, Settings, ArrowLeftRight, Clock, Receipt, HandCoins
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -107,6 +107,8 @@ function Layout() {
       label: "Accounts Module",
       children: [
         { to: "/accounts-module/payables-receivables", icon: Wallet, label: "Payables & Receivables" },
+        { to: "/accounts-module/receipt-vouchers", icon: Receipt, label: "Receipt Vouchers" }, // New link
+        { to: "/accounts-module/payment-vouchers", icon: HandCoins, label: "Payment Vouchers" }, // New link
         { to: "/accounts-module/journal-entries", icon: ClipboardList, label: "Journal Entries" },
         { to: "/accounts-module/trial-balance", icon: Scale, label: "Trial Balance" },
         { to: "/accounts-module/profit-loss-statement", icon: LineChart, label: "Profit & Loss" },
@@ -357,6 +359,9 @@ function Layout() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-return/new')}>New Sales Return</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-return/new')}>New Purchase Return</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate('/accounts-module/receipt-vouchers/new')}>New Receipt Voucher</DropdownMenuItem> {/* New dropdown item */}
+                <DropdownMenuItem onSelect={() => navigate('/accounts-module/payment-vouchers/new')}>New Payment Voucher</DropdownMenuItem> {/* New dropdown item */}
               </DropdownMenuContent>
             </DropdownMenu>
             {user && (

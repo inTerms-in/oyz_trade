@@ -59,6 +59,10 @@ import FinancialBalanceSheetPage from "@/pages/financial-reports-balance-sheet";
 import FinancialCashFlowPage from "@/pages/financial-reports-cash-flow";
 import FinancialReceivablesAgingPage from "@/pages/financial-reports-receivables-aging";
 import FinancialPayablesAgingPage from "@/pages/financial-reports-payables-aging";
+import ReceiptVouchersPage from "@/pages/receipt-vouchers"; // New import
+import NewReceiptVoucherPage from "@/pages/new-receipt-voucher"; // New import
+import PaymentVouchersPage from "@/pages/payment-vouchers"; // New import
+import NewPaymentVoucherPage from "@/pages/new-payment-voucher"; // New import
 
 
 function App() {
@@ -104,6 +108,10 @@ function App() {
           {/* Accounts Module */}
           <Route path="accounts-module/dashboard" element={<AccountsDashboardPage />} />
           <Route path="accounts-module/payables-receivables" element={<PayablesReceivablesPage />} />
+          <Route path="accounts-module/receipt-vouchers" element={<ReceiptVouchersPage />} /> {/* New route */}
+          <Route path="accounts-module/receipt-vouchers/new" element={<NewReceiptVoucherPage />} /> {/* New route */}
+          <Route path="accounts-module/payment-vouchers" element={<PaymentVouchersPage />} /> {/* New route */}
+          <Route path="accounts-module/payment-vouchers/new" element={<NewPaymentVoucherPage />} /> {/* New route */}
           <Route path="accounts-module/journal-entries" element={<JournalEntriesPage />} />
           <Route path="accounts-module/trial-balance" element={<TrialBalancePage />} />
           <Route path="accounts-module/profit-loss-statement" element={<ProfitLossStatementPage />} />
