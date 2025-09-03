@@ -57,9 +57,6 @@ const purchaseFormSchema = z.object({
   CreditAmount: z.coerce.number().optional().nullable(),
 }).superRefine((data, _ctx) => {
   if (data.PaymentType === 'Mixed') {
-    const cash = data.CashAmount ?? 0;
-    const bank = data.BankAmount ?? 0;
-    const credit = data.CreditAmount ?? 0;
     // The grand total is calculated based on itemsTotalRaw + AdditionalCost
     // This will be handled in onSubmit for dynamic calculation.
   }
