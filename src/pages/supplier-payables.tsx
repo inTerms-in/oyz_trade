@@ -33,8 +33,7 @@ export default function SupplierPayablesPage() {
           SupplierId,
           SupplierName,
           MobileNo,
-          Purchase(TotalAmount),
-          PurchaseReturn(TotalRefundAmount)
+          Purchase(TotalAmount, PurchaseReturn(TotalRefundAmount))
         `);
 
       if (error) {
@@ -56,12 +55,11 @@ export default function SupplierPayablesPage() {
           net_payable: 0,
         };
 
-        supplier.Purchase.forEach((purchase: { TotalAmount: number }) => {
+        supplier.Purchase.forEach((purchase: { TotalAmount: number, PurchaseReturn: { TotalRefundAmount: number }[] }) => {
           existing.total_purchase_amount += purchase.TotalAmount;
-        });
-
-        supplier.PurchaseReturn.forEach((pReturn: { TotalRefundAmount: number }) => {
-          existing.total_return_amount += pReturn.TotalRefundAmount;
+          purchase.PurchaseReturn.forEach(pReturn => {
+            existing.total_return_amount += pReturn.TotalRefundAmount;
+          });
         });
 
         existing.net_payable = existing.total_purchase_amount - existing.total_return_amount;

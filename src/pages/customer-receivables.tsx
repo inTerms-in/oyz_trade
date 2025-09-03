@@ -33,8 +33,7 @@ export default function CustomerReceivablesPage() {
           CustomerId,
           CustomerName,
           MobileNo,
-          Sales(TotalAmount),
-          SalesReturn(TotalRefundAmount)
+          Sales(TotalAmount, SalesReturn(TotalRefundAmount))
         `);
 
       if (error) {
@@ -56,12 +55,11 @@ export default function CustomerReceivablesPage() {
           net_receivable: 0,
         };
 
-        customer.Sales.forEach((sale: { TotalAmount: number }) => {
+        customer.Sales.forEach((sale: { TotalAmount: number, SalesReturn: { TotalRefundAmount: number }[] }) => {
           existing.total_sales_amount += sale.TotalAmount;
-        });
-
-        customer.SalesReturn.forEach((sReturn: { TotalRefundAmount: number }) => {
-          existing.total_return_amount += sReturn.TotalRefundAmount;
+          sale.SalesReturn.forEach(sReturn => {
+            existing.total_return_amount += sReturn.TotalRefundAmount;
+          });
         });
 
         existing.net_receivable = existing.total_sales_amount - existing.total_return_amount;
