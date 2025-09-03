@@ -71,6 +71,9 @@ export interface Purchase {
   AdditionalCost?: number | null;
   PaymentType: 'Cash' | 'Bank' | 'Credit' | 'Mixed'; // Added PaymentType
   PaymentMode?: string | null; // Added PaymentMode
+  CashAmount?: number | null; // Added for mixed payments
+  BankAmount?: number | null; // Added for mixed payments
+  CreditAmount?: number | null; // Added for mixed payments
 }
 
 export interface PurchaseWithItems extends Purchase {
@@ -115,6 +118,9 @@ export interface Sale {
   ReferenceNo?: string;
   PaymentType: 'Cash' | 'Bank' | 'Credit' | 'Mixed'; // Added PaymentType
   PaymentMode?: string | null; // Added PaymentMode
+  CashAmount?: number | null; // Added for mixed payments
+  BankAmount?: number | null; // Added for mixed payments
+  CreditAmount?: number | null; // Added for mixed payments
 }
 
 export interface SaleWithItems extends Sale {

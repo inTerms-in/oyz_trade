@@ -55,8 +55,22 @@ const purchaseFormSchema = z.object({
     }),
   PurchaseDate: z.date(),
   AdditionalCost: z.coerce.number().optional().nullable(),
-  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
-  PaymentMode: z.string().optional().nullable(), // New field
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }),
+  PaymentMode: z.string().optional().nullable(),
+  CashAmount: z.coerce.number().optional().nullable(),
+  BankAmount: z.coerce.number().optional().nullable(),
+  CreditAmount: z.coerce.number().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.PaymentType === 'Mixed') {
+    const cash = data.CashAmount ?? 0;
+    const bank = data.BankAmount ?? 0;
+    const credit = data.CreditAmount ?? 0;
+    const totalPaid = cash + bank + credit;
+    // The grand total is calculated based on itemsTotalRaw + AdditionalCost
+    // We need to pass this from the component state or re-calculate it here.
+    // For now, we'll assume the validation happens against the final calculated total.
+    // This will be handled in onSubmit for dynamic calculation.
+  }
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseFormSchema>;
@@ -106,13 +120,19 @@ function NewPurchasePage() {
       supplierMobileNo: "", 
       PurchaseDate: new Date(), 
       AdditionalCost: 0,
-      PaymentType: 'Cash', // Default payment type
-      PaymentMode: '', // Default empty
+      PaymentType: 'Cash',
+      PaymentMode: '',
+      CashAmount: 0,
+      BankAmount: 0,
+      CreditAmount: 0,
     },
   });
 
   const watchedAdditionalCost = form.watch("AdditionalCost");
-  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
+  const watchedPaymentType = form.watch("PaymentType");
+  const watchedCashAmount = form.watch("CashAmount");
+  const watchedBankAmount = form.watch("BankAmount");
+  const watchedCreditAmount = form.watch("CreditAmount");
   const { formState: { isValid } } = form;
 
   const itemsTotalRaw = addedItems.reduce((sum, item) => sum + item.TotalPrice, 0);
@@ -404,16 +424,47 @@ function NewPurchasePage() {
     
     const itemsTotalSum = itemsTotalRaw;
     const additionalCost = values.AdditionalCost || 0;
-    
+    const invoiceNetTotal = itemsTotalSum + additionalCost;
+
+    let cashAmount = values.CashAmount ?? 0;
+    let bankAmount = values.BankAmount ?? 0;
+    let creditAmount = values.CreditAmount ?? 0;
+
+    if (values.PaymentType === 'Cash') {
+      cashAmount = invoiceNetTotal;
+      bankAmount = 0;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Bank') {
+      cashAmount = 0;
+      bankAmount = invoiceNetTotal;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Credit') {
+      cashAmount = 0;
+      bankAmount = 0;
+      creditAmount = invoiceNetTotal;
+    } else if (values.PaymentType === 'Mixed') {
+      const totalSplit = cashAmount + bankAmount + creditAmount;
+      if (Math.abs(totalSplit - invoiceNetTotal) > 0.01) { // Allow for floating point inaccuracies
+        toast.error("Payment split does not match invoice total.", {
+          description: `Total split: ${formatCurrency(totalSplit)}, Invoice Total: ${formatCurrency(invoiceNetTotal)}`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const { data: purchaseData, error: purchaseError } = await supabase
       .from("Purchase").insert({ 
         SupplierId: finalSupplierId,
         PurchaseDate: values.PurchaseDate.toISOString(),
-        TotalAmount: itemsTotalSum + additionalCost,
+        TotalAmount: invoiceNetTotal,
         AdditionalCost: additionalCost,
         ReferenceNo: refNoData,
-        PaymentType: values.PaymentType, // New field
-        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
+        PaymentType: values.PaymentType,
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode,
+        CashAmount: cashAmount,
+        BankAmount: bankAmount,
+        CreditAmount: creditAmount,
       }).select().single();
 
     if (purchaseError || !purchaseData) {
@@ -442,6 +493,22 @@ function NewPurchasePage() {
       await supabase.from("Purchase").delete().eq("PurchaseId", purchaseData.PurchaseId);
       setIsSubmitting(false);
       return;
+    }
+
+    // Create Payable entry if there's a credit portion
+    if (creditAmount > 0 && finalSupplierId) {
+      const { error: payableError } = await supabase.from("Payables").insert({
+        PurchaseId: purchaseData.PurchaseId,
+        SupplierId: finalSupplierId,
+        Amount: creditAmount,
+        Balance: creditAmount,
+        Status: 'Outstanding',
+      });
+      if (payableError) {
+        toast.error("Failed to create payable entry", { description: payableError.message });
+        // Decide if this should roll back the entire purchase or just log. For now, log and continue.
+        console.error("Payable creation error:", payableError);
+      }
     }
 
     setIsSubmitting(false);
@@ -547,7 +614,7 @@ function NewPurchasePage() {
                 />
               </div>
 
-              {/* New Payment Fields */}
+              {/* Payment Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -586,6 +653,54 @@ function NewPurchasePage() {
                   />
                 )}
               </div>
+
+              {watchedPaymentType === 'Mixed' && (
+                <div className="p-4 border rounded-lg space-y-4 bg-muted/50">
+                  <h3 className="font-semibold text-lg">Payment Split Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="CashAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="cash-amount" label="Cash Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="BankAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="bank-amount" label="Bank Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="CreditAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="credit-amount" label="Credit Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm font-medium pt-2 border-t">
+                    <span>Total Split: {formatCurrency((watchedCashAmount ?? 0) + (watchedBankAmount ?? 0) + (watchedCreditAmount ?? 0))}</span>
+                    <span>Invoice Total: {formatCurrency(displayGrandTotal)}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

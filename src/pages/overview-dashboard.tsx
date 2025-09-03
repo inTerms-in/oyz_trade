@@ -164,7 +164,6 @@ function OverviewDashboardPage() {
         
         const salesByDate: { [key: string]: number } = {};
         let currentSalesToday = 0;
-        let currentCustomerReceivables = 0;
 
         sales.forEach(sale => {
           const saleDate = parseISO(sale.SaleDate);
@@ -177,12 +176,8 @@ function OverviewDashboardPage() {
           if (dateKey === today) {
             currentSalesToday += sale.TotalAmount;
           }
-          if (sale.CustomerId !== null) { // Only count sales to specific customers for receivables
-            currentCustomerReceivables += sale.TotalAmount;
-          }
         });
         setSalesToday(currentSalesToday);
-        setCustomerReceivables(currentCustomerReceivables);
 
         const sortedSalesOverTime = Object.entries(salesByDate)
           .map(([date, total]) => ({ date, total }))
@@ -209,7 +204,6 @@ function OverviewDashboardPage() {
         const purchasesByDate: { [key: string]: number } = {};
         const spendingMap: { [key: string]: number } = {};
         let currentPurchasesToday = 0;
-        let currentSupplierPayables = 0;
 
         purchases.forEach(purchase => {
           const purchaseDate = parseISO(purchase.PurchaseDate);
@@ -222,9 +216,6 @@ function OverviewDashboardPage() {
           if (dateKey === today) {
             currentPurchasesToday += purchase.TotalAmount;
           }
-          if (purchase.SupplierId !== null) { // Only count purchases from specific suppliers for payables
-            currentSupplierPayables += purchase.TotalAmount;
-          }
 
           // Aggregate spending by category
           purchase.PurchaseItem.forEach((item: any) => {
@@ -235,7 +226,6 @@ function OverviewDashboardPage() {
           });
         });
         setPurchasesToday(currentPurchasesToday);
-        setSupplierPayables(currentSupplierPayables);
         setCategorySpending(Object.entries(spendingMap).map(([name, value]) => ({ name, value })));
 
         const sortedPurchaseSpendingOverTime = Object.entries(purchasesByDate)
@@ -298,6 +288,28 @@ function OverviewDashboardPage() {
       
       if (stockError) toast.error("Failed to fetch stock data", { description: stockError.message });
       else setLowStockItems(stockData as ItemWithStock[]);
+
+      // Fetch Customer Receivables (sum of Balance from Receivables table)
+      const { data: receivablesData, error: receivablesError } = await supabase
+        .from("Receivables")
+        .select("Balance");
+      if (receivablesError) {
+        toast.error("Failed to fetch customer receivables", { description: receivablesError.message });
+      } else {
+        const totalReceivables = receivablesData.reduce((acc, r) => acc + r.Balance, 0);
+        setCustomerReceivables(totalReceivables);
+      }
+
+      // Fetch Supplier Payables (sum of Balance from Payables table)
+      const { data: payablesData, error: payablesError } = await supabase
+        .from("Payables")
+        .select("Balance");
+      if (payablesError) {
+        toast.error("Failed to fetch supplier payables", { description: payablesError.message });
+      } else {
+        const totalPayables = payablesData.reduce((acc, p) => acc + p.Balance, 0);
+        setSupplierPayables(totalPayables);
+      }
 
       setLoading(false);
     }
@@ -368,7 +380,7 @@ function OverviewDashboardPage() {
         totalExpenses={totalExpenses}
         netProfit={netProfit}
         salesToday={salesToday}
-                purchasesToday={purchasesToday}
+        purchasesToday={purchasesToday}
         lowStockAlerts={lowStockAlerts}
         customerReceivables={customerReceivables}
         supplierPayables={supplierPayables}

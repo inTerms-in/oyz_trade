@@ -46,8 +46,20 @@ const saleFormSchema = z.object({
   SaleDate: z.date(),
   AdditionalDiscount: z.coerce.number().optional().nullable(),
   DiscountPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
-  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
-  PaymentMode: z.string().optional().nullable(), // New field
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }),
+  PaymentMode: z.string().optional().nullable(),
+  CashAmount: z.coerce.number().optional().nullable(),
+  BankAmount: z.coerce.number().optional().nullable(),
+  CreditAmount: z.coerce.number().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.PaymentType === 'Mixed') {
+    const cash = data.CashAmount ?? 0;
+    const bank = data.BankAmount ?? 0;
+    const credit = data.CreditAmount ?? 0;
+    const totalPaid = cash + bank + credit;
+    // The grand total is calculated based on itemsTotal - AdditionalDiscount
+    // This will be handled in onSubmit for dynamic calculation.
+  }
 });
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
@@ -97,17 +109,24 @@ function NewSalePage() {
       SaleDate: new Date(), 
       AdditionalDiscount: 0, 
       DiscountPercentage: 0,
-      PaymentType: 'Cash', // Default payment type
-      PaymentMode: '', // Default empty
+      PaymentType: 'Cash',
+      PaymentMode: '',
+      CashAmount: 0,
+      BankAmount: 0,
+      CreditAmount: 0,
     },
   });
 
   const watchedAdditionalDiscount = form.watch("AdditionalDiscount");
   const watchedDiscountPercentage = form.watch("DiscountPercentage");
-  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
+  const watchedPaymentType = form.watch("PaymentType");
+  const watchedCashAmount = form.watch("CashAmount");
+  const watchedBankAmount = form.watch("BankAmount");
+  const watchedCreditAmount = form.watch("CreditAmount");
   const { formState: { isValid } } = form;
 
   const itemsTotal = addedItems.reduce((sum: number, item: SaleListItem) => sum + item.TotalPrice, 0);
+  const grandTotal = itemsTotal - (watchedAdditionalDiscount || 0);
 
   // Synchronize AdditionalDiscount and DiscountPercentage
   useEffect(() => {
@@ -371,17 +390,48 @@ function NewSalePage() {
     
     const additionalDiscount = values.AdditionalDiscount || 0;
     const discountPercentage = values.DiscountPercentage || 0;
-    
+    const invoiceNetTotal = itemsTotal - additionalDiscount;
+
+    let cashAmount = values.CashAmount ?? 0;
+    let bankAmount = values.BankAmount ?? 0;
+    let creditAmount = values.CreditAmount ?? 0;
+
+    if (values.PaymentType === 'Cash') {
+      cashAmount = invoiceNetTotal;
+      bankAmount = 0;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Bank') {
+      cashAmount = 0;
+      bankAmount = invoiceNetTotal;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Credit') {
+      cashAmount = 0;
+      bankAmount = 0;
+      creditAmount = invoiceNetTotal;
+    } else if (values.PaymentType === 'Mixed') {
+      const totalSplit = cashAmount + bankAmount + creditAmount;
+      if (Math.abs(totalSplit - invoiceNetTotal) > 0.01) { // Allow for floating point inaccuracies
+        toast.error("Payment split does not match invoice total.", {
+          description: `Total split: ${formatCurrency(totalSplit)}, Invoice Total: ${formatCurrency(invoiceNetTotal)}`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const { data: saleData, error: saleError } = await supabase
       .from("Sales").insert({ 
         CustomerId: finalCustomerId,
         SaleDate: values.SaleDate.toISOString(),
-        TotalAmount: itemsTotal - additionalDiscount,
+        TotalAmount: invoiceNetTotal,
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
         ReferenceNo: refNoData,
-        PaymentType: values.PaymentType, // New field
-        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
+        PaymentType: values.PaymentType,
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode,
+        CashAmount: cashAmount,
+        BankAmount: bankAmount,
+        CreditAmount: creditAmount,
       }).select().single();
 
     if (saleError || !saleData) {
@@ -410,6 +460,21 @@ function NewSalePage() {
       await supabase.from("Sales").delete().eq("SaleId", saleData.SaleId);
       setIsSubmitting(false);
       return;
+    }
+
+    // Create Receivable entry if there's a credit portion
+    if (creditAmount > 0 && finalCustomerId) {
+      const { error: receivableError } = await supabase.from("Receivables").insert({
+        SaleId: saleData.SaleId,
+        CustomerId: finalCustomerId,
+        Amount: creditAmount,
+        Balance: creditAmount,
+        Status: 'Outstanding',
+      });
+      if (receivableError) {
+        toast.error("Failed to create receivable entry", { description: receivableError.message });
+        console.error("Receivable creation error:", receivableError);
+      }
     }
 
     setIsSubmitting(false);
@@ -557,7 +622,7 @@ function NewSalePage() {
                 </div>
               </div>
 
-              {/* New Payment Fields */}
+              {/* Payment Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -596,6 +661,54 @@ function NewSalePage() {
                   />
                 )}
               </div>
+
+              {watchedPaymentType === 'Mixed' && (
+                <div className="p-4 border rounded-lg space-y-4 bg-muted/50">
+                  <h3 className="font-semibold text-lg">Payment Split Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="CashAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="cash-amount" label="Cash Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="BankAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="bank-amount" label="Bank Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="CreditAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="credit-amount" label="Credit Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm font-medium pt-2 border-t">
+                    <span>Total Split: {formatCurrency((watchedCashAmount ?? 0) + (watchedBankAmount ?? 0) + (watchedCreditAmount ?? 0))}</span>
+                    <span>Invoice Total: {formatCurrency(grandTotal)}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -668,7 +781,7 @@ function NewSalePage() {
                         <span className="text-muted-foreground">Discount</span>
                         <span>- {formatCurrency(watchedAdditionalDiscount || 0)}</span>
                     </div>
-                    <div className="flex justify-between font-semibold border-t pt-1 mt-1 text-base">
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1">
                         <span>Grand Total</span>
                         <span>{formatCurrency(grandTotal)}</span>
                     </div>

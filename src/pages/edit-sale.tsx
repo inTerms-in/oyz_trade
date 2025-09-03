@@ -41,8 +41,20 @@ const saleFormSchema = z.object({
   SaleDate: z.date(),
   AdditionalDiscount: z.coerce.number().optional().nullable(),
   DiscountPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
-  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
-  PaymentMode: z.string().optional().nullable(), // New field
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }),
+  PaymentMode: z.string().optional().nullable(),
+  CashAmount: z.coerce.number().optional().nullable(),
+  BankAmount: z.coerce.number().optional().nullable(),
+  CreditAmount: z.coerce.number().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.PaymentType === 'Mixed') {
+    const cash = data.CashAmount ?? 0;
+    const bank = data.BankAmount ?? 0;
+    const credit = data.CreditAmount ?? 0;
+    const totalPaid = cash + bank + credit;
+    // The grand total is calculated based on itemsTotal - AdditionalDiscount
+    // This will be handled in onSubmit for dynamic calculation.
+  }
 });
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
@@ -95,7 +107,10 @@ export default function EditSalePage() {
 
   const watchedAdditionalDiscount = form.watch("AdditionalDiscount");
   const watchedDiscountPercentage = form.watch("DiscountPercentage");
-  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
+  const watchedPaymentType = form.watch("PaymentType");
+  const watchedCashAmount = form.watch("CashAmount");
+  const watchedBankAmount = form.watch("BankAmount");
+  const watchedCreditAmount = form.watch("CreditAmount");
   const { formState: { isValid } = {} } = form;
 
   const itemsTotal = addedItems.reduce((sum: number, item: SaleListItem) => sum + item.TotalPrice, 0);
@@ -158,8 +173,11 @@ export default function EditSalePage() {
       SaleDate: parseISO(typedSale.SaleDate),
       AdditionalDiscount: typedSale.AdditionalDiscount || 0,
       DiscountPercentage: typedSale.DiscountPercentage || 0,
-      PaymentType: typedSale.PaymentType || 'Cash', // Set new field
-      PaymentMode: typedSale.PaymentMode || '', // Set new field
+      PaymentType: typedSale.PaymentType || 'Cash',
+      PaymentMode: typedSale.PaymentMode || '',
+      CashAmount: typedSale.CashAmount || 0,
+      BankAmount: typedSale.BankAmount || 0,
+      CreditAmount: typedSale.CreditAmount || 0,
     });
     if (typedSale.CustomerMaster) {
       setSelectedCustomer(typedSale.CustomerMaster);
@@ -261,16 +279,47 @@ export default function EditSalePage() {
     
     const additionalDiscount = values.AdditionalDiscount || 0;
     const discountPercentage = values.DiscountPercentage || 0;
+    const invoiceNetTotal = itemsTotal - additionalDiscount;
+
+    let cashAmount = values.CashAmount ?? 0;
+    let bankAmount = values.BankAmount ?? 0;
+    let creditAmount = values.CreditAmount ?? 0;
+
+    if (values.PaymentType === 'Cash') {
+      cashAmount = invoiceNetTotal;
+      bankAmount = 0;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Bank') {
+      cashAmount = 0;
+      bankAmount = invoiceNetTotal;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Credit') {
+      cashAmount = 0;
+      bankAmount = 0;
+      creditAmount = invoiceNetTotal;
+    } else if (values.PaymentType === 'Mixed') {
+      const totalSplit = cashAmount + bankAmount + creditAmount;
+      if (Math.abs(totalSplit - invoiceNetTotal) > 0.01) { // Allow for floating point inaccuracies
+        toast.error("Payment split does not match invoice total.", {
+          description: `Total split: ${formatCurrency(totalSplit)}, Invoice Total: ${formatCurrency(invoiceNetTotal)}`,
+        });
+        setIsSubmitting(false);
+        return false;
+      }
+    }
 
     const { error: saleError } = await supabase
       .from("Sales").update({ 
         CustomerId: finalCustomerId,
         SaleDate: values.SaleDate.toISOString(),
-        TotalAmount: itemsTotal - additionalDiscount,
+        TotalAmount: invoiceNetTotal,
         AdditionalDiscount: additionalDiscount,
         DiscountPercentage: discountPercentage,
-        PaymentType: values.PaymentType, // New field
-        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
+        PaymentType: values.PaymentType,
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode,
+        CashAmount: cashAmount,
+        BankAmount: bankAmount,
+        CreditAmount: creditAmount,
       }).eq("SaleId", saleId);
 
     if (saleError) {
@@ -305,6 +354,54 @@ export default function EditSalePage() {
       });
       setIsSubmitting(false);
       return false;
+    }
+
+    // Update Receivable entry if there's a credit portion
+    if (creditAmount > 0 && finalCustomerId) {
+      const { data: existingReceivable, error: fetchReceivableError } = await supabase
+        .from("Receivables")
+        .select("ReceivableId")
+        .eq("SaleId", saleId)
+        .single();
+
+      if (fetchReceivableError && fetchReceivableError.code !== 'PGRST116') { // PGRST116 means no rows found
+        toast.error("Failed to check existing receivable", { description: fetchReceivableError.message });
+        console.error("Receivable fetch error:", fetchReceivableError);
+      } else if (existingReceivable) {
+        // Update existing receivable
+        const { error: updateReceivableError } = await supabase.from("Receivables").update({
+          Amount: creditAmount,
+          Balance: creditAmount, // Assuming full credit amount is outstanding on update
+          Status: 'Outstanding',
+        }).eq("ReceivableId", existingReceivable.ReceivableId);
+        if (updateReceivableError) {
+          toast.error("Failed to update receivable entry", { description: updateReceivableError.message });
+          console.error("Receivable update error:", updateReceivableError);
+        }
+      } else {
+        // Create new receivable
+        const { error: createReceivableError } = await supabase.from("Receivables").insert({
+          SaleId: Number(saleId),
+          CustomerId: finalCustomerId,
+          Amount: creditAmount,
+          Balance: creditAmount,
+          Status: 'Outstanding',
+        });
+        if (createReceivableError) {
+          toast.error("Failed to create receivable entry", { description: createReceivableError.message });
+          console.error("Receivable creation error:", createReceivableError);
+        }
+      }
+    } else if (creditAmount === 0 && finalCustomerId) {
+      // If credit amount is 0, delete any existing receivable for this sale
+      const { error: deleteReceivableError } = await supabase
+        .from("Receivables")
+        .delete()
+        .eq("SaleId", saleId);
+      if (deleteReceivableError && deleteReceivableError.code !== 'PGRST116') { // Ignore if no receivable found
+        toast.error("Failed to delete receivable entry", { description: deleteReceivableError.message });
+        console.error("Receivable deletion error:", deleteReceivableError);
+      }
     }
 
     toast.success(`Sale updated successfully!`);
@@ -730,7 +827,7 @@ export default function EditSalePage() {
                 </div>
               </div>
 
-              {/* New Payment Fields */}
+              {/* Payment Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -769,6 +866,54 @@ export default function EditSalePage() {
                   />
                 )}
               </div>
+
+              {watchedPaymentType === 'Mixed' && (
+                <div className="p-4 border rounded-lg space-y-4 bg-muted/50">
+                  <h3 className="font-semibold text-lg">Payment Split Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="CashAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="cash-amount" label="Cash Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="BankAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="bank-amount" label="Bank Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="CreditAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="credit-amount" label="Credit Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm font-medium pt-2 border-t">
+                    <span>Total Split: {formatCurrency((watchedCashAmount ?? 0) + (watchedBankAmount ?? 0) + (watchedCreditAmount ?? 0))}</span>
+                    <span>Invoice Total: {formatCurrency(grandTotal)}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

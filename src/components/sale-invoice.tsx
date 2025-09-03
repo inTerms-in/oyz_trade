@@ -1,8 +1,7 @@
 import React from "react";
 import { SaleWithItems } from "@/types";
 import { generateItemCode } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client"; // Import supabase client
-// Removed useAuth import as user.id is no longer used for filtering
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface SaleInvoiceProps {
@@ -17,25 +16,23 @@ interface ShopDetails {
 
 export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
   ({ sale }, ref) => {
-    // Removed user from useAuth
     const [shopDetails, setShopDetails] = React.useState<ShopDetails | null>(null);
 
     React.useEffect(() => {
       async function fetchShopDetails() {
-        // Removed user.id check here as shop details are now global
         const { data, error } = await supabase
           .from("shop")
           .select("shop_name, mobile_no, address")
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        if (error && error.code !== 'PGRST116') {
           toast.error("Failed to fetch shop details for invoice", { description: error.message });
         } else if (data) {
           setShopDetails(data);
         }
       }
       fetchShopDetails();
-    }, []); // Removed user.id from dependencies
+    }, []);
 
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);
@@ -65,6 +62,8 @@ export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
               <div className="text-right">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Invoice Details</h3>
                 <p><span className="font-semibold">Date:</span> {new Date(sale.SaleDate).toLocaleDateString()}</p>
+                <p><span className="font-semibold">Payment Type:</span> {sale.PaymentType}</p>
+                {sale.PaymentMode && <p><span className="font-semibold">Payment Mode:</span> {sale.PaymentMode}</p>}
               </div>
             </section>
 
@@ -115,6 +114,29 @@ export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
                   <span>Total</span>
                   <span>{formatCurrency(sale.TotalAmount)}</span>
                 </div>
+                {sale.PaymentType === 'Mixed' && (
+                  <div className="mt-4 pt-2 border-t border-gray-200 text-sm">
+                    <h4 className="font-semibold mb-1">Payment Split:</h4>
+                    {sale.CashAmount && sale.CashAmount > 0 && (
+                      <div className="flex justify-between py-1">
+                        <span>Cash Received:</span>
+                        <span>{formatCurrency(sale.CashAmount)}</span>
+                      </div>
+                    )}
+                    {sale.BankAmount && sale.BankAmount > 0 && (
+                      <div className="flex justify-between py-1">
+                        <span>Bank Received:</span>
+                        <span>{formatCurrency(sale.BankAmount)}</span>
+                      </div>
+                    )}
+                    {sale.CreditAmount && sale.CreditAmount > 0 && (
+                      <div className="flex justify-between py-1">
+                        <span>Credit (Outstanding):</span>
+                        <span>{formatCurrency(sale.CreditAmount)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
 

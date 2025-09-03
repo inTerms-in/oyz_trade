@@ -50,8 +50,21 @@ const purchaseFormSchema = z.object({
     }),
   PurchaseDate: z.date(),
   AdditionalCost: z.coerce.number().optional().nullable(),
-  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }), // New field
-  PaymentMode: z.string().optional().nullable(), // New field
+  PaymentType: z.enum(['Cash', 'Bank', 'Credit', 'Mixed'], { required_error: "Payment type is required." }),
+  PaymentMode: z.string().optional().nullable(),
+  CashAmount: z.coerce.number().optional().nullable(),
+  BankAmount: z.coerce.number().optional().nullable(),
+  CreditAmount: z.coerce.number().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.PaymentType === 'Mixed') {
+    const cash = data.CashAmount ?? 0;
+    const bank = data.BankAmount ?? 0;
+    const credit = data.CreditAmount ?? 0;
+    const totalPaid = cash + bank + credit;
+    // The grand total is calculated based on itemsTotalRaw + AdditionalCost
+    // We need to pass this from the component state or re-calculate it here.
+    // This will be handled in onSubmit for dynamic calculation.
+  }
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseFormSchema>;
@@ -102,7 +115,10 @@ function EditPurchasePage() {
   });
 
   const watchedAdditionalCost = form.watch("AdditionalCost");
-  const watchedPaymentType = form.watch("PaymentType"); // Watch new field
+  const watchedPaymentType = form.watch("PaymentType");
+  const watchedCashAmount = form.watch("CashAmount");
+  const watchedBankAmount = form.watch("BankAmount");
+  const watchedCreditAmount = form.watch("CreditAmount");
   const { formState: { isValid } } = form;
 
   const itemsTotalRaw = addedItems.reduce((sum, item) => sum + item.TotalPrice, 0);
@@ -133,8 +149,11 @@ function EditPurchasePage() {
       supplierMobileNo: typedPurchase.SupplierMaster?.MobileNo || "",
       PurchaseDate: parseISO(typedPurchase.PurchaseDate),
       AdditionalCost: typedPurchase.AdditionalCost || 0,
-      PaymentType: typedPurchase.PaymentType || 'Cash', // Set new field
-      PaymentMode: typedPurchase.PaymentMode || '', // Set new field
+      PaymentType: typedPurchase.PaymentType || 'Cash',
+      PaymentMode: typedPurchase.PaymentMode || '',
+      CashAmount: typedPurchase.CashAmount || 0,
+      BankAmount: typedPurchase.BankAmount || 0,
+      CreditAmount: typedPurchase.CreditAmount || 0,
     });
     if (typedPurchase.SupplierMaster) {
       setSelectedSupplier(typedPurchase.SupplierMaster);
@@ -425,15 +444,46 @@ function EditPurchasePage() {
     
     const itemsTotalSum = itemsTotalRaw;
     const additionalCost = values.AdditionalCost || 0;
-    
+    const invoiceNetTotal = itemsTotalSum + additionalCost;
+
+    let cashAmount = values.CashAmount ?? 0;
+    let bankAmount = values.BankAmount ?? 0;
+    let creditAmount = values.CreditAmount ?? 0;
+
+    if (values.PaymentType === 'Cash') {
+      cashAmount = invoiceNetTotal;
+      bankAmount = 0;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Bank') {
+      cashAmount = 0;
+      bankAmount = invoiceNetTotal;
+      creditAmount = 0;
+    } else if (values.PaymentType === 'Credit') {
+      cashAmount = 0;
+      bankAmount = 0;
+      creditAmount = invoiceNetTotal;
+    } else if (values.PaymentType === 'Mixed') {
+      const totalSplit = cashAmount + bankAmount + creditAmount;
+      if (Math.abs(totalSplit - invoiceNetTotal) > 0.01) { // Allow for floating point inaccuracies
+        toast.error("Payment split does not match invoice total.", {
+          description: `Total split: ${formatCurrency(totalSplit)}, Invoice Total: ${formatCurrency(invoiceNetTotal)}`,
+        });
+        setIsSubmitting(false);
+        return false;
+      }
+    }
+
     const { error: purchaseError } = await supabase
       .from("Purchase").update({ 
         SupplierId: finalSupplierId,
         PurchaseDate: values.PurchaseDate.toISOString(),
-        TotalAmount: itemsTotalSum + additionalCost,
+        TotalAmount: invoiceNetTotal,
         AdditionalCost: additionalCost,
-        PaymentType: values.PaymentType, // New field
-        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode, // New field
+        PaymentType: values.PaymentType,
+        PaymentMode: values.PaymentMode === '' ? null : values.PaymentMode,
+        CashAmount: cashAmount,
+        BankAmount: bankAmount,
+        CreditAmount: creditAmount,
       }).eq("PurchaseId", purchaseId);
 
     if (purchaseError) {
@@ -468,6 +518,54 @@ function EditPurchasePage() {
       });
       setIsSubmitting(false);
       return false;
+    }
+
+    // Update Payable entry if there's a credit portion
+    if (creditAmount > 0 && finalSupplierId) {
+      const { data: existingPayable, error: fetchPayableError } = await supabase
+        .from("Payables")
+        .select("PayableId")
+        .eq("PurchaseId", purchaseId)
+        .single();
+
+      if (fetchPayableError && fetchPayableError.code !== 'PGRST116') { // PGRST116 means no rows found
+        toast.error("Failed to check existing payable", { description: fetchPayableError.message });
+        console.error("Payable fetch error:", fetchPayableError);
+      } else if (existingPayable) {
+        // Update existing payable
+        const { error: updatePayableError } = await supabase.from("Payables").update({
+          Amount: creditAmount,
+          Balance: creditAmount, // Assuming full credit amount is outstanding on update
+          Status: 'Outstanding',
+        }).eq("PayableId", existingPayable.PayableId);
+        if (updatePayableError) {
+          toast.error("Failed to update payable entry", { description: updatePayableError.message });
+          console.error("Payable update error:", updatePayableError);
+        }
+      } else {
+        // Create new payable
+        const { error: createPayableError } = await supabase.from("Payables").insert({
+          PurchaseId: Number(purchaseId),
+          SupplierId: finalSupplierId,
+          Amount: creditAmount,
+          Balance: creditAmount,
+          Status: 'Outstanding',
+        });
+        if (createPayableError) {
+          toast.error("Failed to create payable entry", { description: createPayableError.message });
+          console.error("Payable creation error:", createPayableError);
+        }
+      }
+    } else if (creditAmount === 0 && finalSupplierId) {
+      // If credit amount is 0, delete any existing payable for this purchase
+      const { error: deletePayableError } = await supabase
+        .from("Payables")
+        .delete()
+        .eq("PurchaseId", purchaseId);
+      if (deletePayableError && deletePayableError.code !== 'PGRST116') { // Ignore if no payable found
+        toast.error("Failed to delete payable entry", { description: deletePayableError.message });
+        console.error("Payable deletion error:", deletePayableError);
+      }
     }
 
     toast.success(`Purchase updated successfully!`);
@@ -640,7 +738,7 @@ function EditPurchasePage() {
                 />
               </div>
 
-              {/* New Payment Fields */}
+              {/* Payment Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -679,6 +777,54 @@ function EditPurchasePage() {
                   />
                 )}
               </div>
+
+              {watchedPaymentType === 'Mixed' && (
+                <div className="p-4 border rounded-lg space-y-4 bg-muted/50">
+                  <h3 className="font-semibold text-lg">Payment Split Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="CashAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="cash-amount" label="Cash Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="BankAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="bank-amount" label="Bank Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="CreditAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <FloatingLabelInput id="credit-amount" label="Credit Amount" type="number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm font-medium pt-2 border-t">
+                    <span>Total Split: {formatCurrency((watchedCashAmount ?? 0) + (watchedBankAmount ?? 0) + (watchedCreditAmount ?? 0))}</span>
+                    <span>Invoice Total: {formatCurrency(displayGrandTotal)}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -798,11 +944,11 @@ function EditPurchasePage() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button type="submit" disabled={isSubmitting || !isValid || addedItems.length === 0} className="flex-1 sm:flex-none">
-                        {isSubmitting ? "Saving..." : "Save Changes"}
+                        {isSubmitting ? "Saving..." : "Save Purchase"}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Save Changes (Ctrl+S)</p>
+                      <p>Save Purchase (Ctrl+S)</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -865,4 +1011,4 @@ function EditPurchasePage() {
   );
 }
 
-export default EditPurchasePage;
+export default NewPurchasePage;
