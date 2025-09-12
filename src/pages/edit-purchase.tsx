@@ -660,7 +660,7 @@ function EditPurchasePage() {
                   <FormItem>
                     <Popover open={isDatePickerOpen} onOpenChange={setDatePickerOpen}>
                       <div className="relative">
-                        <Label className={cn("absolute left-3 transition-all duration-200 ease-in-out pointer-events-none z-10", field.value || isDatePickerOpen ? "top-0 -translate-y-1/2 scale-75 bg-background px-1 text-primary" : "top-1/2 -translate-y-1/2 text-base text-muted-foreground">Purchase Date</Label>
+                        <Label className={cn("absolute left-3 transition-all duration-200 ease-in-out pointer-events-none z-10", field.value || isDatePickerOpen ? "top-0 -translate-y-1/2 scale-75 bg-background px-1 text-primary" : "top-1/2 -translate-y-1/2 text-base text-muted-foreground")}>Purchase Date</Label>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button variant="outline" className={cn("w-full justify-start pl-3 text-left font-normal h-10", !field.value && "text-muted-foreground")}>
@@ -955,7 +955,127 @@ function EditPurchasePage() {
       <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
 
       <AlertDialog open={isUpdateSellPriceDialogOpen} onOpenChange={setIsUpdateSellPriceDialogOpen}>
-        <AlertDialogContent>
+        <<think>Initial files ranking:
+
+src/pages/edit-sale.tsx: 0.97
+
+src/components/new-sale.tsx: 0.88
+
+src/components/edit-purchase.tsx: 0.85
+
+src/pages/new-sale.tsx: 0.84
+
+src/components/new-purchase.tsx: 0.81
+
+src/pages/edit-purchase.tsx: 0.79
+
+src/types/index.ts: 0.74
+
+src/types.ts: 0.72
+
+src/lib/utils.ts: 0.72
+
+src/contexts/auth-provider.tsx: 0.67
+
+src/types/papaparse.d.ts: 0.66
+
+src/components/ui/command.tsx: 0.66
+
+src/pages/new-purchase.tsx: 0.64
+
+src/components/ui/sonner.tsx: 0.62
+
+src/integrations/supabase/client.ts: 0.61
+
+src/components/autocomplete.tsx: 0.59
+
+src/App.tsx: 0.58
+
+src/pages/sales-reports-item-wise.tsx: 0.57
+
+AI_RULES.md: 0.57
+
+src/components/entity-autocomplete.tsx: 0.53
+
+src/components/ui/label.tsx: 0.51
+
+src/components/ui/input.tsx: 0.51
+
+src/components/ui/form.tsx: 0.49
+
+src/components/ui/button.tsx: 0.46
+
+src/components/dashboard/sales-purchase-comparison-chart.tsx: 0.45
+
+src/components/edit-item-dialog.tsx: 0.43
+
+src/components/delete-sale-alert.tsx: 0.40
+
+src/hooks/use-debounce.ts: 0.39
+
+src/components/dashboard/recent-purchase-items.tsx: 0.38
+
+src/components/purchase-invoice.tsx: 0.35
+
+src/components/add-new-item-inline-dialog.tsx: 0.35
+
+src/components/delete-purchase-alert.tsx: 0.32
+
+src/components/dashboard/recent-sale-items.tsx: 0.32
+
+src/components/ui/alert.tsx: 0.32
+
+src/pages/sales.tsx: 0.32
+
+src/components/add-item-dialog.tsx: 0.32
+
+src/components/sale-invoice.tsx: 0.31
+
+src/pages/items.tsx: 0.31
+
+src/components/barcode-label.tsx: 0.29
+
+vite.config.ts: 0.27
+
+src/pages/purchase-reports-item-wise.tsx: 0.27
+
+src/pages/stock-adjustment.tsx: 0.27
+
+src/main.tsx: 0.27
+
+src/pages/new-purchase-return.tsx: 0.27
+
+src/components/ui/select.tsx: 0.26
+
+src/pages/new-sales-return.tsx: 0.25
+
+src/components/searchable-select.tsx: 0.24
+
+src/components/chatbot-dialog.tsx: 0.23
+
+src/components/sale-post-save-actions-dialog.tsx: 0.22
+
+src/pages/sales-return.tsx: 0.22
+
+src/pages/purchases.tsx: 0.21
+
+src/components/barcode.tsx: 0.21
+
+src/components/ui/dialog.tsx: 0.19
+
+src/components/delete-purchase-return-alert.tsx: 0.18
+
+src/components/ui/floating-label-select.tsx: 0.17
+
+src/components/ui/floating-label-input.tsx: 0.16
+
+src/components/barcode-scanner-dialog.tsx: 0.16
+
+LICENSE: 0.16
+
+package.json: 0.16</think><think>Re-ranking the files. Please wait a moment...
+
+</think><dyad-codebase-context files="src/pages/edit-sale.tsx,src/pages/new-sale.tsx,src/pages/edit-purchase.tsx,src/pages/new-purchase.tsx,src/components/autocomplete.tsx,src/components/entity-autocomplete.tsx,src/types/index.ts,src/types.ts,src/integrations/supabase/client.ts,src/lib/utils.ts,src/components/ui/form.tsx,src/components/ui/floating-label-input.tsx,src/components/ui/floating-label-select.tsx,src/components/ui/select.tsx,src/components/ui/button.tsx,src/components/ui/label.tsx,src/components/ui/input.tsx,src/components/ui/dialog.tsx,src/components/barcode-scanner-dialog.tsx,src/components/add-new-item-inline-dialog.tsx,src/components/purchase-invoice.tsx,src/components/sale-invoice.tsx,src/components/sale-post-save-actions-dialog.tsx"></dyad-codebase-context><think>dyad-token-savings?original-tokens=274652.5&smart-context-tokens=63128</think>AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Update Sell Price for "{itemToUpdateSellPrice?.ItemName}"</AlertDialogTitle>
             <AlertDialogDescription>

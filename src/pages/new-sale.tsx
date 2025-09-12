@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
 import { Calendar as CalendarIcon, Plus, PlusCircle, Trash2, Pencil, ScanBarcode } from "lucide-react";
 import { AddNewItemInlineDialog } from "@/components/add-new-item-inline-dialog";
-import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
+import { BarcodeScannerDialog } => "@/components/barcode-scanner-dialog";
 import {
   Table,
   TableBody,
@@ -740,7 +740,7 @@ function NewSalePage() {
                     <Autocomplete<ItemWithCategory> ref={itemInputRef} suggestions={itemSuggestions} value={currentItem.ItemName} onValueChange={(v: string) => handleCurrentItemChange("ItemName", v)} onSelect={handleItemSelect} label="Item Name" id="current_item" className={cn(isCurrentItemNew && "pr-24")} 
                       getId={(item) => item.ItemId}
                       getName={(item) => item.ItemName || ''
-                    />
+                    }/>
                     {isCurrentItemNew && <Button type="button" size="sm" onClick={() => setCreateItemOpen(true)} className="absolute right-1 top-1/2 -translate-y-1/2 h-8" aria-label="Create new item">
                       <span className="flex items-center">
                         <PlusCircle className="mr-1 h-4 w-4" />
