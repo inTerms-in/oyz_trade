@@ -52,7 +52,7 @@ function Layout() {
     cn(
       "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
       isActive && "bg-muted text-primary",
-      isCollapsed && "h-auto w-full flex-col justify-center gap-1 px-0 py-3"
+      isCollapsed && "h-auto w-full justify-center p-2"
     );
   
   const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
@@ -215,16 +215,16 @@ function Layout() {
           return (
             <DropdownMenu key={item.label}>
               <DropdownMenuTrigger asChild>
-                <NavLink
-                  to={item.to}
-                  className={cn(navLinkClasses({ isActive }))}
-                  end={item.end}
+                <div
+                  className={cn(navLinkClasses({ isActive }), "flex-col h-auto py-2")}
+                  role="button"
+                  aria-label={item.label}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span className="text-xs text-center break-words max-w-full">
+                  <span className="text-xs text-center break-words max-w-full mt-1">
                     {item.label}
                   </span>
-                </NavLink>
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="right" align="start" className="ml-2">
                 <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
@@ -245,22 +245,22 @@ function Layout() {
         return (
           <Collapsible key={item.label} defaultOpen={isActive} className="w-full">
             <CollapsibleTrigger asChild>
-              <NavLink to={item.to} className={cn(
-                "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary",
+              <div className={cn(
+                "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary cursor-pointer",
                 isActive ? "bg-muted text-primary" : "text-muted-foreground",
                 "pr-2"
-              )} end={item.end}>
-                <div className={cn("flex items-center gap-3")}>
+              )}>
+                <NavLink to={item.to} className="flex items-center gap-3 flex-1" end={item.end} onClick={(e) => e.stopPropagation()}>
                   <item.icon className="h-5 w-5" />
                   <span className="truncate">
                     {item.label}
                   </span>
-                </div>
+                </NavLink>
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
-              </NavLink>
+              </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-              <nav className={cn("grid items-start text-sm font-medium pl-6 pr-2")}>
+              <nav className={cn("grid items-start text-sm font-medium ml-3 pl-6 border-l")}>
                 {renderNavLinks(item.children, isMobile)}
               </nav>
             </CollapsibleContent>
@@ -271,12 +271,14 @@ function Layout() {
           <Tooltip key={item.label}>
             <TooltipTrigger asChild>
               <NavLink to={item.to} className={isMobile ? mobileNavLinkClasses : navLinkClasses} onClick={isMobile ? closeSheet : undefined} end={item.end}>
-                <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
-                <span className={cn(
-                  isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
-                )}>
-                  {item.label}
-                </span>
+                <div className={cn(isCollapsed && "flex flex-col items-center gap-1")}>
+                  <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
+                  <span className={cn(
+                    isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
+                  )}>
+                    {item.label}
+                  </span>
+                </div>
               </NavLink>
             </TooltipTrigger>
             {isCollapsed && !isMobile && <TooltipContent side="right">{item.label}</TooltipContent>}
@@ -307,11 +309,11 @@ function Layout() {
       <div className={cn("grid min-h-screen w-full md:grid-cols-[auto_1fr]")}>
         <div className={cn(
           "hidden border-r bg-muted/40 md:block transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-[88px]" : "w-[220px] lg:w-[280px]"
+          isCollapsed ? "w-20" : "w-[220px] lg:w-[280px]"
         )}>
           <div className={cn(
-            "flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6",
-            isCollapsed && "justify-center"
+            "flex h-14 items-center border-b px-4 lg:h-[60px]",
+            isCollapsed ? "justify-center px-2" : "px-4 lg:px-6"
           )}>
             <NavLink to="/" className={cn("flex items-center gap-2 font-semibold", isCollapsed && "hidden")}>
               <Package className="h-6 w-6 text-primary" />
@@ -320,7 +322,7 @@ function Layout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className={cn("h-8 w-8", !isCollapsed && "ml-auto")} onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
-                  <ChevronsLeft className="h-5 w-5 transition-transform" />
+                  <ChevronsLeft className={cn("h-5 w-5 transition-transform", isCollapsed && "rotate-180")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -329,7 +331,7 @@ function Layout() {
             </Tooltip>
           </div>
           <div className="flex-1 py-4 overflow-y-auto">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+            <nav className="grid items-start px-2 text-sm font-medium gap-1">
               {renderNavLinks(navItems, false)}
             </nav>
           </div>

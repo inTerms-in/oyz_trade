@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -169,7 +170,9 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
         <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto"> {/* Added max-h and overflow */}
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
-            {/* Removed DialogDescription */}
+            <DialogDescription>
+              Update the details for this item.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pt-4">
