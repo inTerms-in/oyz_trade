@@ -287,7 +287,7 @@ function PaymentVouchersPage() {
                                   {voucher.payable_settlements.length > 0 ? (
                                     voucher.payable_settlements.map((settlement: PayableSettlement) => (
                                       <TableRow key={settlement.SettlementId}>
-                                        <TableCell className="font-mono text-xs">{settlement.Payables?.ReferenceNo || 'N/A'}</TableCell>
+                                        <TableCell className="font-mono text-xs">{settlement.Payables?.Purchase?.ReferenceNo || 'N/A'}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.Payables?.Amount || 0)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.AmountSettled)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency((settlement.Payables?.Amount || 0) - (settlement.Payables?.Balance || 0) - settlement.AmountSettled)}</TableCell>
