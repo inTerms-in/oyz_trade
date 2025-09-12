@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
 import { Calendar as CalendarIcon, Plus, PlusCircle, Trash2, Pencil, ScanBarcode } from "lucide-react";
 import { AddNewItemInlineDialog } from "@/components/add-new-item-inline-dialog";
-import { BarcodeScannerDialog } => "@/components/barcode-scanner-dialog";
+import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import {
   Table,
   TableBody,
