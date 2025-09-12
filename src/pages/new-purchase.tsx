@@ -358,35 +358,6 @@ function NewPurchasePage() {
     }
   }, [isUpdateSellPriceDialogOpen, itemToUpdateSellPrice]);
 
-
-  const handleConfirmUpdateSellPrice = async () => {
-    if (!itemToUpdateSellPrice || typeof newSellPrice !== 'number' || isNaN(newSellPrice) || newSellPrice < 0) {
-      toast.error("Invalid sell price.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    const { error } = await supabase
-      .from("ItemMaster")
-      .update({ SellPrice: newSellPrice })
-      .eq("ItemId", itemToUpdateSellPrice.ItemId);
-    setIsSubmitting(false);
-
-    if (error) {
-      toast.error("Failed to update sell price", { description: error.message });
-    } else {
-      toast.success(`Sell price for "${itemToUpdateSellPrice.ItemName}" updated to ${formatCurrency(newSellPrice)}!`);
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("ItemMaster").select("*, CategoryMaster(*)")
-        .order("ItemName");
-      if (!itemsError) setItemSuggestions(itemsData as ItemWithCategory[]);
-      setIsUpdateSellPriceDialogOpen(false);
-      setItemToUpdateSellPrice(null);
-      setNewSellPrice("");
-      setExistingSellPriceForDialog(null);
-    }
-  };
-
   const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
 
   async function onSubmit(values: PurchaseFormValues) {
@@ -734,8 +705,7 @@ function NewPurchasePage() {
                   <div className="relative flex-1 min-w-[250px]">
                     <Autocomplete<ItemWithCategory> ref={itemInputRef} suggestions={itemSuggestions} value={currentItem.ItemName} onValueChange={(v: string) => handleCurrentItemChange("ItemName", v)} onSelect={handleItemSelect} label="Item Name" id="current_item" className={cn(isCurrentItemNew && "pr-24")} 
                       getId={(item) => item.ItemId}
-                      getName={(item) => item.ItemName || ''}
-                      getItemCode={(item) => item.ItemCode}
+                      getName={(item) => item.ItemName || ''
                     />
                     {isCurrentItemNew && <Button type="button" size="sm" onClick={() => setCreateItemOpen(true)} className="absolute right-1 top-1/2 -translate-y-1/2 h-8" aria-label="Create new item">
                       <span className="flex items-center">
