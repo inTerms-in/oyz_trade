@@ -506,11 +506,11 @@ function NewSalePage() {
   };
 
   const handleSendWhatsAppFromDialog = (saleId: number) => {
-    navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'send-whatsapp' } });
+    navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'send-whatsapp', actionFromNew: true } });
   };
 
   const handlePrintFromDialog = (saleId: number) => {
-    navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'print-invoice' } });
+    navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'print-invoice', actionFromNew: true } });
   };
 
   const handleReturnToListFromDialog = () => {

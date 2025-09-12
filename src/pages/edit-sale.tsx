@@ -90,8 +90,8 @@ export default function EditSalePage() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastDiscountChangeSource, setLastDiscountChangeSource] = useState<'amount' | 'percentage' | null>(null);
-
   const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false);
+  const isActionFromNew = useRef(location.state?.actionFromNew || false);
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -414,59 +414,81 @@ export default function EditSalePage() {
     
     setIsSubmitting(true);
 
-    const isValidForm = await form.trigger();
-    if (!isValidForm) {
-      toast.error("Please correct the errors in the form before printing.");
-      setIsSubmitting(false);
-      return;
+    // Only save if the action is not coming from the new sale dialog
+    if (!isActionFromNew.current) {
+      const isValidForm = await form.trigger();
+      if (!isValidForm) {
+        toast.error("Please correct the errors in the form before printing.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const saveSuccess = await saveSale(form.getValues());
+      if (!saveSuccess) {
+        setIsSubmitting(false);
+        return;
+      }
     }
 
-    const saveSuccess = await saveSale(form.getValues());
+    await fetchData();
 
-    if (saveSuccess) {
-      await fetchData();
-
-      setTimeout(() => {
-        window.print();
-      }, 100); 
-    }
+    setTimeout(() => {
+      window.print();
+      isActionFromNew.current = false; // Reset flag after action
+    }, 100); 
+    
     setIsSubmitting(false);
   }, [form, saveSale, fetchData]);
 
   const handleSendWhatsApp = useCallback(async (id: number) => {
-    if (!id || !saleData) {
+    if (!id) {
       toast.error("Sale ID missing.");
       return;
     }
 
-    const customerMobileNo = saleData.CustomerMaster?.MobileNo; 
+    const customerMobileNo = form.getValues("customerMobileNo");
     if (!customerMobileNo) {
-      toast.error("Customer mobile number is required to send via WhatsApp.");
-      return;
+      const { data: customerData, error } = await supabase
+        .from('CustomerMaster')
+        .select('MobileNo')
+        .eq('CustomerId', saleData?.CustomerId)
+        .single();
+      
+      if (error || !customerData?.MobileNo) {
+        toast.error("Customer mobile number is required to send via WhatsApp.");
+        return;
+      }
     }
 
     setIsSubmitting(true);
     toast.info("Preparing WhatsApp message...", { description: "This may take a moment." });
 
     try {
-      await saveSale(form.getValues());
+      // Only save if the action is not coming from the new sale dialog
+      if (!isActionFromNew.current) {
+        await saveSale(form.getValues());
+      }
+      
       await fetchData();
 
-      if (!saleData) {
+      // Use a temporary variable to ensure the latest data is used
+      const currentSaleData = saleDataRef.current;
+
+      if (!currentSaleData) {
         throw new Error("Sale data not available for message generation.");
       }
 
-      const customerName = form.getValues("CustomerName") || 'Walk-in Customer';
-      const totalAmount = formatCurrency(grandTotal);
-      const referenceNo = saleData.ReferenceNo;
-      const saleDate = format(parseISO(saleData.SaleDate), "PPP");
+      const customerName = currentSaleData.CustomerMaster?.CustomerName || 'Walk-in Customer';
+      const totalAmount = formatCurrency(currentSaleData.TotalAmount);
+      const referenceNo = currentSaleData.ReferenceNo;
+      const saleDate = format(parseISO(currentSaleData.SaleDate), "PPP");
 
       let message = `*Hello ${customerName}! Here is your sales invoice from ${shopDetails?.shop_name || 'PurchaseTracker'}.*\n\n`;
       message += `*Invoice Ref No:* ${referenceNo}\n`;
       message += `*Date:* ${saleDate}\n\n`;
       
       message += `*Items:*\n`;
-      saleData.SalesItem.forEach(item => {
+      currentSaleData.SalesItem.forEach(item => {
         const itemName = item.ItemMaster?.ItemName || 'N/A';
         const itemCode = item.ItemMaster?.ItemCode || generateItemCode(item.ItemMaster?.CategoryMaster?.CategoryName, item.ItemId);
         message += `  • ${itemName} (${itemCode})\n`;
@@ -474,10 +496,10 @@ export default function EditSalePage() {
       });
       message += `\n`;
 
-      const itemsSubtotal = saleData.SalesItem.reduce((sum, item) => sum + (item.UnitPrice * item.Qty), 0);
+      const itemsSubtotal = currentSaleData.SalesItem.reduce((sum, item) => sum + (item.UnitPrice * item.Qty), 0);
       message += `*Subtotal:* ${formatCurrency(itemsSubtotal)}\n`;
-      if (saleData.AdditionalDiscount && saleData.AdditionalDiscount > 0) {
-        message += `*Discount:* -${formatCurrency(saleData.AdditionalDiscount)} ${saleData.DiscountPercentage ? `(${saleData.DiscountPercentage}%)` : ''}\n`;
+      if (currentSaleData.AdditionalDiscount && currentSaleData.AdditionalDiscount > 0) {
+        message += `*Discount:* -${formatCurrency(currentSaleData.AdditionalDiscount)} ${currentSaleData.DiscountPercentage ? `(${currentSaleData.DiscountPercentage}%)` : ''}\n`;
       }
       message += `*Grand Total:* ${totalAmount}\n\n`;
       
@@ -489,16 +511,17 @@ export default function EditSalePage() {
         message += `\nVisit us at: ${shopDetails.address}.`;
       }
 
-      const whatsappUrl = `https://wa.me/${customerMobileNo}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${customerMobileNo || currentSaleData.CustomerMaster?.MobileNo}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       toast.success("WhatsApp message prepared!");
+      isActionFromNew.current = false; // Reset flag after action
 
     } catch (error: any) {
       toast.error("Failed to prepare WhatsApp message", { description: error.message });
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, saleData, grandTotal, shopDetails, saveSale, fetchData, itemsTotal]);
+  }, [shopDetails, saveSale, fetchData]);
 
   useEffect(() => {
     if (location.state?.action && saleId && !loading) {
@@ -682,7 +705,7 @@ export default function EditSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase();
 
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
