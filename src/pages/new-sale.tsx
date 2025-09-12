@@ -158,7 +158,6 @@ function NewSalePage() {
     }
   }, [watchedAdditionalDiscount, watchedDiscountPercentage, itemsTotal, form, lastDiscountChangeSource]);
 
-
   useEffect(() => {
     async function fetchData() {
       const { data: itemsData, error: itemsError } = await supabase
@@ -485,9 +484,6 @@ function NewSalePage() {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);
   };
 
-  // Removed redeclaration of grandTotal here
-  // const grandTotal = itemsTotal - (watchedAdditionalDiscount || 0);
-
   const handleSendWhatsAppFromDialog = (saleId: number) => {
     navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'send-whatsapp' } });
   };
@@ -717,7 +713,7 @@ function NewSalePage() {
                     </span>
                   </Button>
                 </div>
-                <div className="flex flex-wrap items-end gap-2 p-2 border rounded-lg">
+                <div className="flex flex-wrap items-center gap-2 p-2 border rounded-lg">
                   <div className="flex-1 min-w-[80px]"><FloatingLabelInput value={currentItem.ItemCode || (typeof currentItem.ItemId === 'number' ? generateItemCode(currentItem.CategoryName, currentItem.ItemId) : "")} label="Code" id="current_item_code" readOnly className="bg-muted/50 font-mono text-xs" /></div>
                   <div className="relative flex-1 min-w-[250px]">
                     <Autocomplete<ItemWithCategory> ref={itemInputRef} suggestions={itemSuggestions} value={currentItem.ItemName} onValueChange={(v: string) => handleCurrentItemChange("ItemName", v)} onSelect={handleItemSelect} label="Item Name" id="current_item" className={cn(isCurrentItemNew && "pr-24")} 

@@ -308,7 +308,7 @@ function Layout() {
           </div>
         </div>
         <div className="flex flex-col">
-          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+          <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-10">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="shrink-0 md:hidden" aria-label="Toggle navigation menu">
@@ -383,7 +383,7 @@ function Layout() {
               </DropdownMenu>
             )}
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/20 overflow-y-auto">
+          <main className="flex flex-1 flex-col gap-4 p-2 lg:gap-6 lg:p-4 bg-muted/20 overflow-y-auto">
             <Outlet key={location.pathname} />
           </main>
           <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />
