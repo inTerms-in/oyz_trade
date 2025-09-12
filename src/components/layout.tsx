@@ -52,7 +52,7 @@ function Layout() {
     cn(
       "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
       isActive && "bg-muted text-primary",
-      isCollapsed && "flex-col h-auto justify-center gap-1 py-3"
+      isCollapsed && "h-auto w-full flex-col justify-center gap-1 px-0 py-3"
     );
   
   const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
@@ -209,35 +209,63 @@ function Layout() {
               </div>
             </div>
           );
-        } else {
+        }
+
+        if (isCollapsed) {
           return (
-            <Collapsible key={item.label} defaultOpen={isActive} className="w-full">
-              <CollapsibleTrigger asChild>
-                <NavLink to={item.to} className={cn(
-                  "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary",
-                  isActive ? "bg-muted text-primary" : "text-muted-foreground",
-                  isCollapsed ? "flex-col h-auto justify-center gap-1 py-3" : "pr-2"
-                )} end={item.end}>
-                  <div className={cn("flex items-center gap-3", isCollapsed && "flex-col gap-1")}>
-                    <item.icon className="h-5 w-5" />
-                    <span className={cn(
-                      !isCollapsed && "truncate",
-                      isCollapsed && "text-xs text-center break-words max-w-full"
-                    )}>
-                      {item.label}
-                    </span>
-                  </div>
-                  {!isCollapsed && <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />}
+            <DropdownMenu key={item.label}>
+              <DropdownMenuTrigger asChild>
+                <NavLink
+                  to={item.to}
+                  className={cn(navLinkClasses({ isActive }))}
+                  end={item.end}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span className="text-xs text-center break-words max-w-full">
+                    {item.label}
+                  </span>
                 </NavLink>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                <nav className={cn("grid items-start text-sm font-medium", isCollapsed ? "px-0" : "pl-6 pr-2")}>
-                  {renderNavLinks(item.children, isMobile)}
-                </nav>
-              </CollapsibleContent>
-            </Collapsible>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="start" className="ml-2">
+                <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {item.children.map(child => (
+                  <DropdownMenuItem key={child.label} asChild>
+                    <NavLink to={child.to} className="w-full">
+                      <child.icon className="mr-2 h-4 w-4" />
+                      {child.label}
+                    </NavLink>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         }
+
+        return (
+          <Collapsible key={item.label} defaultOpen={isActive} className="w-full">
+            <CollapsibleTrigger asChild>
+              <NavLink to={item.to} className={cn(
+                "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary",
+                isActive ? "bg-muted text-primary" : "text-muted-foreground",
+                "pr-2"
+              )} end={item.end}>
+                <div className={cn("flex items-center gap-3")}>
+                  <item.icon className="h-5 w-5" />
+                  <span className="truncate">
+                    {item.label}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
+              </NavLink>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+              <nav className={cn("grid items-start text-sm font-medium pl-6 pr-2")}>
+                {renderNavLinks(item.children, isMobile)}
+              </nav>
+            </CollapsibleContent>
+          </Collapsible>
+        );
       } else {
         return (
           <Tooltip key={item.label}>
@@ -245,8 +273,7 @@ function Layout() {
               <NavLink to={item.to} className={isMobile ? mobileNavLinkClasses : navLinkClasses} onClick={isMobile ? closeSheet : undefined} end={item.end}>
                 <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
                 <span className={cn(
-                  !isCollapsed && "truncate",
-                  isCollapsed && "text-xs text-center break-words max-w-full hidden md:block" // Hide text on collapsed mobile
+                  isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
                 )}>
                   {item.label}
                 </span>

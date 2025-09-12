@@ -137,7 +137,7 @@ export function SearchableSelect({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-full justify-between h-10",
+            "w-full justify-between h-10 bg-secondary",
             label ? "pt-4" : "",
             !selectedOptionLabel && "text-muted-foreground",
             className
