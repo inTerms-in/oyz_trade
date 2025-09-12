@@ -329,9 +329,9 @@ function NewSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some((i: ItemWithCategory) => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
 
-  async function onSubmit(values: SaleFormValues) {
+  const handleFormSubmit = async (values: SaleFormValues) => {
     if (addedItems.length === 0) return toast.error("Please add at least one item.");
     
     setIsSubmitting(true);
@@ -478,7 +478,7 @@ function NewSalePage() {
     setIsPostSaveActionsDialogOpen(true);
     form.reset();
     setAddedItems([]);
-  }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(amount);
@@ -504,7 +504,7 @@ function NewSalePage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                   <FormField
