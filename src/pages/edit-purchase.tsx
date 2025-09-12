@@ -260,60 +260,45 @@ function EditPurchasePage() {
     qtyInputRef.current?.focus();
   };
 
-  const handleAddItem = () => {
-    if (!currentItem.ItemId || typeof currentItem.ItemId !== 'number') return toast.error("Please select a valid item.");
-    if (currentItem.Qty <= 0) return toast.error("Quantity must be greater than zero.");
-    if (currentItem.UnitPrice <= 0) {
-      toast.error("Unit price must be greater than zero.");
-      return;
-    }
-    
-    const existingItemIndex = addedItems.findIndex(
-      (item) =>
-        item.ItemId === currentItem.ItemId &&
-        item.Unit === currentItem.Unit &&
-        item.UnitPrice === currentItem.UnitPrice
-    );
-
-    if (existingItemIndex > -1) {
-      const updatedItems = [...addedItems];
-      const existingItem = updatedItems[existingItemIndex];
-      existingItem.Qty += currentItem.Qty;
-      existingItem.TotalPrice = parseFloat((existingItem.Qty * existingItem.UnitPrice).toFixed(2));
-      setAddedItems(updatedItems);
-      toast.success(`Quantity for "${currentItem.ItemName}" updated.`);
-    } else {
-      setAddedItems([...addedItems, currentItem as PurchaseListItem]);
-      toast.success(`Item "${currentItem.ItemName}" added.`);
-    }
-
-    setCurrentItem(EMPTY_ITEM);
-    itemInputRef.current?.focus();
-  };
-
-  const handleEditItem = (index: number) => {
-    const itemToEdit = addedItems[index];
-    const newAddedItems = addedItems.filter((_, i) => i !== index);
-    setAddedItems(newAddedItems);
-    setCurrentItem(itemToEdit);
-    itemInputRef.current?.focus();
-  };
-
   const handleItemCreated = (newItem: Item) => {
     const newSuggestion = { ...newItem, CategoryMaster: null };
-    setItemSuggestions([...itemSuggestions, newSuggestion]);
-    setCurrentItem({ 
-      ...EMPTY_ITEM, 
-      ItemId: newItem.ItemId, 
+    setItemSuggestions((prevSuggestions) => [...prevSuggestions, newSuggestion]);
+
+    const newItemForList: PurchaseListItem = {
+      ItemId: newItem.ItemId,
       ItemName: newItem.ItemName ?? '',
-      Barcode: newItem.Barcode, 
+      CategoryName: newSuggestion.CategoryMaster?.CategoryName,
+      Barcode: newItem.Barcode,
       ItemCode: newItem.ItemCode,
       Qty: 1,
       Unit: "Piece",
-      UnitPrice: 0,
+      UnitPrice: 0, // For purchase, unit price is usually entered manually
       TotalPrice: 0,
+    };
+
+    setAddedItems((prevItems) => {
+      const existingItemIndex = prevItems.findIndex(
+        (item) =>
+          item.ItemId === newItemForList.ItemId &&
+          item.Unit === newItemForList.Unit &&
+          item.UnitPrice === newItemForList.UnitPrice
+      );
+
+      if (existingItemIndex > -1) {
+        const updatedItems = [...prevItems];
+        const existingItem = updatedItems[existingItemIndex];
+        existingItem.Qty += newItemForList.Qty;
+        existingItem.TotalPrice = parseFloat((existingItem.Qty * existingItem.UnitPrice).toFixed(2));
+        toast.success(`Quantity for "${newItemForList.ItemName}" updated.`);
+        return updatedItems;
+      } else {
+        toast.success(`Item "${newItemForList.ItemName}" added.`);
+        return [...prevItems, newItemForList];
+      }
     });
-    qtyInputRef.current?.focus();
+
+    setCurrentItem(EMPTY_ITEM);
+    itemInputRef.current?.focus();
   };
 
   const handleScan = (barcode: string) => {
@@ -675,7 +660,7 @@ function EditPurchasePage() {
                   <FormItem>
                     <Popover open={isDatePickerOpen} onOpenChange={setDatePickerOpen}>
                       <div className="relative">
-                        <Label className={cn("absolute left-3 transition-all duration-200 ease-in-out pointer-events-none z-10", field.value || isDatePickerOpen ? "top-0 -translate-y-1/2 scale-75 bg-background px-1 text-primary" : "top-1/2 -translate-y-1/2 text-base text-muted-foreground")}>Purchase Date</Label>
+                        <Label className={cn("absolute left-3 transition-all duration-200 ease-in-out pointer-events-none z-10", field.value || isDatePickerOpen ? "top-0 -translate-y-1/2 scale-75 bg-background px-1 text-primary" : "top-1/2 -translate-y-1/2 text-base text-muted-foreground">Purchase Date</Label>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button variant="outline" className={cn("w-full justify-start pl-3 text-left font-normal h-10", !field.value && "text-muted-foreground")}>

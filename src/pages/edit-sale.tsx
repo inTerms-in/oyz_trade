@@ -22,13 +22,14 @@ import { Autocomplete } from "@/components/autocomplete";
 import { EntityAutocomplete } from "@/components/entity-autocomplete";
 import { Label } from "@/components/ui/label";
 import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
-import { Calendar as CalendarIcon, Plus, PlusCircle, Trash2, Pencil, ScanBarcode } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, PlusCircle, Trash2, Pencil, ScanBarcode, Printer } from "lucide-react";
 import { AddNewItemInlineDialog } from "@/components/add-new-item-inline-dialog";
 import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SaleInvoice } from "@/components/sale-invoice";
 import { SalePostSaveActionsDialog } from "@/components/sale-post-save-actions-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const saleFormSchema = z.object({
   CustomerName: z.string().optional().nullable(),
@@ -630,21 +631,43 @@ export default function EditSalePage() {
 
   const handleItemCreated = (newItem: Item) => {
     const newSuggestion = { ...newItem, CategoryMaster: null };
-    setItemSuggestions([...itemSuggestions, newSuggestion]);
-    setCurrentItem({ 
-      ...EMPTY_ITEM, 
-      ItemId: newItem.ItemId, 
+    setItemSuggestions((prevSuggestions) => [...prevSuggestions, newSuggestion]);
+
+    const newItemForList: SaleListItem = {
+      ItemId: newItem.ItemId,
       ItemName: newItem.ItemName ?? '',
-      Barcode: newItem.Barcode, 
-      ItemCode: newItem.ItemCode, 
-      UnitPrice: newItem.SellPrice || 0,
+      CategoryName: newSuggestion.CategoryMaster?.CategoryName,
+      Barcode: newItem.Barcode,
+      ItemCode: newItem.ItemCode,
       Qty: 1,
       Unit: "Piece",
+      UnitPrice: newItem.SellPrice || 0,
       TotalPrice: newItem.SellPrice || 0,
+    };
+
+    setAddedItems((prevItems) => {
+      const existingItemIndex = prevItems.findIndex(
+        (item) =>
+          item.ItemId === newItemForList.ItemId &&
+          item.Unit === newItemForList.Unit &&
+          item.UnitPrice === newItemForList.UnitPrice
+      );
+
+      if (existingItemIndex > -1) {
+        const updatedItems = [...prevItems];
+        const existingItem = updatedItems[existingItemIndex];
+        existingItem.Qty += newItemForList.Qty;
+        existingItem.TotalPrice = parseFloat((existingItem.Qty * existingItem.UnitPrice).toFixed(2));
+        toast.success(`Quantity for "${newItemForList.ItemName}" updated.`);
+        return updatedItems;
+      } else {
+        toast.success(`Item "${newItemForList.ItemName}" added.`);
+        return [...prevItems, newItemForList];
+      }
     });
-    setTimeout(() => {
-      handleAddItem();
-    }, 0);
+
+    setCurrentItem(EMPTY_ITEM);
+    itemInputRef.current?.focus();
   };
 
   const handleScan = (barcode: string) => {
@@ -659,7 +682,7 @@ export default function EditSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase();
 
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
@@ -709,6 +732,34 @@ export default function EditSalePage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Edit Sale</CardTitle>
+          <div className="flex space-x-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => handlePrint(Number(saleId))} disabled={isSubmitting || loading || !saleData}>
+                  <span className="flex items-center">
+                    <Printer className="mr-2 h-4 w-4" />
+                    <span>Print</span>
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Print Invoice</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => handleSendWhatsApp(Number(saleId))} disabled={isSubmitting || loading || !saleData || !saleData.CustomerMaster?.MobileNo}>
+                  <span className="flex items-center">
+                    <img src="/whatsapp.svg" alt="WhatsApp" className="mr-2 h-4 w-4" />
+                    <span>WhatsApp</span>
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Send via WhatsApp</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>

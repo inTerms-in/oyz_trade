@@ -299,22 +299,43 @@ function NewSalePage() {
 
   const handleItemCreated = (newItem: Item) => {
     const newSuggestion = { ...newItem, CategoryMaster: null };
-    setItemSuggestions([...itemSuggestions, newSuggestion]);
-    setCurrentItem({ 
-      ...EMPTY_ITEM, 
-      ItemId: newItem.ItemId, 
+    setItemSuggestions((prevSuggestions) => [...prevSuggestions, newSuggestion]);
+
+    const newItemForList: SaleListItem = {
+      ItemId: newItem.ItemId,
       ItemName: newItem.ItemName ?? '',
-      Barcode: newItem.Barcode, 
-      ItemCode: newItem.ItemCode, 
-      UnitPrice: newItem.SellPrice || 0,
+      CategoryName: newSuggestion.CategoryMaster?.CategoryName,
+      Barcode: newItem.Barcode,
+      ItemCode: newItem.ItemCode,
       Qty: 1,
       Unit: "Piece",
+      UnitPrice: newItem.SellPrice || 0,
       TotalPrice: newItem.SellPrice || 0,
+    };
+
+    setAddedItems((prevItems) => {
+      const existingItemIndex = prevItems.findIndex(
+        (item) =>
+          item.ItemId === newItemForList.ItemId &&
+          item.Unit === newItemForList.Unit &&
+          item.UnitPrice === newItemForList.UnitPrice
+      );
+
+      if (existingItemIndex > -1) {
+        const updatedItems = [...prevItems];
+        const existingItem = updatedItems[existingItemIndex];
+        existingItem.Qty += newItemForList.Qty;
+        existingItem.TotalPrice = parseFloat((existingItem.Qty * existingItem.UnitPrice).toFixed(2));
+        toast.success(`Quantity for "${newItemForList.ItemName}" updated.`);
+        return updatedItems;
+      } else {
+        toast.success(`Item "${newItemForList.ItemName}" added.`);
+        return [...prevItems, newItemForList];
+      }
     });
-    // Automatically add the newly created item to the list
-    setTimeout(() => { // Use a timeout to ensure state updates are processed
-      handleAddItem();
-    }, 0);
+
+    setCurrentItem(EMPTY_ITEM);
+    itemInputRef.current?.focus();
   };
 
   const handleScan = (barcode: string) => {
