@@ -40,8 +40,7 @@ function Layout() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
-  // Removed searchInputRef as the search bar is being removed
-  const newActionButtonRef = useRef<HTMLButtonElement>(null); // Ref for the "New" button
+  const newActionButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -52,7 +51,7 @@ function Layout() {
     cn(
       "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
       isActive && "bg-muted text-primary",
-      isCollapsed && "h-auto w-full justify-center p-2"
+      isCollapsed && "h-auto w-full justify-center p-2 flex-col gap-1"
     );
   
   const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
@@ -107,8 +106,8 @@ function Layout() {
       label: "Accounts Module",
       children: [
         { to: "/accounts-module/payables-receivables", icon: Wallet, label: "Payables & Receivables" },
-        { to: "/accounts-module/receipt-vouchers", icon: Receipt, label: "Receipt Vouchers" }, // New link
-        { to: "/accounts-module/payment-vouchers", icon: HandCoins, label: "Payment Vouchers" }, // New link
+        { to: "/accounts-module/receipt-vouchers", icon: Receipt, label: "Receipt Vouchers" },
+        { to: "/accounts-module/payment-vouchers", icon: HandCoins, label: "Payment Vouchers" },
         { to: "/accounts-module/journal-entries", icon: ClipboardList, label: "Journal Entries" },
         { to: "/accounts-module/trial-balance", icon: Scale, label: "Trial Balance" },
         { to: "/accounts-module/profit-loss-statement", icon: LineChart, label: "Profit & Loss" },
@@ -173,24 +172,22 @@ function Layout() {
     { to: "/settings", icon: Settings, label: "Settings" },
   ], []);
 
-  // Function to find the current page title
   const getCurrentPageTitle = useCallback((pathname: string, items: NavItem[]): string => {
     for (const item of items) {
       const match = item.end ? pathname === item.to : pathname.startsWith(item.to);
       if (match) {
         if (item.children) {
           const childTitle = getCurrentPageTitle(pathname, item.children);
-          return childTitle || item.label; // If a child matches, use its title, otherwise use parent module title
+          return childTitle || item.label;
         }
         return item.label;
       }
     }
-    return "Dashboard"; // Default title
+    return "Dashboard";
   }, []);
 
   const currentPageTitle = useMemo(() => getCurrentPageTitle(location.pathname, navItems), [location.pathname, navItems, getCurrentPageTitle]);
 
-  // Helper to render nav links, recursively for nested items
   const renderNavLinks = (items: NavItem[], isMobile: boolean) => {
     return items.map((item) => {
       const currentPath = item.to;
@@ -199,15 +196,25 @@ function Layout() {
       if (item.children && item.children.length > 0) {
         if (isMobile) {
           return (
-            <div key={item.label} className="space-y-1">
-              <NavLink to={item.to} className={mobileNavLinkClasses} onClick={closeSheet} end={item.end}>
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </NavLink>
-              <div className="ml-4 border-l pl-2 space-y-1">
-                {renderNavLinks(item.children, isMobile)}
-              </div>
-            </div>
+            <Collapsible key={item.label} defaultOpen={isActive} className="w-full">
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center justify-between w-full rounded-lg px-3 py-2 text-lg font-medium transition-all hover:text-primary cursor-pointer",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}>
+                  <div className="flex items-center gap-3 flex-1">
+                    <item.icon className="h-5 w-5" />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  <ChevronDown className="h-5 w-5 shrink-0 transition-transform data-[state=open]:rotate-180" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <nav className="grid items-start text-base font-medium ml-3 pl-6 border-l gap-1 py-2">
+                  {renderNavLinks(item.children, isMobile)}
+                </nav>
+              </CollapsibleContent>
+            </Collapsible>
           );
         }
 
@@ -270,15 +277,13 @@ function Layout() {
         return (
           <Tooltip key={item.label}>
             <TooltipTrigger asChild>
-              <NavLink to={item.to} className={isMobile ? mobileNavLinkClasses : navLinkClasses} onClick={isMobile ? closeSheet : undefined} end={item.end}>
-                <div className={cn(isCollapsed && "flex flex-col items-center gap-1")}>
-                  <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
-                  <span className={cn(
-                    isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
-                  )}>
-                    {item.label}
-                  </span>
-                </div>
+              <NavLink to={item.to} className={isMobile ? mobileNavLinkClasses({isActive}) : navLinkClasses({isActive})} onClick={isMobile ? closeSheet : undefined} end={item.end}>
+                <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
+                <span className={cn(
+                  isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
+                )}>
+                  {item.label}
+                </span>
               </NavLink>
             </TooltipTrigger>
             {isCollapsed && !isMobile && <TooltipContent side="right">{item.label}</TooltipContent>}
@@ -288,14 +293,12 @@ function Layout() {
     });
   };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'n') {
         event.preventDefault();
         newActionButtonRef.current?.click();
       }
-      // Removed Ctrl+F shortcut for search as the search bar is removed
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -348,17 +351,16 @@ function Layout() {
                 <SheetHeader>
                   <SheetTitle>PurchaseTracker</SheetTitle>
                 </SheetHeader>
-                <nav className="grid gap-2 text-lg font-medium overflow-y-auto">
-                  <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
+                <nav className="grid gap-2 text-lg font-medium overflow-y-auto py-4">
+                  <NavLink to="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary" onClick={closeSheet}>
                     <Package className="h-6 w-6 text-primary" />
-                    <span>PurchaseTracker</span>
+                    <span className="text-lg font-semibold">PurchaseTracker</span>
                   </NavLink>
                   {renderNavLinks(navItems, true)}
                 </nav>
               </SheetContent>
             </Sheet>
             <h1 className="text-lg font-semibold md:text-xl mr-auto">{currentPageTitle}</h1>
-            {/* Removed the search input field */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Tooltip>
@@ -389,8 +391,8 @@ function Layout() {
                 <DropdownMenuItem onSelect={() => navigate('/sales-module/sales-return/new')}>New Sales Return</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => navigate('/purchase-module/purchase-return/new')}>New Purchase Return</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => navigate('/accounts-module/receipt-vouchers/new')}>New Receipt Voucher</DropdownMenuItem> {/* New dropdown item */}
-                <DropdownMenuItem onSelect={() => navigate('/accounts-module/payment-vouchers/new')}>New Payment Voucher</DropdownMenuItem> {/* New dropdown item */}
+                <DropdownMenuItem onSelect={() => navigate('/accounts-module/receipt-vouchers/new')}>New Receipt Voucher</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/accounts-module/payment-vouchers/new')}>New Payment Voucher</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             {user && (
@@ -412,7 +414,7 @@ function Layout() {
               </DropdownMenu>
             )}
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-2 lg:gap-6 lg:p-4 bg-muted/20 overflow-y-auto">
+          <main className="flex flex-1 flex-col gap-4 p-2 sm:p-4 bg-muted/20 overflow-y-auto">
             <Outlet key={location.pathname} />
           </main>
           <ChatbotTrigger onClick={() => setIsChatbotOpen(true)} />
