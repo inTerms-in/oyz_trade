@@ -285,6 +285,9 @@ export interface Receivable {
   DueDate?: string | null;
   Status: 'Outstanding' | 'Partially Paid' | 'Paid' | 'Overdue';
   created_at: string;
+  updated_at?: string; // Added updated_at
+  CustomerMaster?: Customer | null; // For joining
+  Sales?: Sale | null; // For joining
 }
 
 export interface Payable {
@@ -296,4 +299,69 @@ export interface Payable {
   DueDate?: string | null;
   Status: 'Outstanding' | 'Partially Paid' | 'Paid' | 'Overdue';
   created_at: string;
+  updated_at?: string; // Added updated_at
+  SupplierMaster?: Supplier | null; // For joining
+  Purchase?: Purchase | null; // For joining
+}
+
+// New types for Receipt Vouchers and Settlements
+export interface ReceiptVoucher {
+  ReceiptVoucherId: number;
+  CustomerId: number | null;
+  ReceiptDate: string;
+  AmountReceived: number;
+  PaymentType: 'Cash' | 'Bank' | 'Mixed';
+  PaymentMode: string | null;
+  CashAmount: number | null;
+  BankAmount: number | null;
+  ReferenceNo: string;
+  Description: string | null;
+  created_at: string;
+  updated_at: string;
+  CustomerMaster?: Customer | null; // For joining
+}
+
+export interface ReceivableSettlement {
+  SettlementId: number;
+  ReceiptVoucherId: number;
+  ReceivableId: number;
+  AmountSettled: number;
+  created_at: string;
+  updated_at: string;
+  Receivables?: Receivable | null; // For joining
+}
+
+export interface ReceiptVoucherWithSettlements extends ReceiptVoucher {
+  receivable_settlements: ReceivableSettlement[];
+}
+
+// New types for Payment Vouchers and Settlements
+export interface PaymentVoucher {
+  PaymentVoucherId: number;
+  SupplierId: number | null;
+  PaymentDate: string;
+  AmountPaid: number;
+  PaymentType: 'Cash' | 'Bank' | 'Mixed';
+  PaymentMode: string | null;
+  CashAmount: number | null;
+  BankAmount: number | null;
+  ReferenceNo: string;
+  Description: string | null;
+  created_at: string;
+  updated_at: string;
+  SupplierMaster?: Supplier | null; // For joining
+}
+
+export interface PayableSettlement {
+  SettlementId: number;
+  PaymentVoucherId: number;
+  PayableId: number;
+  AmountSettled: number;
+  created_at: string;
+  updated_at: string;
+  Payables?: Payable | null; // For joining
+}
+
+export interface PaymentVoucherWithSettlements extends PaymentVoucher {
+  payable_settlements: PayableSettlement[];
 }

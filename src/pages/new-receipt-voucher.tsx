@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Customer, Receivable } from "@/types";
 
@@ -21,7 +21,7 @@ import { SelectItem } from "@/components/ui/select";
 import { EntityAutocomplete } from "@/components/entity-autocomplete";
 import { Label } from "@/components/ui/label";
 import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -245,7 +245,7 @@ function NewReceiptVoucherPage() {
 
     if (Math.abs(totalSettled - values.AmountReceived) > 0.01) {
       toast.error("Total allocated amount must match amount received.", {
-        description: `Amount Received: ${formatCurrency(values.AmountReceived)}, Total Allocated: ${formatCurrency(totalSettled)}`
+        description: `Amount Received: ${formatCurrency(values.AmountReceived)}, Total Allocated: ${formatCurrency(totalSettled)}`,
       });
       return;
     }

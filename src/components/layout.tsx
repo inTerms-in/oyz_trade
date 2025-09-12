@@ -23,7 +23,6 @@ import { ChatbotTrigger } from "@/components/chatbot-trigger";
 import { ChatbotDialog } from "@/components/chatbot-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Define a type for navigation items, including nested children
 interface NavItem {
@@ -41,6 +40,7 @@ function Layout() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  // Removed searchInputRef as the search bar is being removed
   const newActionButtonRef = useRef<HTMLButtonElement>(null); // Ref for the "New" button
 
   const handleLogout = async () => {
@@ -116,7 +116,11 @@ function Layout() {
         { to: "/accounts-module/expenses", icon: ReceiptText, label: "Expenses" },
       ],
     },
-    { to: "/reports-module/dashboard", icon: BarChart, label: "Reports Module", children: [
+    {
+      to: "/reports-module/dashboard",
+      icon: BarChart,
+      label: "Reports Module",
+      children: [
         {
           to: "/reports-module/sales/date-wise",
           icon: Calendar,
@@ -255,148 +259,6 @@ function Layout() {
     });
   };
 
-  const renderMobileNavLinks = (items: NavItem[]) => {
-    return items.map((item) => {
-      const isActive = location.pathname.startsWith(item.to) && (item.end ? location.pathname === item.to : true);
-      if (item.children && item.children.length > 0) {
-        return (
-          <Collapsible key={item.label} defaultOpen={isActive}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-              <div className="flex items-center gap-3">
-                <item.icon className="h-5 w-5" />
-                <span className="text-base">{item.label}</span>
-              </div>
-              <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pl-8 space-y-1 py-1">
-              {renderMobileNavLinks(item.children)}
-            </CollapsibleContent>
-          </Collapsible>
-        );
-      } else {
-        return (
-          <NavLink
-            key={item.label}
-            to={item.to}
-            onClick={closeSheet}
-            end={item.end}
-            className={({ isActive }) => cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary text-base",
-              isActive && "bg-muted text-primary"
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
-          </NavLink>
-        );
-      }
-    });
-  };
-
-  const renderDesktopNavLinks = (items: NavItem[]) => {
-    return items.map((item) => {
-      const isActive = location.pathname.startsWith(item.to) && (item.end ? location.pathname === item.to : true);
-
-      if (item.children && item.children.length > 0) {
-        if (isCollapsed) {
-          return (
-            <Popover key={item.label}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <PopoverTrigger asChild>
-                    <div className={cn(
-                      "flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 cursor-pointer",
-                      isActive ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
-                    )}>
-                      <item.icon className="h-5 w-5" />
-                      <span className="text-xs text-center break-words max-w-full">{item.label}</span>
-                    </div>
-                  </PopoverTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-              <PopoverContent side="right" align="start" className="ml-2 w-56 p-0">
-                <nav className="grid gap-1 p-2">
-                  {item.children.map(subItem => (
-                    <NavLink
-                      key={subItem.label}
-                      to={subItem.to}
-                      end={subItem.end}
-                      className={({ isActive: isSubActive }) => cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary",
-                        isSubActive && "bg-muted text-primary"
-                      )}
-                    >
-                      <subItem.icon className="h-4 w-4" />
-                      {subItem.label}
-                    </NavLink>
-                  ))}
-                </nav>
-              </PopoverContent>
-            </Popover>
-          );
-        } else {
-          return (
-            <Collapsible key={item.label} defaultOpen={isActive}>
-              <CollapsibleTrigger className={cn(
-                "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )}>
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </div>
-                <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                <nav className="grid gap-1 pl-9 pr-2 py-1">
-                  {item.children.map(subItem => (
-                     <NavLink
-                      key={subItem.label}
-                      to={subItem.to}
-                      end={subItem.end}
-                      className={({ isActive: isSubActive }) => cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary",
-                        isSubActive && "text-primary bg-muted"
-                      )}
-                    >
-                      <subItem.icon className="h-4 w-4" />
-                      {subItem.label}
-                    </NavLink>
-                  ))}
-                </nav>
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        }
-      } else {
-        return (
-          <Tooltip key={item.label}>
-            <TooltipTrigger asChild>
-              <NavLink
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                  isActive && "bg-muted text-primary",
-                  isCollapsed && "flex-col h-auto justify-center gap-1"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span className={cn(
-                  isCollapsed ? "text-xs text-center break-words max-w-full" : "text-sm"
-                )}>
-                  {item.label}
-                </span>
-              </NavLink>
-            </TooltipTrigger>
-            {isCollapsed && <TooltipContent side="right">{item.label}</TooltipContent>}
-          </Tooltip>
-        );
-      }
-    });
-  };
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -417,11 +279,11 @@ function Layout() {
     <TooltipProvider>
       <div className={cn("grid min-h-screen w-full md:grid-cols-[auto_1fr]")}>
         <div className={cn(
-          "hidden border-r bg-background md:block transition-all duration-300 ease-in-out",
+          "hidden border-r bg-muted/40 md:block transition-all duration-300 ease-in-out",
           isCollapsed ? "w-[88px]" : "w-[220px] lg:w-[280px]"
         )}>
           <div className={cn(
-            "flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6 sticky top-0 bg-background z-10",
+            "flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6",
             isCollapsed && "justify-center"
           )}>
             <NavLink to="/" className={cn("flex items-center gap-2 font-semibold", isCollapsed && "hidden")}>
@@ -431,7 +293,7 @@ function Layout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className={cn("h-8 w-8", !isCollapsed && "ml-auto")} onClick={() => setIsCollapsed(!isCollapsed)} aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
-                  <ChevronsLeft className={cn("h-5 w-5 transition-transform", !isCollapsed && "rotate-180")} />
+                  <ChevronsLeft className="h-5 w-5 transition-transform" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -441,12 +303,12 @@ function Layout() {
           </div>
           <div className="flex-1 py-4 overflow-y-auto">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              {renderDesktopNavLinks(navItems)}
+              {renderNavLinks(navItems, false)}
             </nav>
           </div>
         </div>
         <div className="flex flex-col">
-          <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-10">
+          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="shrink-0 md:hidden" aria-label="Toggle navigation menu">
@@ -455,19 +317,19 @@ function Layout() {
               </SheetTrigger>
               <SheetContent side="left" className="flex flex-col">
                 <SheetHeader>
-                  <SheetTitle>
-                    <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold" onClick={closeSheet}>
-                      <Package className="h-6 w-6 text-primary" />
-                      <span>PurchaseTracker</span>
-                    </NavLink>
-                  </SheetTitle>
+                  <SheetTitle>PurchaseTracker</SheetTitle>
                 </SheetHeader>
-                <nav className="grid gap-2 text-lg font-medium overflow-y-auto mt-4">
-                  {renderMobileNavLinks(navItems)}
+                <nav className="grid gap-2 text-lg font-medium overflow-y-auto">
+                  <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
+                    <Package className="h-6 w-6 text-primary" />
+                    <span>PurchaseTracker</span>
+                  </NavLink>
+                  {renderNavLinks(navItems, true)}
                 </nav>
               </SheetContent>
             </Sheet>
             <h1 className="text-lg font-semibold md:text-xl mr-auto">{currentPageTitle}</h1>
+            {/* Removed the search input field */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Tooltip>

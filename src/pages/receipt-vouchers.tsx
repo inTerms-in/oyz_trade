@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ReceiptVoucherWithSettlements, ReceivableSettlement } from "@/types";
+import { ReceiptVoucherWithSettlements } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
-import { ChevronDown, PlusCircle, ArrowUpDown } from "lucide-react";
+import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteReceiptVoucherAlert } from "@/components/delete-receipt-voucher-alert";
 
@@ -285,9 +285,9 @@ function ReceiptVouchersPage() {
                                 </TableHeader>
                                 <TableBody>
                                   {voucher.receivable_settlements.length > 0 ? (
-                                    voucher.receivable_settlements.map((settlement: ReceivableSettlement) => (
+                                    voucher.receivable_settlements.map((settlement) => (
                                       <TableRow key={settlement.SettlementId}>
-                                        <TableCell className="font-mono text-xs">{settlement.Receivables?.Sales?.ReferenceNo || 'N/A'}</TableCell>
+                                        <TableCell className="font-mono text-xs">{settlement.Receivables?.ReferenceNo || 'N/A'}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.Receivables?.Amount || 0)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.AmountSettled)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency((settlement.Receivables?.Amount || 0) - (settlement.Receivables?.Balance || 0) - settlement.AmountSettled)}</TableCell>
