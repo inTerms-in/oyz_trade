@@ -97,6 +97,7 @@ export default function EditSalePage() {
   const isActionFromNew = useRef(location.state?.actionFromNew || false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false); // New state for WhatsApp button
   const [hasHandledInitialAction, setHasHandledInitialAction] = useState(false); // New state to prevent re-triggering initial action
+  const [newlyCreatedSaleId, setNewlyCreatedSaleId] = useState<number | null>(null);
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -538,7 +539,7 @@ export default function EditSalePage() {
       setIsSubmitting(false);
       setIsSendingWhatsApp(false); // Reset state
     }
-  }, [shopDetails, saveSale, fetchData, isSendingWhatsApp]);
+  }, [shopDetails, saveSale, fetchData, isSendingWhatsApp, form, saleData]);
 
   useEffect(() => {
     // Only run this effect once per component mount for initial actions
@@ -725,7 +726,7 @@ export default function EditSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase();
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
 
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
@@ -1020,7 +1021,8 @@ export default function EditSalePage() {
                   <div className="relative flex-1 min-w-[250px]">
                     <Autocomplete<ItemWithCategory> ref={itemInputRef} suggestions={itemSuggestions} value={currentItem.ItemName} onValueChange={(v: string) => handleCurrentItemChange("ItemName", v)} onSelect={handleItemSelect} label="Item Name" id="current_item" className={cn(isCurrentItemNew && "pr-24")} 
                       getId={(item) => item.ItemId}
-                      getName={(item) => item.ItemName || ''
+                      getName={(item) => item.ItemName || ''}
+                      getItemCode={(item) => item.ItemCode}
                     />
                     {isCurrentItemNew && <Button type="button" size="sm" onClick={() => setCreateItemOpen(true)} className="absolute right-1 top-1/2 -translate-y-1/2 h-8" aria-label="Create new item">
                       <span className="flex items-center">
