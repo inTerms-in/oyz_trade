@@ -725,7 +725,7 @@ export default function EditSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase();
 
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
@@ -1020,7 +1020,7 @@ export default function EditSalePage() {
                   <div className="relative flex-1 min-w-[250px]">
                     <Autocomplete<ItemWithCategory> ref={itemInputRef} suggestions={itemSuggestions} value={currentItem.ItemName} onValueChange={(v: string) => handleCurrentItemChange("ItemName", v)} onSelect={handleItemSelect} label="Item Name" id="current_item" className={cn(isCurrentItemNew && "pr-24")} 
                       getId={(item) => item.ItemId}
-                      getName={(item) => item.ItemName || ''}
+                      getName={(item) => item.ItemName || ''
                     />
                     {isCurrentItemNew && <Button type="button" size="sm" onClick={() => setCreateItemOpen(true)} className="absolute right-1 top-1/2 -translate-y-1/2 h-8" aria-label="Create new item">
                       <span className="flex items-center">
@@ -1098,5 +1098,3 @@ export default function EditSalePage() {
     </div>
   );
 }
-
-export default NewSalePage;
