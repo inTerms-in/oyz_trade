@@ -333,6 +333,31 @@ function NewPurchasePage() {
     setIsUpdateSellPriceDialogOpen(true);
   };
 
+  useEffect(() => {
+    if (isUpdateSellPriceDialogOpen && itemToUpdateSellPrice) {
+      const fetchItemSellPrice = async () => {
+        const { data, error } = await supabase
+          .from("ItemMaster")
+          .select("SellPrice")
+          .eq("ItemId", itemToUpdateSellPrice.ItemId)
+          .single();
+
+        if (error) {
+          toast.error("Failed to fetch item sell price", { description: error.message });
+          setExistingSellPriceForDialog(null);
+          setNewSellPrice("");
+        } else if (data) {
+          setExistingSellPriceForDialog(data.SellPrice);
+          setNewSellPrice(data.SellPrice || "");
+        } else {
+          setExistingSellPriceForDialog(null);
+          setNewSellPrice("");
+        }
+      };
+      fetchItemSellPrice();
+    }
+  }, [isUpdateSellPriceDialogOpen, itemToUpdateSellPrice]);
+
   const handleConfirmUpdateSellPrice = async () => {
     if (!itemToUpdateSellPrice || typeof newSellPrice !== 'number' || isNaN(newSellPrice) || newSellPrice < 0) {
       toast.error("Invalid sell price.");
@@ -360,31 +385,6 @@ function NewPurchasePage() {
       setExistingSellPriceForDialog(null);
     }
   };
-
-  useEffect(() => {
-    if (isUpdateSellPriceDialogOpen && itemToUpdateSellPrice) {
-      const fetchItemSellPrice = async () => {
-        const { data, error } = await supabase
-          .from("ItemMaster")
-          .select("SellPrice")
-          .eq("ItemId", itemToUpdateSellPrice.ItemId)
-          .single();
-
-        if (error) {
-          toast.error("Failed to fetch item sell price", { description: error.message });
-          setExistingSellPriceForDialog(null);
-          setNewSellPrice("");
-        } else if (data) {
-          setExistingSellPriceForDialog(data.SellPrice);
-          setNewSellPrice(data.SellPrice || "");
-        } else {
-          setExistingSellPriceForDialog(null);
-          setNewSellPrice("");
-        }
-      };
-      fetchItemSellPrice();
-    }
-  }, [isUpdateSellPriceDialogOpen, itemToUpdateSellPrice]);
 
   const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
 
