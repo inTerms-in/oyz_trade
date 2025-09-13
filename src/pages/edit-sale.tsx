@@ -36,7 +36,7 @@ const saleFormSchema = z.object({
   customerMobileNo: z.string()
     .optional()
     .nullable()
-    .refine((val) => !val || /^\+?[0-9]{10,15}$/.test(val), {
+    .refine((val) => !val || /^\+?[0-9]{10,15}$.test(val), {
       message: "Please enter a valid mobile number (10-15 digits, optional + prefix).",
     }),
   SaleDate: z.date(),
@@ -713,7 +713,7 @@ export default function EditSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase();
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
 
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
