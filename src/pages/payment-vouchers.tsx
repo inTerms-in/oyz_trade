@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
-import { ChevronDown, Pencil, PlusCircle, ArrowUpDown } from "lucide-react";
+import { ChevronDown, PlusCircle, ArrowUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeletePaymentVoucherAlert } from "@/components/delete-payment-vouchers-alert";
 
@@ -285,7 +285,7 @@ function PaymentVouchersPage() {
                                 </TableHeader>
                                 <TableBody>
                                   {voucher.payable_settlements.length > 0 ? (
-                                    voucher.payable_settlements.map((settlement) => (
+                                    voucher.payable_settlements.map((settlement: PayableSettlement) => (
                                       <TableRow key={settlement.SettlementId}>
                                         <TableCell className="font-mono text-xs">{settlement.Payables?.ReferenceNo || 'N/A'}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.Payables?.Amount || 0)}</TableCell>

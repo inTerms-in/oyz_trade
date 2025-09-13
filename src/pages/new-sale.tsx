@@ -253,14 +253,8 @@ function NewSalePage() {
   };
 
   const handleAddItem = () => {
-    if (!currentItem.ItemId || typeof currentItem.ItemId !== 'number') {
-      toast.error("Please select a valid item.");
-      return;
-    }
-    if (currentItem.Qty <= 0) {
-      toast.error("Quantity must be greater than zero.");
-      return;
-    }
+    if (!currentItem.ItemId || typeof currentItem.ItemId !== 'number') return toast.error("Please select a valid item.");
+    if (currentItem.Qty <= 0) return toast.error("Quantity must be greater than zero.");
     if (currentItem.UnitPrice <= 0) {
       toast.error("Unit price must be greater than zero.");
       return;

@@ -92,6 +92,7 @@ export default function EditSalePage() {
   const [lastDiscountChangeSource, setLastDiscountChangeSource] = useState<'amount' | 'percentage' | null>(null);
   const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false);
   const isActionFromNew = useRef(location.state?.actionFromNew || false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false); // New state for WhatsApp button
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -447,6 +448,9 @@ export default function EditSalePage() {
       toast.error("Sale ID missing.");
       return;
     }
+    if (isSendingWhatsApp) { // Prevent multiple clicks
+      return;
+    }
 
     const customerMobileNo = form.getValues("customerMobileNo");
     if (!customerMobileNo) {
@@ -463,6 +467,7 @@ export default function EditSalePage() {
     }
 
     setIsSubmitting(true);
+    setIsSendingWhatsApp(true); // Set state to true
     toast.info("Preparing WhatsApp message...", { description: "This may take a moment." });
 
     try {
@@ -522,8 +527,9 @@ export default function EditSalePage() {
       toast.error("Failed to prepare WhatsApp message", { description: error.message });
     } finally {
       setIsSubmitting(false);
+      setIsSendingWhatsApp(false); // Reset state
     }
-  }, [shopDetails, saveSale, fetchData]);
+  }, [shopDetails, saveSale, fetchData, isSendingWhatsApp]);
 
   useEffect(() => {
     if (location.state?.action && saleId && !loading) {
@@ -707,7 +713,7 @@ export default function EditSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase();
 
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);
@@ -773,7 +779,7 @@ export default function EditSalePage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={() => handleSendWhatsApp(Number(saleId))} disabled={isSubmitting || loading || !saleData || !saleData.CustomerMaster?.MobileNo}>
+                <Button variant="outline" onClick={() => handleSendWhatsApp(Number(saleId))} disabled={isSubmitting || loading || !saleData || !saleData.CustomerMaster?.MobileNo || isSendingWhatsApp}>
                   <span className="flex items-center">
                     <img src="/whatsapp.svg" alt="WhatsApp" className="mr-2 h-4 w-4" />
                     <span>WhatsApp</span>
