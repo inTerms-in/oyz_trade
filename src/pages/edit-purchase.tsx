@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { FloatingLabelInput } from "@/components/ui/floating-label-input";
+import { FloatingLabelInput } => "@/components/ui/floating-label-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SelectItem } from "@/components/ui/select";
 import { Autocomplete } from "@/components/autocomplete";
@@ -45,8 +45,8 @@ const purchaseFormSchema = z.object({
   supplierMobileNo: z.string()
     .optional()
     .nullable()
-    .refine((val) => !val || /^\+?[0-9]{10,15}$/.test(val), {
-      message: "Please enter a valid mobile number (10-15 digits, optional + prefix).",
+    .refine((val) => !val || new RegExp('^\\+?[0-9]{5,15}$').test(val), {
+      message: "Please enter a valid mobile number (5-15 digits, optional + prefix).",
     }),
   PurchaseDate: z.date(),
   AdditionalCost: z.coerce.number().optional().nullable(),
@@ -258,6 +258,51 @@ function EditPurchasePage() {
       TotalPrice: 0,
     });
     qtyInputRef.current?.focus();
+  };
+
+  const handleAddItem = () => {
+    if (!currentItem.ItemId || typeof currentItem.ItemId !== 'number') {
+      toast.error("Please select a valid item.");
+      return;
+    }
+    if (currentItem.Qty <= 0) {
+      toast.error("Quantity must be greater than zero.");
+      return;
+    }
+    if (currentItem.UnitPrice <= 0) {
+      toast.error("Unit price must be greater than zero.");
+      return;
+    }
+
+    const existingItemIndex = addedItems.findIndex(
+      (item) =>
+        item.ItemId === currentItem.ItemId &&
+        item.Unit === currentItem.Unit &&
+        item.UnitPrice === currentItem.UnitPrice
+    );
+
+    if (existingItemIndex > -1) {
+      const updatedItems = [...addedItems];
+      const existingItem = updatedItems[existingItemIndex];
+      existingItem.Qty += currentItem.Qty;
+      existingItem.TotalPrice = parseFloat((existingItem.Qty * existingItem.UnitPrice).toFixed(2));
+      setAddedItems(updatedItems);
+      toast.success(`Quantity for "${currentItem.ItemName}" updated.`);
+    } else {
+      setAddedItems([...addedItems, currentItem as PurchaseListItem]);
+      toast.success(`Item "${currentItem.ItemName}" added.`);
+    }
+    
+    setCurrentItem(EMPTY_ITEM);
+    itemInputRef.current?.focus();
+  };
+
+  const handleEditItem = (index: number) => {
+    const itemToEdit = addedItems[index];
+    const newAddedItems = addedItems.filter((_, i) => i !== index);
+    setAddedItems(newAddedItems);
+    setCurrentItem(itemToEdit);
+    itemInputRef.current?.focus();
   };
 
   const handleItemCreated = (newItem: Item) => {

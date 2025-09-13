@@ -36,8 +36,8 @@ const saleFormSchema = z.object({
   customerMobileNo: z.string()
     .optional()
     .nullable()
-    .refine((val) => !val || new RegExp('^\\+?[0-9]{10,15}$').test(val), {
-      message: "Please enter a valid mobile number (10-15 digits, optional + prefix).",
+    .refine((val) => !val || new RegExp('^\\+?[0-9]{5,15}$').test(val), {
+      message: "Please enter a valid mobile number (5-15 digits, optional + prefix).",
     }),
   SaleDate: z.date(),
   AdditionalDiscount: z.coerce.number().optional().nullable(),
@@ -736,17 +736,17 @@ export default function EditSalePage() {
 
   const handleSendWhatsAppFromDialog = (saleId: number) => {
     handleSendWhatsApp(saleId);
-    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+    setIsPostSaveActionsDialogOpen(false);
   };
 
   const handlePrintFromDialog = (saleId: number) => {
     handlePrint(saleId);
-    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+    setIsPostSaveActionsDialogOpen(false);
   };
 
   const handleReturnToListFromDialog = () => {
     navigate("/sales-module/sales-invoice");
-    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
+    setIsPostSaveActionsDialogOpen(false);
   };
 
   const invoiceDataForPrint = saleData;
@@ -1090,7 +1090,7 @@ export default function EditSalePage() {
       <SalePostSaveActionsDialog
         open={isPostSaveActionsDialogOpen}
         onOpenChange={setIsPostSaveActionsDialogOpen}
-        saleId={Number(saleId)}
+        saleId={newlyCreatedSaleId}
         onSendWhatsApp={handleSendWhatsAppFromDialog}
         onPrint={handlePrintFromDialog}
         onReturnToList={handleReturnToListFromDialog}
@@ -1098,3 +1098,5 @@ export default function EditSalePage() {
     </div>
   );
 }
+
+export default NewSalePage;

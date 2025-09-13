@@ -50,8 +50,8 @@ const purchaseFormSchema = z.object({
   supplierMobileNo: z.string()
     .optional()
     .nullable()
-    .refine((val) => !val || /^\+?[0-9]{10,15}$/.test(val), {
-      message: "Please enter a valid mobile number (10-15 digits, optional + prefix).",
+    .refine((val) => !val || new RegExp('^\\+?[0-9]{5,15}$').test(val), {
+      message: "Please enter a valid mobile number (5-15 digits, optional + prefix).",
     }),
   PurchaseDate: z.date(),
   AdditionalCost: z.coerce.number().optional().nullable(),
@@ -331,6 +331,34 @@ function NewPurchasePage() {
   const handleUpdateSellPriceClick = (item: PurchaseListItem) => {
     setItemToUpdateSellPrice(item);
     setIsUpdateSellPriceDialogOpen(true);
+  };
+
+  const handleConfirmUpdateSellPrice = async () => {
+    if (!itemToUpdateSellPrice || typeof newSellPrice !== 'number' || isNaN(newSellPrice) || newSellPrice < 0) {
+      toast.error("Invalid sell price.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error } = await supabase
+      .from("ItemMaster")
+      .update({ SellPrice: newSellPrice })
+      .eq("ItemId", itemToUpdateSellPrice.ItemId);
+    setIsSubmitting(false);
+
+    if (error) {
+      toast.error("Failed to update sell price", { description: error.message });
+    } else {
+      toast.success(`Sell price for "${itemToUpdateSellPrice.ItemName}" updated to ${formatCurrency(newSellPrice)}!`);
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("ItemMaster").select("*, CategoryMaster(*)")
+        .order("ItemName");
+      if (!itemsError) setItemSuggestions(itemsData as ItemWithCategory[]);
+      setIsUpdateSellPriceDialogOpen(false);
+      setItemToUpdateSellPrice(null);
+      setNewSellPrice("");
+      setExistingSellPriceForDialog(null);
+    }
   };
 
   useEffect(() => {
