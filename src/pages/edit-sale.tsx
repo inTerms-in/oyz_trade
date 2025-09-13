@@ -36,7 +36,7 @@ const saleFormSchema = z.object({
   customerMobileNo: z.string()
     .optional()
     .nullable()
-    .refine((val) => !val || /^\+?[0-9]{10,15}$.test(val), {
+    .refine((val) => !val || new RegExp('^\\+?[0-9]{10,15}$').test(val), {
       message: "Please enter a valid mobile number (10-15 digits, optional + prefix).",
     }),
   SaleDate: z.date(),
