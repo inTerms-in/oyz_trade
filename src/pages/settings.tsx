@@ -26,6 +26,9 @@ interface ItemCsvRow {
   Barcode?: string;
 }
 
+// Fixed ID for the single shop entry
+const SINGLE_SHOP_ID = '00000000-0000-0000-0000-000000000001';
+
 function SettingsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImportingCategories, setIsImportingCategories] = useState(false);
@@ -76,9 +79,10 @@ function SettingsPage() {
       return;
     }
     setIsSavingSettings(true);
+    // Use a fixed ID for the settings table as well, if it's meant to be a single global setting
     const { error } = await supabase
       .from("settings")
-      .upsert({ financial_year_start_month: financialYearStartMonth }, { onConflict: 'id' }); // Upsert based on primary key 'id'
+      .upsert({ id: SINGLE_SHOP_ID, financial_year_start_month: financialYearStartMonth }, { onConflict: 'id' }); // Upsert based on primary key 'id'
 
     setIsSavingSettings(false);
     if (error) {
@@ -140,7 +144,7 @@ function SettingsPage() {
       if (stockAdjustments) zip.file("stock_adjustments.csv", Papa.unparse(stockAdjustments));
 
       // Fetch and add shop details (now global)
-      const { data: shopData } = await supabase.from("shop").select("*");
+      const { data: shopData } = await supabase.from("shop").select("*").eq("id", SINGLE_SHOP_ID); // Fetch by fixed ID
       if (shopData) zip.file("shop_details.csv", Papa.unparse(shopData));
 
       // Fetch and add reference number sequences (global)

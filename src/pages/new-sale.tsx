@@ -500,10 +500,12 @@ function NewSalePage() {
   };
 
   const handleSendWhatsAppFromDialog = (saleId: number) => {
+    // Navigate to edit page with action, the edit page will handle opening WhatsApp
     navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'send-whatsapp', actionFromNew: true } });
   };
 
   const handlePrintFromDialog = (saleId: number) => {
+    // Navigate to edit page with action, the edit page will handle printing
     navigate(`/sales-module/sales-invoice/edit/${saleId}`, { state: { action: 'print-invoice', actionFromNew: true } });
   };
 
@@ -776,7 +778,7 @@ function NewSalePage() {
 
               <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 pt-4">
                 <div className="flex space-x-2 w-full sm:w-auto">
-                  <Link to="/sales" className="flex-1 sm:flex-none"><Button type="button" variant="outline" className="w-full">Cancel</Button></Link>
+                  <Link to="/sales-module/sales-invoice" className="flex-1 sm:flex-none"><Button type="button" variant="outline" className="w-full">Cancel</Button></Link>
                   <Button type="submit" disabled={isSubmitting || !isValid || addedItems.length === 0} className="flex-1 sm:flex-none">{isSubmitting ? "Saving..." : "Save Sale"}</Button>
                 </div>
                 <div className="w-full sm:w-auto sm:max-w-xs space-y-1 text-sm self-end">

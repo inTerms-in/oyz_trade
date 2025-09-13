@@ -71,6 +71,9 @@ interface SaleListItem {
 const UNITS = ["Piece", "Pack", "Box", "Dozen", "Ream", "Kg", "Gram", "Liter", "ml"];
 const EMPTY_ITEM: Omit<SaleListItem, 'ItemId'> & { ItemId: number | string } = { ItemId: "", ItemName: "", CategoryName: "", Barcode: "", ItemCode: "", Qty: 1, Unit: "Piece", UnitPrice: 0, TotalPrice: 0 };
 
+// Fixed ID for the single shop entry
+const SINGLE_SHOP_ID = '00000000-0000-0000-0000-000000000001';
+
 export default function EditSalePage() {
   const { saleId } = useParams();
   const navigate = useNavigate();
@@ -93,6 +96,7 @@ export default function EditSalePage() {
   const [isPostSaveActionsDialogOpen, setIsPostSaveActionsDialogOpen] = useState(false);
   const isActionFromNew = useRef(location.state?.actionFromNew || false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false); // New state for WhatsApp button
+  const [hasHandledInitialAction, setHasHandledInitialAction] = useState(false); // New state to prevent re-triggering initial action
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -207,6 +211,7 @@ export default function EditSalePage() {
     const { data: shopData, error: shopError } = await supabase
       .from("shop")
       .select("shop_name, mobile_no, address")
+      .eq("id", SINGLE_SHOP_ID) // Fetch by fixed ID
       .single();
 
     if (shopError && shopError.code !== 'PGRST116') {
@@ -433,14 +438,16 @@ export default function EditSalePage() {
       }
     }
 
+    // Re-fetch data to ensure the invoice has the latest saved details
     await fetchData();
 
     setTimeout(() => {
       window.print();
-      isActionFromNew.current = false; // Reset flag after action
+      // Reset flag after action is completed
+      isActionFromNew.current = false; 
+      setIsSubmitting(false); // Ensure submitting state is reset after print
     }, 100); 
     
-    setIsSubmitting(false);
   }, [form, saveSale, fetchData]);
 
   const handleSendWhatsApp = useCallback(async (id: number) => {
@@ -476,6 +483,7 @@ export default function EditSalePage() {
         await saveSale(form.getValues());
       }
       
+      // Re-fetch data to ensure the message has the latest saved details
       await fetchData();
 
       // Use a temporary variable to ensure the latest data is used
@@ -521,7 +529,8 @@ export default function EditSalePage() {
       const whatsappUrl = `https://wa.me/${customerMobileNo || currentSaleData.CustomerMaster?.MobileNo}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       toast.success("WhatsApp message prepared!");
-      isActionFromNew.current = false; // Reset flag after action
+      // Reset flag after action is completed
+      isActionFromNew.current = false; 
 
     } catch (error: any) {
       toast.error("Failed to prepare WhatsApp message", { description: error.message });
@@ -532,8 +541,10 @@ export default function EditSalePage() {
   }, [shopDetails, saveSale, fetchData, isSendingWhatsApp]);
 
   useEffect(() => {
-    if (location.state?.action && saleId && !loading) {
+    // Only run this effect once per component mount for initial actions
+    if (location.state?.action && saleId && !loading && !hasHandledInitialAction) {
       const action = location.state.action;
+      // Clear the state immediately to prevent re-triggering on subsequent renders
       window.history.replaceState({}, document.title); 
 
       if (action === 'send-whatsapp') {
@@ -541,8 +552,9 @@ export default function EditSalePage() {
       } else if (action === 'print-invoice') {
         handlePrint(Number(saleId));
       }
+      setHasHandledInitialAction(true); // Mark as handled
     }
-  }, [location.state, saleId, loading, handleSendWhatsApp, handlePrint]);
+  }, [location.state, saleId, loading, handleSendWhatsApp, handlePrint, hasHandledInitialAction]);
 
   useEffect(() => {
     const currentMobileNo = form.getValues("customerMobileNo");
@@ -724,17 +736,17 @@ export default function EditSalePage() {
 
   const handleSendWhatsAppFromDialog = (saleId: number) => {
     handleSendWhatsApp(saleId);
-    setIsPostSaveActionsDialogOpen(false);
+    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
   };
 
   const handlePrintFromDialog = (saleId: number) => {
     handlePrint(saleId);
-    setIsPostSaveActionsDialogOpen(false);
+    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
   };
 
   const handleReturnToListFromDialog = () => {
     navigate("/sales-module/sales-invoice");
-    setIsPostSaveActionsDialogOpen(false);
+    setIsPostSaveActionsDialogOpen(false); // Close dialog after action
   };
 
   const invoiceDataForPrint = saleData;

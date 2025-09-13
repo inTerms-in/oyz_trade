@@ -49,6 +49,9 @@ interface EditShopDetailsDialogProps {
   onShopDetailsUpdated: () => void;
 }
 
+// Fixed ID for the single shop entry
+const SINGLE_SHOP_ID = '00000000-0000-0000-0000-000000000001';
+
 export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated }: EditShopDetailsDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
@@ -67,6 +70,7 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
     const { data, error } = await supabase
       .from("shop")
       .select("shop_name, mobile_no, address")
+      .eq("id", SINGLE_SHOP_ID) // Fetch by fixed ID
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -97,6 +101,7 @@ export function EditShopDetailsDialog({ open, onOpenChange, onShopDetailsUpdated
       .from("shop")
       .upsert(
         { 
+          id: SINGLE_SHOP_ID, // Always use the fixed ID for upsert
           shop_name: values.shop_name, 
           mobile_no: values.mobile_no || null,
           address: values.address || null,
