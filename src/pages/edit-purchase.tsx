@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { FloatingLabelInput } => "@/components/ui/floating-label-input";
+import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SelectItem } from "@/components/ui/select";
 import { Autocomplete } from "@/components/autocomplete";
