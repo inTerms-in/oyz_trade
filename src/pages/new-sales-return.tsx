@@ -198,6 +198,20 @@ function NewSalesReturnPage() {
     setReturnableItems(updatedItems);
   };
 
+  const handleItemFieldChange = (index: number, field: 'QtyToReturn' | 'UnitPrice', value: number) => {
+    const updatedItems = [...returnableItems];
+    const item = updatedItems[index];
+
+    if (field === 'QtyToReturn') {
+      const maxReturnable = item.QtyOriginal - item.QtyAlreadyReturned;
+      item.QtyToReturn = Math.max(0, Math.min(value, maxReturnable));
+    } else if (field === 'UnitPrice') {
+      item.UnitPrice = Math.max(0, value); // Unit price cannot be negative
+    }
+    item.TotalPrice = parseFloat((item.QtyToReturn * item.UnitPrice).toFixed(2));
+    setReturnableItems(updatedItems);
+  };
+
   async function onSubmit(values: SalesReturnFormValues) {
     if (!selectedSale) return toast.error("Please select an original sale.");
 
@@ -238,7 +252,7 @@ function NewSalesReturnPage() {
       ItemId: item.ItemId,
       Qty: item.QtyToReturn,
       Unit: item.Unit,
-      UnitPrice: item.UnitPrice,
+      UnitPrice: item.UnitPrice, // Use the potentially edited unit price
       // Removed user_id: user.id,
     }));
 
@@ -356,7 +370,7 @@ function NewSalesReturnPage() {
                           <TableHead>Code</TableHead>
                           <TableHead className="text-right">Qty Sold</TableHead>
                           <TableHead className="text-right">Qty Returned</TableHead>
-                          <TableHead>Unit</TableHead>
+                          <TableHead>{item.Unit}</TableHead>
                           <TableHead className="text-right">Unit Price</TableHead>
                           <TableHead className="text-center">Qty to Return</TableHead>
                           <TableHead className="text-right">Total Refund</TableHead>
@@ -372,14 +386,25 @@ function NewSalesReturnPage() {
                               <TableCell className="text-right">{item.QtyOriginal}</TableCell>
                               <TableCell className="text-right">{item.QtyAlreadyReturned}</TableCell>
                               <TableCell>{item.Unit}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(item.UnitPrice)}</TableCell>
+                              <TableCell className="text-right">
+                                <FloatingLabelInput
+                                  id={`unit-price-${index}`}
+                                  label=" "
+                                  type="number"
+                                  value={item.UnitPrice}
+                                  onChange={(e) => handleItemFieldChange(index, 'UnitPrice', e.target.valueAsNumber)}
+                                  min={0}
+                                  step="0.01"
+                                  className="w-24 text-right"
+                                />
+                              </TableCell>
                               <TableCell className="text-center">
                                 <FloatingLabelInput
                                   id={`qty-return-${index}`}
                                   label=" "
                                   type="number"
                                   value={item.QtyToReturn}
-                                  onChange={(e) => handleQtyReturnedChange(index, e.target.valueAsNumber)}
+                                  onChange={(e) => handleItemFieldChange(index, 'QtyToReturn', e.target.valueAsNumber)}
                                   min={0}
                                   max={item.QtyOriginal - item.QtyAlreadyReturned}
                                   className="w-20 text-center"
