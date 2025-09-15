@@ -1,5 +1,5 @@
 import React from "react";
-import { SaleWithItems } from "@/types";
+import { SaleWithItems, SaleItem } from "@/types";
 import { generateItemCode } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

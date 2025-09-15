@@ -351,3 +351,9 @@ export interface CustomerMaster {
   CustomerId: number;
   CustomerName: string;
 }
+
+export interface ShopDetails {
+  shop_name: string;
+  mobile_no: string | null;
+  address: string | null;
+}
