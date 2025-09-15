@@ -103,6 +103,9 @@ export default function EditSalePage() {
   const invoiceRef = useRef<HTMLDivElement>(null);
   const saleDataRef = useRef<SaleWithItems | null>(null);
 
+  // Shop details are used in WhatsApp messages and UI; initialize state to hold them
+  const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
+
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
     mode: "onChange",
@@ -217,7 +220,8 @@ export default function EditSalePage() {
     if (shopError && shopError.code !== 'PGRST116') {
       toast.error("Failed to fetch shop details", { description: shopError.message });
     } else if (shopData) {
-      setShopDetails(shopData);
+      // Cast to ShopDetails to satisfy TypeScript
+      setShopDetails(shopData as ShopDetails);
     }
     
     setLoading(false);
