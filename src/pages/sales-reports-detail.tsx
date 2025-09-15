@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw, Search } from "lucide-react";
 import { Autocomplete } from "@/components/autocomplete";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { ReportExportButtons } from "@/components/report-export-buttons";
 
 const columns: ColumnDef<SalesDetail>[] = [
   {
@@ -241,6 +243,12 @@ export default function SalesDetailReportPage() {
               <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
               Refresh Report
             </Button>
+            <ReportExportButtons
+              data={data}
+              columns={columns.filter(col => typeof col.accessorKey === 'string') as { header: string; accessorKey: string }[]}
+              reportTitle="Sales Detail Report"
+              fileName="sales_detail_report"
+            />
           </div>
           <DataTable columns={columns} data={data} loading={loading} />
         </CardContent>

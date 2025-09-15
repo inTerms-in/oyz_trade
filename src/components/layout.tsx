@@ -16,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuSub,
-  DropdownMenuSubTrigger,
   DropdownMenuPortal,
   DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
@@ -195,26 +194,36 @@ function Layout() {
 
   const currentPageTitle = useMemo(() => getCurrentPageTitle(location.pathname, navItems), [location.pathname, navItems, getCurrentPageTitle]);
 
-  const renderNavLinks = (items: NavItem[], isMobile: boolean, currentOpenPath: string | null, setOpenPath: (path: string | null) => void, level: number = 0) => {
+  const renderNavLinks = (items: NavItem[], isMobile: boolean, level: number = 0) => {
     return items.map((item) => {
       const currentPath = item.to;
       const isActive = location.pathname.startsWith(currentPath) && (item.end ? location.pathname === currentPath : true);
       const isParentActive = location.pathname.startsWith(item.to);
 
       if (item.children && item.children.length > 0) {
-        // Determine if this specific collapsible should be open
-        // It should be open if its path matches the currently open path for its level,
-        // OR if it's an active parent and no other sibling is explicitly open at this level.
-        const isOpen = currentOpenPath === item.to || (isParentActive && !currentOpenPath && level === 0);
+        // For top-level collapsibles (level 0), use openModulePath for accordion behavior
+        // For nested collapsibles (level > 0), just open if active
+        const isOpen = level === 0
+          ? (openModulePath === item.to || (isParentActive && openModulePath === null))
+          : isParentActive;
+
+        const handleOpenChange = (isOpenState: boolean) => {
+          if (level === 0) { // Only manage top-level accordion
+            if (isOpenState) {
+              setOpenModulePath(item.to);
+            } else if (openModulePath === item.to) {
+              setOpenModulePath(null);
+            }
+          }
+          // For nested collapsibles, we don't manage a global state, they just open/close based on route
+        };
 
         if (isMobile) {
           return (
             <Collapsible
               key={item.label}
               open={isParentActive} // In mobile, just open if active
-              onOpenChange={(isOpenState) => {
-                // No accordion for mobile nested, just open/close
-              }}
+              onOpenChange={() => { /* No global state management for mobile collapsibles */ }}
               className="w-full"
             >
               <CollapsibleTrigger className="w-full">
@@ -231,7 +240,7 @@ function Layout() {
               </CollapsibleTrigger>
               <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                 <nav className="grid items-start text-base font-medium ml-3 pl-6 border-l gap-1 py-2">
-                  {renderNavLinks(item.children, isMobile, currentOpenPath, setOpenPath, level + 1)}
+                  {renderNavLinks(item.children, isMobile, level + 1)}
                 </nav>
               </CollapsibleContent>
             </Collapsible>
@@ -297,13 +306,7 @@ function Layout() {
           <Collapsible
             key={item.label}
             open={isOpen}
-            onOpenChange={(isOpenState) => {
-              if (isOpenState) {
-                setOpenPath(item.to);
-              } else if (currentOpenPath === item.to) {
-                setOpenPath(null);
-              }
-            }}
+            onOpenChange={handleOpenChange}
             className="w-full"
           >
             <CollapsibleTrigger asChild>
@@ -328,7 +331,7 @@ function Layout() {
             </CollapsibleTrigger>
             <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
               <nav className={cn("grid items-start text-sm font-medium gap-1", level > 0 ? "ml-3 pl-6 border-l" : "")}>
-                {renderNavLinks(item.children, isMobile, currentOpenPath, setOpenPath, level + 1)}
+                {renderNavLinks(item.children, isMobile, level + 1)}
               </nav>
             </CollapsibleContent>
           </Collapsible>
@@ -343,9 +346,7 @@ function Layout() {
                 className={isMobile ? mobileNavLinkClasses({isActive}) : navLinkClasses({isActive})}
                 onClick={() => {
                   if (isMobile) closeSheet();
-                  // When a leaf item is clicked, ensure its parent collapsibles remain open
-                  // The `isParentActive` logic should handle keeping parents open.
-                  // No need to explicitly set `setOpenPath(null)` here.
+                  if (level === 0) setOpenModulePath(null); // Collapse top-level if a leaf item is clicked
                 }}
                 end={item.end}
               >
@@ -406,7 +407,7 @@ function Layout() {
           </div>
           <div className="flex-1 py-4 overflow-y-auto">
             <nav className="grid items-start px-2 text-sm font-medium gap-1">
-              {renderNavLinks(navItems, false, openModulePath, setOpenModulePath)}
+              {renderNavLinks(navItems, false)}
             </nav>
           </div>
         </div>
@@ -427,7 +428,7 @@ function Layout() {
                     <Package className="h-6 w-6 text-primary" />
                     <span className="text-lg font-semibold">PurchaseTracker</span>
                   </NavLink>
-                  {renderNavLinks(navItems, true, openModulePath, setOpenModulePath)}
+                  {renderNavLinks(navItems, true)}
                 </nav>
               </SheetContent>
             </Sheet>

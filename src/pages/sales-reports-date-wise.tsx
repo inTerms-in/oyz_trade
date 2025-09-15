@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ReportExportButtons } from "@/components/report-export-buttons"; // Import the new component
 
 interface DateWiseSale {
   SaleDate: string;
@@ -93,7 +94,7 @@ export default function DateWiseSalesPage() {
         });
       });
 
-      const sortedSummary = Array.from(dailySummaryMap.entries())
+      const sortedSummary = Array.from(dailySummaryMap.values())
         .map(([SaleDate, summary]) => ({ SaleDate, ...summary }))
         .sort((a, b) => new Date(a.SaleDate).getTime() - new Date(b.SaleDate).getTime());
 
@@ -116,10 +117,18 @@ export default function DateWiseSalesPage() {
         <CardContent>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
             <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-            <Button variant="outline" onClick={() => fetchDateWiseSales()} disabled={loading}>
-              <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => fetchDateWiseSales()} disabled={loading}>
+                <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
+                Refresh
+              </Button>
+              <ReportExportButtons
+                data={data}
+                columns={columns.filter(col => typeof col.accessorKey === 'string') as { header: string; accessorKey: string }[]}
+                reportTitle="Date-wise Sales Report"
+                fileName="date_wise_sales"
+              />
+            </div>
           </div>
           <DataTable columns={columns} data={data} loading={loading} />
         </CardContent>

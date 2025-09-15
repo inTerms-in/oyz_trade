@@ -12,6 +12,8 @@ import { DateRange } from "react-day-picker";
 import { addMonths, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ReportExportButtons } from "@/components/report-export-buttons";
 
 const columns: ColumnDef<MonthlySalesSummary>[] = [
   {
@@ -93,8 +95,7 @@ export default function MonthlySalesSummaryPage() {
         });
       });
 
-      const sortedSummary = Array.from(monthlySummaryMap.entries())
-        .map(([month_year, summary]) => ({ month_year, ...summary }))
+      const sortedSummary = Array.from(monthlySummaryMap.values())
         .sort((a, b) => new Date(a.month_year).getTime() - new Date(b.month_year).getTime()); // Sort by date
 
       setData(sortedSummary);
@@ -116,10 +117,18 @@ export default function MonthlySalesSummaryPage() {
         <CardContent>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
             <DateRangePicker dateRange={dateRange} setDateRange={setDateRange} />
-            <Button variant="outline" onClick={() => fetchMonthlySalesSummary()} disabled={loading}>
-              <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => fetchMonthlySalesSummary()} disabled={loading}>
+                <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
+                Refresh
+              </Button>
+              <ReportExportButtons
+                data={data}
+                columns={columns.filter(col => typeof col.accessorKey === 'string') as { header: string; accessorKey: string }[]}
+                reportTitle="Monthly Sales Summary Report"
+                fileName="monthly_sales_summary"
+              />
+            </div>
           </div>
           <DataTable columns={columns} data={data} loading={loading} />
         </CardContent>

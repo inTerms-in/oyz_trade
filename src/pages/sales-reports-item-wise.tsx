@@ -14,6 +14,7 @@ import { RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Autocomplete } from "@/components/autocomplete";
 import { ItemMaster } from "@/types";
+import { ReportExportButtons } from "@/components/report-export-buttons";
 
 interface ItemWiseSale {
   ItemId: number;
@@ -181,6 +182,12 @@ export default function ItemWiseSalesPage() {
               <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
               Refresh Report
             </Button>
+            <ReportExportButtons
+              data={data}
+              columns={columns.filter(col => typeof col.accessorKey === 'string') as { header: string; accessorKey: string }[]}
+              reportTitle="Item-wise Sales Report"
+              fileName="item_wise_sales"
+            />
           </div>
           <DataTable columns={columns} data={data} loading={loading} />
         </CardContent>
