@@ -45,7 +45,7 @@ function Layout() {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const newActionButtonRef = useRef<HTMLButtonElement>(null);
-  const [openParentMenu, setOpenParentMenu] = useState<string | null>(null); // State for accordion behavior
+  const [openModulePath, setOpenModulePath] = useState<string | null>(null); // State for top-level accordion behavior
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -195,24 +195,25 @@ function Layout() {
 
   const currentPageTitle = useMemo(() => getCurrentPageTitle(location.pathname, navItems), [location.pathname, navItems, getCurrentPageTitle]);
 
-  const renderNavLinks = (items: NavItem[], isMobile: boolean, isSubMenu: boolean = false) => {
+  const renderNavLinks = (items: NavItem[], isMobile: boolean, currentOpenPath: string | null, setOpenPath: (path: string | null) => void, level: number = 0) => {
     return items.map((item) => {
       const currentPath = item.to;
       const isActive = location.pathname.startsWith(currentPath) && (item.end ? location.pathname === currentPath : true);
       const isParentActive = location.pathname.startsWith(item.to);
 
       if (item.children && item.children.length > 0) {
+        // Determine if this specific collapsible should be open
+        // It should be open if its path matches the currently open path for its level,
+        // OR if it's an active parent and no other sibling is explicitly open at this level.
+        const isOpen = currentOpenPath === item.to || (isParentActive && !currentOpenPath && level === 0);
+
         if (isMobile) {
           return (
             <Collapsible
               key={item.label}
-              open={isParentActive} // Keep open if current path is within this module
-              onOpenChange={(isOpen) => {
-                if (isOpen) {
-                  setOpenParentMenu(item.to);
-                } else if (openParentMenu === item.to) {
-                  setOpenParentMenu(null);
-                }
+              open={isParentActive} // In mobile, just open if active
+              onOpenChange={(isOpenState) => {
+                // No accordion for mobile nested, just open/close
               }}
               className="w-full"
             >
@@ -230,7 +231,7 @@ function Layout() {
               </CollapsibleTrigger>
               <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                 <nav className="grid items-start text-base font-medium ml-3 pl-6 border-l gap-1 py-2">
-                  {renderNavLinks(item.children, isMobile, true)}
+                  {renderNavLinks(item.children, isMobile, currentOpenPath, setOpenPath, level + 1)}
                 </nav>
               </CollapsibleContent>
             </Collapsible>
@@ -239,7 +240,7 @@ function Layout() {
 
         if (isCollapsed) {
           // Nested Dropdown Menu for collapsed sidebar
-          const renderCollapsedDropdown = (subItems: NavItem[], isSub: boolean = false) => {
+          const renderCollapsedDropdown = (subItems: NavItem[], subLevel: number = 0) => {
             return subItems.map(subItem => {
               if (subItem.children && subItem.children.length > 0) {
                 return (
@@ -250,7 +251,7 @@ function Layout() {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuSubContent>
-                        {renderCollapsedDropdown(subItem.children, true)}
+                        {renderCollapsedDropdown(subItem.children, subLevel + 1)}
                       </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
@@ -295,12 +296,12 @@ function Layout() {
         return (
           <Collapsible
             key={item.label}
-            open={openParentMenu === item.to || (isParentActive && openParentMenu === null)} // Open if active or if it's the explicitly opened one
-            onOpenChange={(isOpen) => {
-              if (isOpen) {
-                setOpenParentMenu(item.to);
-              } else if (openParentMenu === item.to) {
-                setOpenParentMenu(null);
+            open={isOpen}
+            onOpenChange={(isOpenState) => {
+              if (isOpenState) {
+                setOpenPath(item.to);
+              } else if (currentOpenPath === item.to) {
+                setOpenPath(null);
               }
             }}
             className="w-full"
@@ -326,8 +327,8 @@ function Layout() {
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-              <nav className={cn("grid items-start text-sm font-medium ml-3 pl-6 border-l")}>
-                {renderNavLinks(item.children, isMobile, true)}
+              <nav className={cn("grid items-start text-sm font-medium gap-1", level > 0 ? "ml-3 pl-6 border-l" : "")}>
+                {renderNavLinks(item.children, isMobile, currentOpenPath, setOpenPath, level + 1)}
               </nav>
             </CollapsibleContent>
           </Collapsible>
@@ -342,7 +343,9 @@ function Layout() {
                 className={isMobile ? mobileNavLinkClasses({isActive}) : navLinkClasses({isActive})}
                 onClick={() => {
                   if (isMobile) closeSheet();
-                  if (!isSubMenu) setOpenParentMenu(null); // Collapse parent if a non-submenu item is clicked
+                  // When a leaf item is clicked, ensure its parent collapsibles remain open
+                  // The `isParentActive` logic should handle keeping parents open.
+                  // No need to explicitly set `setOpenPath(null)` here.
                 }}
                 end={item.end}
               >
@@ -403,7 +406,7 @@ function Layout() {
           </div>
           <div className="flex-1 py-4 overflow-y-auto">
             <nav className="grid items-start px-2 text-sm font-medium gap-1">
-              {renderNavLinks(navItems, false)}
+              {renderNavLinks(navItems, false, openModulePath, setOpenModulePath)}
             </nav>
           </div>
         </div>
@@ -424,7 +427,7 @@ function Layout() {
                     <Package className="h-6 w-6 text-primary" />
                     <span className="text-lg font-semibold">PurchaseTracker</span>
                   </NavLink>
-                  {renderNavLinks(navItems, true)}
+                  {renderNavLinks(navItems, true, openModulePath, setOpenModulePath)}
                 </nav>
               </SheetContent>
             </Sheet>
