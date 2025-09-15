@@ -154,7 +154,7 @@ function SuppliersPage() {
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("SupplierName")}>
                       <span className="flex items-center">
-                        <span>Name</span>
+                        <span>Supplier Name</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
@@ -208,7 +208,7 @@ function SuppliersPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="h-24 text-center">
-                      No results found.
+                      No suppliers found.
                     </TableCell>
                   </TableRow>
                 )}

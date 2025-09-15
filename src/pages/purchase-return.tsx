@@ -7,7 +7,6 @@ import { PurchaseReturnWithItems } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
-import { useAuth } from "@/contexts/auth-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type SortDirection = "asc" | "desc";
 
 function PurchaseReturnPage() {
-  const { user } = useAuth(); // Use useAuth
   const [purchaseReturns, setPurchaseReturns] = useState<PurchaseReturnWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -44,10 +42,6 @@ function PurchaseReturnPage() {
   });
 
   const fetchPurchaseReturns = useCallback(async () => {
-    if (!user?.id) { // Ensure user is logged in
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     const from = pageIndex * pageSize;
     const to = from + pageSize - 1;
@@ -96,7 +90,7 @@ function PurchaseReturnPage() {
       setPageCount(Math.ceil((count ?? 0) / pageSize));
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange, user?.id]);
+  }, [pageIndex, pageSize, debouncedSearchTerm, sort, dateRange]);
 
   useEffect(() => {
     fetchPurchaseReturns();

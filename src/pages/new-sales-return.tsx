@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { SaleWithItems, ReturnableItem } from "@/types";
-// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -41,7 +40,6 @@ type SalesReturnFormValues = z.infer<typeof salesReturnFormSchema>;
 
 function NewSalesReturnPage() {
   const navigate = useNavigate();
-  // Removed user from useAuth
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [saleSuggestions, setSaleSuggestions] = useState<SaleWithItems[]>([]);
@@ -116,7 +114,7 @@ function NewSalesReturnPage() {
       const filteredSales = salesWithReturnInfo.filter(sale => sale.hasAnyItemAvailableForReturn);
       setSaleSuggestions(filteredSales as unknown as SaleWithItems[]);
     }
-  }, []); // Removed user.id from dependencies
+  }, []);
 
   useEffect(() => {
     fetchSalesSuggestions();
@@ -220,7 +218,7 @@ function NewSalesReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_sales_return_reference_no');
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate sales return reference number", { description: refNoError?.message });
@@ -236,7 +234,6 @@ function NewSalesReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
-        // Removed user_id: user.id,
       })
       .select()
       .single();
@@ -252,8 +249,7 @@ function NewSalesReturnPage() {
       ItemId: item.ItemId,
       Qty: item.QtyToReturn,
       Unit: item.Unit,
-      UnitPrice: item.UnitPrice, // Use the potentially edited unit price
-      // Removed user_id: user.id,
+      UnitPrice: item.UnitPrice,
     }));
 
     const { error: salesReturnItemsError } = await supabase
@@ -264,13 +260,12 @@ function NewSalesReturnPage() {
       toast.error("Failed to save sales return items. Rolling back.", {
         description: salesReturnItemsError.message || "An unknown error occurred. The sales return was not saved."
       });
-      await supabase.from("SalesReturn").delete().eq("SalesReturnId", salesReturnData.SalesReturnId); // Removed user_id
+      await supabase.from("SalesReturn").delete().eq("SalesReturnId", salesReturnData.SalesReturnId);
       setIsSubmitting(false);
       return;
     }
 
     // Update stock for each returned item
-    // Removed direct StockAdjustment insert as stock is now calculated from transactional tables
 
     setIsSubmitting(false);
     toast.success(`Sales Return ${refNoData} added successfully!`);

@@ -95,7 +95,8 @@ export default function MonthlySalesSummaryPage() {
         });
       });
 
-      const sortedSummary = Array.from(monthlySummaryMap.values())
+      const sortedSummary = Array.from(monthlySummaryMap.entries())
+        .map(([month_year, summary]) => ({ month_year, ...summary }))
         .sort((a, b) => new Date(a.month_year).getTime() - new Date(b.month_year).getTime()); // Sort by date
 
       setData(sortedSummary);

@@ -154,7 +154,7 @@ function CustomersPage() {
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("CustomerName")}>
                       <span className="flex items-center">
-                        <span>Name</span>
+                        <span>Customer Name</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
@@ -180,7 +180,6 @@ function CustomersPage() {
                 ) : customers.length > 0 ? (
                   customers.map((customer) => (
                     <TableRow key={customer.CustomerId}>
-                      <TableCell className="font-mono text-xs">{customer.CustomerId}</TableCell>
                       <TableCell className="font-medium">{customer.CustomerName}</TableCell>
                       <TableCell>{customer.MobileNo || 'N/A'}</TableCell>
                       <TableCell className="text-right">
@@ -208,7 +207,7 @@ function CustomersPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="h-24 text-center">
-                      No results found.
+                      No customers found.
                     </TableCell>
                   </TableRow>
                 )}

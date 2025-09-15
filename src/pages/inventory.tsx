@@ -8,8 +8,6 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { AddItemDialog } from "@/components/add-item-dialog";
 import { EditItemDialog } from "@/components/edit-item-dialog";
 import { DeleteItemAlert } from "@/components/delete-item-alert";
-import { AddNewItemInlineDialog } from "@/components/add-new-item-inline-dialog";
-import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { BarcodePrintDialog } from "@/components/barcode-print-dialog";
 import { useLocation } from "react-router-dom";
 
@@ -203,11 +201,11 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
 
-      <AddItemDialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen} onAddItem={handleItemAdded} categories={categories} />
+      <AddItemDialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen} onItemAdded={handleItemAdded} />
       {selectedItem && (
         <>
-          <EditItemDialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen} item={selectedItem} onUpdateItem={handleItemUpdated} categories={categories} />
-          <DeleteItemAlert open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} item={selectedItem} onDelete={handleItemDeleted} />
+          <EditItemDialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen} item={selectedItem} onItemUpdated={handleItemUpdated} />
+          <DeleteItemAlert item={selectedItem} onItemDeleted={handleItemDeleted} />
         </>
       )}
       <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />

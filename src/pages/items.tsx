@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { generateItemCode } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/auth-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,7 +27,6 @@ type SortDirection = "asc" | "desc";
 function ItemsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {  } = useAuth(); // Use useAuth
   const [items, setItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);

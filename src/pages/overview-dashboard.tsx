@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/contexts/auth-provider";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -78,7 +77,6 @@ interface MonthlyComparison {
 }
 
 function OverviewDashboardPage() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalPurchaseSpending, setTotalPurchaseSpending] = useState(0);
@@ -109,10 +107,6 @@ function OverviewDashboardPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!user?.id) {
-        setLoading(false);
-        return;
-      }
       setLoading(true);
       let currentTotalPurchaseSpending = 0;
       let currentTotalExpenses = 0;
@@ -315,7 +309,7 @@ function OverviewDashboardPage() {
     }
 
     fetchData();
-  }, [dateRange, user?.id]);
+  }, [dateRange]);
 
   // Handler for card clicks to toggle chart visibility
   const handleCardClick = (type: 'sales' | 'purchases' | 'reset') => {

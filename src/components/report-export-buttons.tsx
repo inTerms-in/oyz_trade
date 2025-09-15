@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Papa from "papaparse";
 import { toast } from "sonner";
+import { format } from "date-fns"; // Added format import
 
 interface ReportExportButtonsProps {
   data: any[];

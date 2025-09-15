@@ -154,7 +154,7 @@ function CategoriesPage() {
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort("CategoryName")}>
                       <span className="flex items-center">
-                        <span>Name</span>
+                        <span>Category Name</span>
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </span>
                     </Button>
@@ -172,7 +172,6 @@ function CategoriesPage() {
                 ) : categories.length > 0 ? (
                   categories.map((category) => (
                     <TableRow key={category.CategoryId}>
-                      <TableCell className="font-mono text-xs">{category.CategoryId}</TableCell>
                       <TableCell className="font-medium">{category.CategoryName}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
@@ -199,7 +198,7 @@ function CategoriesPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={3} className="h-24 text-center">
-                      No results found.
+                      No categories found.
                     </TableCell>
                   </TableRow>
                 )}

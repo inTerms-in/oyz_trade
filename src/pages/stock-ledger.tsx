@@ -15,9 +15,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Autocomplete } from "@/components/autocomplete";
+import { Badge } from "@/components/ui/badge";
 
-interface StockLedgerEntry extends StockAdjustment {
-  ItemMaster?: (Item & { CategoryMaster?: Category | null }) | null;
+interface StockLedgerEntry {
+  AdjustmentDate: string;
+  ItemName: string;
+  ItemCode: string;
+  CategoryName: string;
+  AdjustmentType: 'in' | 'out';
+  Quantity: number;
+  Reason?: string | null;
 }
 
 export default function StockLedgerPage() {
@@ -82,36 +89,33 @@ export default function StockLedgerPage() {
         cell: ({ row }) => format(new Date(row.original.AdjustmentDate), "PPP"),
       },
       {
-        accessorKey: "ItemMaster.ItemName",
+        accessorKey: "ItemName",
         header: "Item Name",
-        cell: ({ row }) => row.original.ItemMaster?.ItemName || "N/A",
       },
       {
-        accessorKey: "ItemMaster.ItemCode",
+        accessorKey: "ItemCode",
         header: "Item Code",
-        cell: ({ row }) => row.original.ItemMaster?.ItemCode || "N/A",
+      },
+      {
+        accessorKey: "CategoryName",
+        header: "Category",
       },
       {
         accessorKey: "AdjustmentType",
         header: "Type",
         cell: ({ row }) => (
-          <span className={cn(
-            "px-2 py-1 rounded-full text-xs font-medium",
-            row.original.AdjustmentType === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-          )}>
-            {row.original.AdjustmentType.toUpperCase()}
-          </span>
+          <Badge variant={row.original.AdjustmentType === 'in' ? 'default' : 'destructive'}>
+            {row.original.AdjustmentType === 'in' ? 'In' : 'Out'}
+          </Badge>
         ),
       },
       {
         accessorKey: "Quantity",
         header: "Quantity",
-        cell: ({ row }) => row.original.Quantity,
       },
       {
         accessorKey: "Reason",
-        header: "Reason/Source",
-        cell: ({ row }) => row.original.Reason || "N/A",
+        header: "Reason",
       },
     ],
     []

@@ -11,13 +11,16 @@ import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, Search } from "lucide-react";
-import { Autocomplete } from "@/components/autocomplete";
-import { Input } from "@/components/ui/input";
+import { RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Autocomplete } from "@/components/autocomplete";
 import { ReportExportButtons } from "@/components/report-export-buttons";
 
-const columns: ColumnDef<SalesDetail>[] = [
+interface SalesDetailReport extends SalesDetail {
+  // Add any additional fields needed for the report table if they are not in SalesDetail
+}
+
+const columns: ColumnDef<SalesDetailReport>[] = [
   {
     accessorKey: "SaleDate",
     header: "Date",
@@ -30,7 +33,7 @@ const columns: ColumnDef<SalesDetail>[] = [
   {
     accessorKey: "CustomerMaster.CustomerName",
     header: "Customer",
-    cell: ({ row }) => row.original.CustomerMaster?.CustomerName || "N/A",
+    cell: ({ row }) => row.original.CustomerMaster?.CustomerName || 'Walk-in Customer',
   },
   {
     accessorKey: "TotalAmount",
@@ -49,14 +52,12 @@ const columns: ColumnDef<SalesDetail>[] = [
     header: "Payment Type",
   },
   {
-    id: "items",
+    accessorKey: "SalesItem",
     header: "Items",
     cell: ({ row }) => (
-      <ul className="list-disc list-inside">
-        {row.original.SalesItem.map((item) => (
-          <li key={item.SalesItemId}>
-            {item.ItemMaster.ItemName} ({item.Qty} {item.Unit}) @ {new Intl.NumberFormat("en-US", { style: "currency", currency: "INR" }).format(item.UnitPrice)}
-          </li>
+      <ul className="list-disc list-inside text-xs">
+        {row.original.SalesItem.map((item, index) => (
+          <li key={index}>{item.ItemMaster.ItemName} ({item.Qty} {item.Unit})</li>
         ))}
       </ul>
     ),
@@ -64,7 +65,7 @@ const columns: ColumnDef<SalesDetail>[] = [
 ];
 
 export default function SalesDetailReportPage() {
-  const [data, setData] = React.useState<SalesDetail[]>([]);
+  const [data, setData] = React.useState<SalesDetailReport[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [selectedItem, setSelectedItem] = React.useState<ItemMaster | null>(null);
@@ -74,7 +75,7 @@ export default function SalesDetailReportPage() {
   const [customerSearchTerm, setCustomerSearchTerm] = React.useState<string>("");
   const [customerSuggestions, setCustomerSuggestions] = React.useState<CustomerMaster[]>([]);
 
-  const fetchSalesDetailReport = React.useCallback(async () => {
+  const fetchSalesDetail = React.useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from("Sales")
@@ -90,24 +91,9 @@ export default function SalesDetailReportPage() {
         CashAmount,
         BankAmount,
         CreditAmount,
-        CustomerMaster (
-          CustomerId,
-          CustomerName,
-          MobileNo
-        ),
-        SalesItem (
-          SalesItemId,
-          ItemId,
-          Qty,
-          Unit,
-          UnitPrice,
-          ItemMaster (
-            ItemName,
-            ItemCode
-          )
-        )
-      `)
-      .order("SaleDate", { ascending: false });
+        CustomerMaster(CustomerId, CustomerName, MobileNo),
+        SalesItem(SalesItemId, ItemId, Qty, Unit, UnitPrice, ItemMaster(ItemName, ItemCode))
+      `);
 
     if (dateRange?.from) {
       query = query.gte("SaleDate", format(dateRange.from, "yyyy-MM-dd"));
@@ -115,12 +101,12 @@ export default function SalesDetailReportPage() {
     if (dateRange?.to) {
       query = query.lte("SaleDate", format(dateRange.to, "yyyy-MM-dd"));
     }
+    if (selectedItem) {
+      query = query.eq("SalesItem.ItemId", selectedItem.ItemId);
+    }
     if (selectedCustomer) {
       query = query.eq("CustomerId", selectedCustomer.CustomerId);
     }
-    // Filtering by item requires a join condition on SalesItem, which is complex in Supabase RLS.
-    // For now, we'll fetch all and filter client-side if an item is selected.
-    // A more efficient way would be a custom RPC function or a view.
 
     const { data: salesData, error } = await query;
 
@@ -128,13 +114,27 @@ export default function SalesDetailReportPage() {
       toast.error("Failed to fetch sales detail report", { description: error.message });
       setData([]);
     } else {
-      let filteredData = salesData as SalesDetail[];
-      if (selectedItem) {
-        filteredData = filteredData.filter(sale =>
-          sale.SalesItem.some(item => item.ItemId === selectedItem.ItemId)
-        );
-      }
-      setData(filteredData);
+      // Ensure CustomerMaster and SalesItem are correctly typed
+      const processedData: SalesDetailReport[] = salesData.map(sale => ({
+        ...sale,
+        CustomerMaster: sale.CustomerMaster ? {
+          CustomerId: sale.CustomerMaster.CustomerId,
+          CustomerName: sale.CustomerMaster.CustomerName,
+          MobileNo: sale.CustomerMaster.MobileNo,
+        } : null,
+        SalesItem: sale.SalesItem.map((item: any) => ({ // Explicitly type item as any for now
+          SalesItemId: item.SalesItemId,
+          ItemId: item.ItemId,
+          Qty: item.Qty,
+          Unit: item.Unit,
+          UnitPrice: item.UnitPrice,
+          ItemMaster: {
+            ItemName: item.ItemMaster.ItemName,
+            ItemCode: item.ItemMaster.ItemCode,
+          },
+        })),
+      }));
+      setData(processedData);
     }
     setLoading(false);
   }, [dateRange, selectedItem, selectedCustomer]);
@@ -164,7 +164,7 @@ export default function SalesDetailReportPage() {
     }
     const { data, error } = await supabase
       .from("CustomerMaster")
-      .select("CustomerId, CustomerName, MobileNo")
+      .select("CustomerId, CustomerName")
       .ilike("CustomerName", `%${query}%`)
       .limit(10);
     if (error) {
@@ -176,8 +176,8 @@ export default function SalesDetailReportPage() {
   }, []);
 
   React.useEffect(() => {
-    fetchSalesDetailReport();
-  }, [fetchSalesDetailReport]);
+    fetchSalesDetail();
+  }, [fetchSalesDetail]);
 
   React.useEffect(() => {
     const handler = setTimeout(() => {
@@ -198,7 +198,7 @@ export default function SalesDetailReportPage() {
       <Card>
         <CardHeader>
           <CardTitle>Sales Detail Report</CardTitle>
-          <CardDescription>Detailed view of all sales transactions with filtering options.</CardDescription>
+          <CardDescription>Detailed view of sales transactions.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
@@ -207,13 +207,13 @@ export default function SalesDetailReportPage() {
               suggestions={itemSuggestions}
               value={itemSearchTerm}
               onValueChange={setItemSearchTerm}
-              onSelect={(item) => {
+              onSelect={(item: ItemMaster) => {
                 setSelectedItem(item);
                 setItemSearchTerm(item.ItemName);
               }}
-              getId={(item) => item.ItemId}
-              getName={(item) => item.ItemName}
-              getItemCode={(item) => item.ItemCode}
+              getId={(item: ItemMaster) => item.ItemId}
+              getName={(item: ItemMaster) => item.ItemName}
+              getItemCode={(item: ItemMaster) => item.ItemCode}
               label="Filter by Item"
               id="item-filter"
             />
@@ -221,12 +221,12 @@ export default function SalesDetailReportPage() {
               suggestions={customerSuggestions}
               value={customerSearchTerm}
               onValueChange={setCustomerSearchTerm}
-              onSelect={(customer) => {
+              onSelect={(customer: CustomerMaster) => {
                 setSelectedCustomer(customer);
                 setCustomerSearchTerm(customer.CustomerName);
               }}
-              getId={(customer) => customer.CustomerId}
-              getName={(customer) => customer.CustomerName}
+              getId={(customer: CustomerMaster) => customer.CustomerId}
+              getName={(customer: CustomerMaster) => customer.CustomerName}
               label="Filter by Customer"
               id="customer-filter"
             />
@@ -239,13 +239,13 @@ export default function SalesDetailReportPage() {
             }}>
               Clear Filters
             </Button>
-            <Button variant="outline" onClick={() => fetchSalesDetailReport()} disabled={loading}>
+            <Button variant="outline" onClick={() => fetchSalesDetail()} disabled={loading}>
               <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
               Refresh Report
             </Button>
             <ReportExportButtons
               data={data}
-              columns={columns.filter(col => typeof col.accessorKey === 'string') as { header: string; accessorKey: string }[]}
+              columns={columns.filter(col => typeof col.accessorKey === 'string' || col.accessorKey === 'CustomerMaster.CustomerName' || col.accessorKey === 'SalesItem') as { header: string; accessorKey: string }[]}
               reportTitle="Sales Detail Report"
               fileName="sales_detail_report"
             />

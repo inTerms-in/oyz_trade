@@ -84,7 +84,6 @@ export default function EditSalePage() {
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithCategory[]>([]);
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   
   const [currentItem, setCurrentItem] = useState(EMPTY_ITEM);
   const [addedItems, setAddedItems] = useState<SaleListItem[]>([]);
@@ -97,7 +96,7 @@ export default function EditSalePage() {
   const isActionFromNew = useRef(location.state?.actionFromNew || false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false); // New state for WhatsApp button
   const [hasHandledInitialAction, setHasHandledInitialAction] = useState(false); // New state to prevent re-triggering initial action
-  const [newlyCreatedSaleId, setNewlyCreatedSaleId] = useState<number | null>(null);
+  const [newlyCreatedSaleId, setNewlyCreatedSaleId] = useState<number | null>(null); // This state is not used in edit page, but kept for consistency if needed later.
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -635,15 +634,21 @@ export default function EditSalePage() {
   };
 
   const handleAddItem = () => {
-    if (!currentItem.ItemId || typeof currentItem.ItemId !== 'number') return toast.error("Please select a valid item.");
-    if (currentItem.Qty <= 0) return toast.error("Quantity must be greater than zero.");
+    if (!currentItem.ItemId || typeof currentItem.ItemId !== 'number') {
+      toast.error("Please select a valid item.");
+      return;
+    }
+    if (currentItem.Qty <= 0) {
+      toast.error("Quantity must be greater than zero.");
+      return;
+    }
     if (currentItem.UnitPrice <= 0) {
       toast.error("Unit price must be greater than zero.");
       return;
     }
-    
+
     const existingItemIndex = addedItems.findIndex(
-      (item) =>
+      (item: SaleListItem) =>
         item.ItemId === currentItem.ItemId &&
         item.Unit === currentItem.Unit &&
         item.UnitPrice === currentItem.UnitPrice
@@ -660,14 +665,14 @@ export default function EditSalePage() {
       setAddedItems([...addedItems, currentItem as SaleListItem]);
       toast.success(`Item "${currentItem.ItemName}" added.`);
     }
-
+    
     setCurrentItem(EMPTY_ITEM);
     itemInputRef.current?.focus();
   };
 
   const handleEditItem = (index: number) => {
     const itemToEdit = addedItems[index];
-    const newAddedItems = addedItems.filter((_, i) => i !== index);
+    const newAddedItems = addedItems.filter((_: SaleListItem, i: number) => i !== index);
     setAddedItems(newAddedItems);
     setCurrentItem(itemToEdit);
     itemInputRef.current?.focus();
@@ -726,7 +731,7 @@ export default function EditSalePage() {
     setIsScannerOpen(false);
   };
 
-  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase());
+  const isCurrentItemNew = currentItem.ItemName && !itemSuggestions.some(i => (i.ItemName ?? '').toLowerCase() === (currentItem.ItemName ?? '').toLowerCase();
 
   const handleFormSubmit = async (values: SaleFormValues) => {
     const success = await saveSale(values);

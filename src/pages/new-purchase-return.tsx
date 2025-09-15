@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
 import { PurchaseWithItems, ReturnableItem } from "@/types";
-// Removed useAuth import as user.id is no longer used for filtering or insert
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -41,7 +40,6 @@ type PurchaseReturnFormValues = z.infer<typeof purchaseReturnFormSchema>;
 
 function NewPurchaseReturnPage() {
   const navigate = useNavigate();
-  // Removed user from useAuth
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [purchaseSuggestions, setPurchaseSuggestions] = useState<PurchaseWithItems[]>([]);
@@ -116,7 +114,7 @@ function NewPurchaseReturnPage() {
       const filteredPurchases = purchasesWithReturnInfo.filter(purchase => purchase.hasAnyItemAvailableForReturn);
       setPurchaseSuggestions(filteredPurchases as unknown as PurchaseWithItems[]);
     }
-  }, []); // Removed user.id from dependencies
+  }, []);
 
   useEffect(() => {
     fetchPurchaseSuggestions();
@@ -220,7 +218,7 @@ function NewPurchaseReturnPage() {
 
     setIsSubmitting(true);
 
-    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no'); // Removed p_user_id
+    const { data: refNoData, error: refNoError } = await supabase.rpc('generate_purchase_return_reference_no');
 
     if (refNoError || !refNoData) {
       toast.error("Failed to generate purchase return reference number", { description: refNoError?.message });
@@ -236,7 +234,6 @@ function NewPurchaseReturnPage() {
         TotalRefundAmount: totalRefundAmount,
         Reason: values.Reason || null,
         ReferenceNo: refNoData,
-        // Removed user_id: user.id, // Added user_id
       })
       .select()
       .single();
@@ -253,7 +250,6 @@ function NewPurchaseReturnPage() {
       Qty: item.QtyToReturn,
       Unit: item.Unit,
       UnitPrice: item.UnitPrice, // Use the potentially edited unit price
-      // Removed user_id: user.id, // Added user_id
     }));
 
     const { error: purchaseReturnItemsError } = await supabase
@@ -264,13 +260,12 @@ function NewPurchaseReturnPage() {
       toast.error("Failed to save purchase return items. Rolling back.", {
         description: purchaseReturnItemsError.message || "An unknown error occurred. The purchase return was not saved."
       });
-      await supabase.from("PurchaseReturn").delete().eq("PurchaseReturnId", purchaseReturnData.PurchaseReturnId); // Removed user_id
+      await supabase.from("PurchaseReturn").delete().eq("PurchaseReturnId", purchaseReturnData.PurchaseReturnId);
       setIsSubmitting(false);
       return;
     }
 
     // Update stock for each returned item (stock decreases)
-    // Removed direct StockAdjustment insert as stock is now calculated from transactional tables
 
     setIsSubmitting(false);
     toast.success(`Purchase Return ${refNoData} added successfully!`);

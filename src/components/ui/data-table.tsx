@@ -85,7 +85,7 @@ export function DataTable<TData, TValue>({
 
   const skeletonRows = Array.from({ length: 5 }).map((_, i) => (
     <TableRow key={i}>
-      {columns.map((column, colIndex) => (
+      {columns.map((columnDef, colIndex) => (
         <TableCell key={colIndex}>
           <Skeleton className="h-6 w-full" />
         </TableCell>
@@ -141,7 +141,14 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
+      <DataTablePagination
+        pageIndex={table.getState().pagination.pageIndex}
+        pageCount={table.getPageCount()}
+        pageSize={table.getState().pagination.pageSize}
+        setPageIndex={table.setPageIndex}
+        setPageSize={table.setPageSize}
+        itemCount={table.getRowCount()}
+      />
     </div>
   )
 }

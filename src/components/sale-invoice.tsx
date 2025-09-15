@@ -79,7 +79,7 @@ export const SaleInvoice = React.forwardRef<HTMLDivElement, SaleInvoiceProps>(
                   </tr>
                 </thead>
                 <tbody>
-                  {sale.SalesItem.map((item) => {
+                  {sale.SalesItem.map((item: SaleItem) => {
                     const itemCode = item.ItemMaster?.ItemCode || generateItemCode(
                       item.ItemMaster?.CategoryMaster?.CategoryName,
                       item.ItemId

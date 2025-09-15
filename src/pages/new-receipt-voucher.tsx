@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Customer, Receivable } from "@/types";
+import { Customer, ReceivableToSettle } from "@/types";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Trash2 } from "lucide-react";
 
 interface ReceivableToSettle extends Receivable {
   amountToSettle: number;
@@ -88,8 +89,8 @@ function NewReceiptVoucherPage() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [outstandingReceivables, setOutstandingReceivables] = useState<ReceivableToSettle[]>([]);
-  const [isAddCustomerDialogOpen, setIsAddCustomerDialogOpen] = useState(false);
+  const [receivablesToSettle, setReceivablesToSettle] = useState<ReceivableToSettle[]>([]);
+  const [displayCustomerName, setDisplayCustomerName] = useState("");
 
   const form = useForm<ReceiptVoucherFormValues>({
     resolver: zodResolver(receiptVoucherFormSchema),
@@ -113,7 +114,7 @@ function NewReceiptVoucherPage() {
   const watchedCashAmount = form.watch("CashAmount");
   const watchedBankAmount = form.watch("BankAmount");
 
-  const totalAllocatedAmount = outstandingReceivables
+  const totalAllocatedAmount = receivablesToSettle
     .filter(r => r.isSelected)
     .reduce((sum, r) => sum + r.amountToSettle, 0);
 
@@ -141,9 +142,9 @@ function NewReceiptVoucherPage() {
 
     if (error) {
       toast.error("Failed to fetch outstanding receivables", { description: error.message });
-      setOutstandingReceivables([]);
+      setReceivablesToSettle([]);
     } else {
-      setOutstandingReceivables(data.map(r => ({
+      setReceivablesToSettle(data.map(r => ({
         ...r,
         amountToSettle: 0,
         isSelected: false,
@@ -162,7 +163,7 @@ function NewReceiptVoucherPage() {
       fetchOutstandingReceivables(watchedCustomerId);
     } else {
       setSelectedCustomer(null);
-      setOutstandingReceivables([]);
+      setReceivablesToSettle([]);
     }
   }, [watchedCustomerId, customerSuggestions, fetchOutstandingReceivables]);
 
@@ -214,7 +215,7 @@ function NewReceiptVoucherPage() {
   };
 
   const handleReceivableSelection = (index: number, isChecked: boolean) => {
-    const updatedReceivables = [...outstandingReceivables];
+    const updatedReceivables = [...receivablesToSettle];
     const receivable = updatedReceivables[index];
     receivable.isSelected = isChecked;
     if (!isChecked) {
@@ -223,24 +224,39 @@ function NewReceiptVoucherPage() {
       // Automatically fill max amount if selected, or 0 if unselected
       receivable.amountToSettle = Math.min(receivable.Balance, remainingAmountToAllocate);
     }
-    setOutstandingReceivables(updatedReceivables);
+    setReceivablesToSettle(updatedReceivables);
   };
 
   const handleAmountToSettleChange = (index: number, value: number) => {
-    const updatedReceivables = [...outstandingReceivables];
+    const updatedReceivables = [...receivablesToSettle];
     const receivable = updatedReceivables[index];
     const maxSettlement = receivable.Balance;
     const newAmount = Math.max(0, Math.min(value, maxSettlement));
     receivable.amountToSettle = newAmount;
     receivable.isSelected = newAmount > 0; // Select if amount is entered
-    setOutstandingReceivables(updatedReceivables);
+    setReceivablesToSettle(updatedReceivables);
+  };
+
+  const handleReceivableAmountChange = (index: number, value: number) => {
+    const updatedReceivables = [...receivablesToSettle];
+    const receivable = updatedReceivables[index];
+    const maxSettleable = receivable.Balance;
+    const newAmount = Math.max(0, Math.min(value, maxSettleable));
+    receivable.AmountToSettle = newAmount;
+    setReceivablesToSettle(updatedReceivables);
+  };
+
+  const handleRemoveReceivable = (index: number) => {
+    const updatedReceivables = [...receivablesToSettle];
+    updatedReceivables.splice(index, 1);
+    setReceivablesToSettle(updatedReceivables);
   };
 
   async function onSubmit(values: ReceiptVoucherFormValues) {
     if (!values.CustomerId) return toast.error("Please select a customer.");
     if (values.AmountReceived <= 0) return toast.error("Amount received must be greater than zero.");
 
-    const settlements = outstandingReceivables.filter(r => r.isSelected && r.amountToSettle > 0);
+    const settlements = receivablesToSettle.filter(r => r.isSelected && r.amountToSettle > 0);
     const totalSettled = settlements.reduce((sum, s) => sum + s.amountToSettle, 0);
 
     if (Math.abs(totalSettled - values.AmountReceived) > 0.01) {
@@ -457,7 +473,7 @@ function NewReceiptVoucherPage() {
                 </div>
               )}
 
-              {selectedCustomer && outstandingReceivables.length > 0 && (
+              {selectedCustomer && receivablesToSettle.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Allocate to Receivables</h3>
                   <div className="rounded-md border">
@@ -465,46 +481,53 @@ function NewReceiptVoucherPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12 text-center">Select</TableHead>
-                          <TableHead>Sale Ref No.</TableHead>
+                          <TableHead>Receivable Ref No.</TableHead>
                           <TableHead className="text-right">Original Amount</TableHead>
                           <TableHead className="text-right">Outstanding Balance</TableHead>
-                          <TableHead className="text-right">Amount to Settle</TableHead>
-                          <TableHead className="text-right">New Balance</TableHead>
+                          <TableHead className="text-center">Amount to Settle</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {outstandingReceivables.map((receivable, index) => (
-                          <TableRow key={receivable.ReceivableId}>
-                            <TableCell className="text-center">
-                              <Checkbox
-                                checked={receivable.isSelected}
-                                onCheckedChange={(checked: boolean) => handleReceivableSelection(index, checked)}
-                              />
-                            </TableCell>
-                            <TableCell className="font-mono text-xs">{receivable.Sales?.ReferenceNo || 'N/A'}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(receivable.Amount)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(receivable.Balance)}</TableCell>
-                            <TableCell className="text-right">
-                              {receivable.isSelected ? (
+                        {receivablesToSettle.length > 0 ? (
+                          receivablesToSettle.map((receivable, index) => (
+                            <TableRow key={receivable.ReceivableId}>
+                              <TableCell className="text-center">
+                                <Checkbox
+                                  checked={receivable.isSelected}
+                                  onCheckedChange={(checked: boolean) => handleReceivableSelection(index, checked)}
+                                />
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">{receivable.Sales?.ReferenceNo || 'N/A'}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(receivable.Amount)}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(receivable.Balance)}</TableCell>
+                              <TableCell className="text-center">
                                 <FloatingLabelInput
-                                  id={`settle-amount-${receivable.ReceivableId}`}
+                                  id={`amount-to-settle-${index}`}
                                   label=" "
                                   type="number"
-                                  value={receivable.amountToSettle}
-                                  onChange={(e) => handleAmountToSettleChange(index, e.target.valueAsNumber)}
+                                  value={receivable.AmountToSettle}
+                                  onChange={(e) => handleReceivableAmountChange(index, e.target.valueAsNumber)}
                                   min={0}
                                   max={receivable.Balance}
-                                  className="w-28 text-right"
+                                  step="0.01"
+                                  className="w-24 text-center"
                                 />
-                              ) : (
-                                formatCurrency(0)
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right font-bold">
-                              {formatCurrency(receivable.Balance - receivable.amountToSettle)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveReceivable(index)} aria-label="Remove receivable">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">
+                              No receivables selected for settlement.
                             </TableCell>
                           </TableRow>
-                        ))}
+                        )}
                       </TableBody>
                     </Table>
                   </div>

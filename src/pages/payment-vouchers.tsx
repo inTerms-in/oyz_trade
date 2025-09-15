@@ -9,6 +9,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
 import { useAuth } from "@/contexts/auth-provider";
 import { format } from "date-fns";
+import { PayableSettlement } from "@/types"; // Added missing import
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

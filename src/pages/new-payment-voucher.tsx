@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Supplier, Payable } from "@/types";
+import { Supplier, PayableToSettle } from "@/types";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Trash2 } from "lucide-react";
 
 interface PayableToSettle extends Payable {
   amountToSettle: number;
@@ -88,8 +89,8 @@ function NewPaymentVoucherPage() {
   const [isDatePickerOpen, setDatePickerOpen] = useState(false);
   const [supplierSuggestions, setSupplierSuggestions] = useState<Supplier[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [outstandingPayables, setOutstandingPayables] = useState<PayableToSettle[]>([]);
-  const [isAddSupplierDialogOpen, setIsAddSupplierDialogOpen] = useState(false);
+  const [payablesToSettle, setPayablesToSettle] = useState<PayableToSettle[]>([]);
+  const [displaySupplierName, setDisplaySupplierName] = useState("");
 
   const form = useForm<PaymentVoucherFormValues>({
     resolver: zodResolver(paymentVoucherFormSchema),
@@ -113,7 +114,7 @@ function NewPaymentVoucherPage() {
   const watchedCashAmount = form.watch("CashAmount");
   const watchedBankAmount = form.watch("BankAmount");
 
-  const totalAllocatedAmount = outstandingPayables
+  const totalAllocatedAmount = payablesToSettle
     .filter(r => r.isSelected)
     .reduce((sum, r) => sum + r.amountToSettle, 0);
 
@@ -141,9 +142,9 @@ function NewPaymentVoucherPage() {
 
     if (error) {
       toast.error("Failed to fetch outstanding payables", { description: error.message });
-      setOutstandingPayables([]);
+      setPayablesToSettle([]);
     } else {
-      setOutstandingPayables(data.map(r => ({
+      setPayablesToSettle(data.map(r => ({
         ...r,
         amountToSettle: 0,
         isSelected: false,
@@ -159,10 +160,12 @@ function NewPaymentVoucherPage() {
     if (watchedSupplierId) {
       const supplier = supplierSuggestions.find(c => c.SupplierId === watchedSupplierId);
       setSelectedSupplier(supplier || null);
+      setDisplaySupplierName(supplier?.SupplierName || "");
       fetchOutstandingPayables(watchedSupplierId);
     } else {
       setSelectedSupplier(null);
-      setOutstandingPayables([]);
+      setDisplaySupplierName("");
+      setPayablesToSettle([]);
     }
   }, [watchedSupplierId, supplierSuggestions, fetchOutstandingPayables]);
 
@@ -210,11 +213,14 @@ function NewPaymentVoucherPage() {
     if (!matchedSupplier || name === "") {
       form.setValue("SupplierId", null, { shouldValidate: true });
       setSelectedSupplier(null);
+      setDisplaySupplierName("");
+    } else {
+      setDisplaySupplierName(matchedSupplier.SupplierName);
     }
   };
 
   const handlePayableSelection = (index: number, isChecked: boolean) => {
-    const updatedPayables = [...outstandingPayables];
+    const updatedPayables = [...payablesToSettle];
     const payable = updatedPayables[index];
     payable.isSelected = isChecked;
     if (!isChecked) {
@@ -223,24 +229,29 @@ function NewPaymentVoucherPage() {
       // Automatically fill max amount if selected, or 0 if unselected
       payable.amountToSettle = Math.min(payable.Balance, remainingAmountToAllocate);
     }
-    setOutstandingPayables(updatedPayables);
+    setPayablesToSettle(updatedPayables);
   };
 
-  const handleAmountToSettleChange = (index: number, value: number) => {
-    const updatedPayables = [...outstandingPayables];
+  const handlePayableAmountChange = (index: number, value: number) => {
+    const updatedPayables = [...payablesToSettle];
     const payable = updatedPayables[index];
-    const maxSettlement = payable.Balance;
-    const newAmount = Math.max(0, Math.min(value, maxSettlement));
-    payable.amountToSettle = newAmount;
-    payable.isSelected = newAmount > 0; // Select if amount is entered
-    setOutstandingPayables(updatedPayables);
+    const maxSettleable = payable.Balance;
+    const newAmount = Math.max(0, Math.min(value, maxSettleable));
+    payable.AmountToSettle = newAmount;
+    setPayablesToSettle(updatedPayables);
+  };
+
+  const handleRemovePayable = (index: number) => {
+    const updatedPayables = [...payablesToSettle];
+    updatedPayables.splice(index, 1);
+    setPayablesToSettle(updatedPayables);
   };
 
   async function onSubmit(values: PaymentVoucherFormValues) {
     if (!values.SupplierId) return toast.error("Please select a supplier.");
     if (values.AmountPaid <= 0) return toast.error("Amount paid must be greater than zero.");
 
-    const settlements = outstandingPayables.filter(r => r.isSelected && r.amountToSettle > 0);
+    const settlements = payablesToSettle.filter(r => r.isSelected && r.amountToSettle > 0);
     const totalSettled = settlements.reduce((sum, s) => sum + s.amountToSettle, 0);
 
     if (Math.abs(totalSettled - values.AmountPaid) > 0.01) {
@@ -457,7 +468,7 @@ function NewPaymentVoucherPage() {
                 </div>
               )}
 
-              {selectedSupplier && outstandingPayables.length > 0 && (
+              {selectedSupplier && payablesToSettle.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Allocate to Payables</h3>
                   <div className="rounded-md border">
@@ -465,46 +476,53 @@ function NewPaymentVoucherPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12 text-center">Select</TableHead>
-                          <TableHead>Purchase Ref No.</TableHead>
+                          <TableHead>Payable Ref No.</TableHead>
                           <TableHead className="text-right">Original Amount</TableHead>
                           <TableHead className="text-right">Outstanding Balance</TableHead>
-                          <TableHead className="text-right">Amount to Settle</TableHead>
-                          <TableHead className="text-right">New Balance</TableHead>
+                          <TableHead className="text-center">Amount to Settle</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {outstandingPayables.map((payable, index) => (
-                          <TableRow key={payable.PayableId}>
-                            <TableCell className="text-center">
-                              <Checkbox
-                                checked={payable.isSelected}
-                                onCheckedChange={(checked: boolean) => handlePayableSelection(index, checked)}
-                              />
-                            </TableCell>
-                            <TableCell className="font-mono text-xs">{payable.Purchase?.ReferenceNo || 'N/A'}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(payable.Amount)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(payable.Balance)}</TableCell>
-                            <TableCell className="text-right">
-                              {payable.isSelected ? (
+                        {payablesToSettle.length > 0 ? (
+                          payablesToSettle.map((payable, index) => (
+                            <TableRow key={payable.PayableId}>
+                              <TableCell className="text-center">
+                                <Checkbox
+                                  checked={payable.isSelected}
+                                  onCheckedChange={(checked: boolean) => handlePayableSelection(index, checked)}
+                                />
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">{payable.Purchase?.ReferenceNo || 'N/A'}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(payable.Amount)}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(payable.Balance)}</TableCell>
+                              <TableCell className="text-center">
                                 <FloatingLabelInput
-                                  id={`settle-amount-${payable.PayableId}`}
+                                  id={`amount-to-settle-${index}`}
                                   label=" "
                                   type="number"
                                   value={payable.amountToSettle}
-                                  onChange={(e) => handleAmountToSettleChange(index, e.target.valueAsNumber)}
+                                  onChange={(e) => handlePayableAmountChange(index, e.target.valueAsNumber)}
                                   min={0}
                                   max={payable.Balance}
-                                  className="w-28 text-right"
+                                  step="0.01"
+                                  className="w-24 text-center"
                                 />
-                              ) : (
-                                formatCurrency(0)
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right font-bold">
-                              {formatCurrency(payable.Balance - payable.amountToSettle)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemovePayable(index)} aria-label="Remove payable">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">
+                              No payables selected for settlement.
                             </TableCell>
                           </TableRow>
-                        ))}
+                        )}
                       </TableBody>
                     </Table>
                   </div>
