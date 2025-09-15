@@ -56,7 +56,9 @@ export default function MonthlySalesSummaryPage() {
     let query = supabase
       .from("Sales")
       .select(`
+        SaleId,
         SaleDate,
+        TotalAmount,
         SalesItem(Qty)
       `);
 
@@ -85,49 +87,13 @@ export default function MonthlySalesSummaryPage() {
 
         const summary = monthlySummaryMap.get(monthYearKey)!;
         summary.total_sales_count += 1;
-        // Summing total amount from Sales table directly
-        // Note: If you need TotalAmount from Sales table, you need to select it in the query.
-        // For now, let's assume we calculate it from SalesItem if not directly available.
-        // If Sales.TotalAmount is available, use that. For this example, I'll use a placeholder or assume it's part of the Sales object if selected.
-        // Let's refine the query to get TotalAmount from Sales directly.
-      });
-
-      // Re-fetching with TotalAmount
-      const { data: salesDataWithAmount, error: amountError } = await supabase
-        .from("Sales")
-        .select(`
-          SaleDate,
-          TotalAmount,
-          SalesItem(Qty)
-        `)
-        .order("SaleDate", { ascending: false }); // Re-apply order for consistency
-
-      if (amountError) {
-        toast.error("Failed to fetch sales amounts", { description: amountError.message });
-        setData([]);
-        setLoading(false);
-        return;
-      }
-
-      const finalMonthlySummaryMap = new Map<string, { total_sales_amount: number; total_sales_count: number; total_items_sold: number }>();
-
-      salesDataWithAmount.forEach((sale) => {
-        const saleDate = new Date(sale.SaleDate);
-        const monthYearKey = format(saleDate, "MMMM yyyy");
-
-        if (!finalMonthlySummaryMap.has(monthYearKey)) {
-          finalMonthlySummaryMap.set(monthYearKey, { total_sales_amount: 0, total_sales_count: 0, total_items_sold: 0 });
-        }
-
-        const summary = finalMonthlySummaryMap.get(monthYearKey)!;
-        summary.total_sales_count += 1;
         summary.total_sales_amount += sale.TotalAmount || 0;
         sale.SalesItem.forEach(item => {
           summary.total_items_sold += item.Qty;
         });
       });
 
-      const sortedSummary = Array.from(finalMonthlySummaryMap.entries())
+      const sortedSummary = Array.from(monthlySummaryMap.entries())
         .map(([month_year, summary]) => ({ month_year, ...summary }))
         .sort((a, b) => new Date(a.month_year).getTime() - new Date(b.month_year).getTime()); // Sort by date
 
