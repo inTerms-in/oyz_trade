@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ItemWithStock } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
-// Removed useAuth import as user.id is no longer used for filtering
+import { AddItemDialog } from "@/components/add-item-dialog";
+import { EditItemDialog } from "@/components/edit-item-dialog";
+import { DeleteItemAlert } from "@/components/delete-item-alert";
+import { AddNewItemInlineDialog } from "@/components/add-new-item-inline-dialog";
+import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
+import { BarcodePrintDialog } from "@/components/barcode-print-dialog";
+import { useLocation } from "react-router-dom";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,163 +24,193 @@ import { Badge } from "@/components/ui/badge";
 
 type SortDirection = "asc" | "desc";
 
-function InventoryPage() {
-  // Removed user from useAuth destructuring
-  const [items, setItems] = useState<ItemWithStock[]>([]);
+export default function InventoryPage() {
+  const [data, setData] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isBarcodePrintOpen, setIsBarcodePrintOpen] = useState(false);
+  const location = useLocation();
 
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [pageCount, setPageCount] = useState(0);
-  const [itemCount, setItemCount] = useState(0);
-
-  const [sort, setSort] = useState<{ column: keyof ItemWithStock; direction: SortDirection }>({
-    column: "ItemName",
-    direction: "asc",
-  });
-
-  const fetchInventory = useCallback(async () => {
-    setLoading(true);
-    const from = pageIndex * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase
-      .from("item_stock_details")
-      .select("*", { count: "exact" });
-
-    if (debouncedSearchTerm) {
-      query = query.ilike("ItemName", `%${debouncedSearchTerm}%`);
+  const fetchCategories = useCallback(async () => {
+    const { data, error } = await supabase.from("CategoryMaster").select("*");
+    if (error) {
+      toast.error("Failed to fetch categories", { description: error.message });
+    } else {
+      setCategories(data || []);
     }
+  }, []);
 
-    query = query.order(sort.column, { ascending: sort.direction === "asc" });
-    query = query.range(from, to);
-
-    const { data, error, count } = await query;
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    // Fetch from the item_stock_details view for accurate stock
+    const { data: items, error } = await supabase
+      .from("item_stock_details")
+      .select("*")
+      .order("ItemName", { ascending: true });
 
     if (error) {
-      toast.error("Failed to fetch inventory", { description: error.message });
-      setItems([]);
+      toast.error("Failed to fetch items", { description: error.message });
+      setData([]);
     } else {
-      setItems(data as ItemWithStock[]);
-      setItemCount(count ?? 0);
-      setPageCount(Math.ceil((count ?? 0) / pageSize));
+      setData(items || []);
     }
     setLoading(false);
-  }, [pageIndex, pageSize, debouncedSearchTerm, sort]);
+  }, []);
 
   useEffect(() => {
-    fetchInventory();
-  }, [fetchInventory]);
+    fetchCategories();
+    fetchData();
+  }, [fetchCategories, fetchData]);
 
-  const handleSort = (column: keyof ItemWithStock) => {
-    const isAsc = sort.column === column && sort.direction === "asc";
-    setSort({ column, direction: isAsc ? "desc" : "asc" });
+  useEffect(() => {
+    if (location.state?.action === 'add-item') {
+      setIsAddItemDialogOpen(true);
+      // Clear the state to prevent re-triggering on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  const columns: ColumnDef<ItemWithStock>[] = useMemo(
+    () => [
+      {
+        accessorKey: "ItemCode",
+        header: "Item Code",
+      },
+      {
+        accessorKey: "ItemName",
+        header: "Item Name",
+      },
+      {
+        accessorKey: "CategoryName",
+        header: "Category",
+      },
+      {
+        accessorKey: "Barcode",
+        header: "Barcode",
+      },
+      {
+        accessorKey: "RackNo",
+        header: "Rack No.",
+      },
+      {
+        accessorKey: "SellPrice",
+        header: "Sell Price",
+        cell: ({ row }) => (row.original.SellPrice ? `₹${row.original.SellPrice.toFixed(2)}` : "N/A"),
+      },
+      {
+        accessorKey: "current_stock",
+        header: "Current Stock",
+        cell: ({ row }) => row.original.current_stock || 0,
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+
+  const handleAddItem = () => {
+    setIsAddItemDialogOpen(true);
+  };
+
+  const handleEdit = (item: ItemWithStock) => {
+    setSelectedItem(item);
+    setIsEditItemDialogOpen(true);
+  };
+
+  const handleDelete = (item: ItemWithStock) => {
+    setSelectedItem(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleItemAdded = () => {
+    fetchData();
+    setIsAddItemDialogOpen(false);
+  };
+
+  const handleItemUpdated = () => {
+    fetchData();
+    setIsEditItemDialogOpen(false);
+    setSelectedItem(null);
+  };
+
+  const handleItemDeleted = () => {
+    fetchData();
+    setIsDeleteDialogOpen(false);
+    setSelectedItem(null);
+  };
+
+  const handleScan = (barcode: string) => {
+    const foundItem = data.find(item => item.Barcode === barcode);
+    if (foundItem) {
+      toast.info(`Item found: ${foundItem.ItemName} (Stock: ${foundItem.current_stock})`);
+      // Optionally, you could open the edit dialog for this item
+      // handleEdit(foundItem);
+    } else {
+      toast.error("Item not found", { description: "No item in your master list matches this barcode." });
+    }
+    setIsScannerOpen(false);
   };
 
   return (
     <div className="flex-1 p-4 sm:p-6">
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <CardTitle>Inventory</CardTitle>
-              <CardDescription>View current stock levels for all items.</CardDescription>
-            </div>
-            <Input
-              placeholder="Search items..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-[250px]"
-            />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-2xl font-bold">Inventory</CardTitle>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={() => setIsScannerOpen(true)}>
+              <ScanBarcode className="mr-2 h-4 w-4" />
+              Scan Barcode
+            </Button>
+            <Button variant="outline" onClick={() => setIsBarcodePrintOpen(true)}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print Barcodes
+            </Button>
+            <Button onClick={handleAddItem}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Item
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <Button variant="ghost" onClick={() => handleSort("ItemName")}>
-                      Item Name
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                    <Button variant="ghost" onClick={() => handleSort("CategoryName")}>
-                      Category
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">
-                    <Button variant="ghost" onClick={() => handleSort("total_purchased")}>
-                      Purchased
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">
-                    <Button variant="ghost" onClick={() => handleSort("total_sold")}>
-                      Sold
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center">
-                    <Button variant="ghost" onClick={() => handleSort("current_stock")}>
-                      Current Stock
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  [...Array(pageSize)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : items.length > 0 ? (
-                  items.map((item) => (
-                    <TableRow key={item.ItemId}>
-                      <TableCell className="font-medium">{item.ItemName}</TableCell>
-                      <TableCell>{item.CategoryName || 'N/A'}</TableCell>
-                      <TableCell className="text-center">{item.total_purchased}</TableCell>
-                      <TableCell className="text-center">{item.total_sold}</TableCell>
-                      <TableCell className="text-center font-bold">
-                        {item.current_stock <= 0 ? (
-                          <Badge variant="destructive">Out of Stock</Badge>
-                        ) : item.current_stock <= 5 ? (
-                          <Badge variant="secondary">{item.current_stock}</Badge>
-                        ) : (
-                          item.current_stock
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      No results found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+          <div className="flex items-center py-4">
+            <Input
+              placeholder="Search items..."
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="max-w-sm"
+            />
           </div>
-          <DataTablePagination
-            pageIndex={pageIndex}
-            pageCount={pageCount}
-            pageSize={pageSize}
-            setPageIndex={setPageIndex}
-            setPageSize={setPageSize}
-            itemCount={itemCount}
-          />
+          <DataTable columns={columns} data={data} loading={loading} globalFilter={globalFilter} />
         </CardContent>
       </Card>
+
+      <AddItemDialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen} onAddItem={handleItemAdded} categories={categories} />
+      {selectedItem && (
+        <>
+          <EditItemDialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen} item={selectedItem} onUpdateItem={handleItemUpdated} categories={categories} />
+          <DeleteItemAlert open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} item={selectedItem} onDelete={handleItemDeleted} />
+        </>
+      )}
+      <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
+      <BarcodePrintDialog open={isBarcodePrintOpen} onOpenChange={setIsBarcodePrintOpen} items={data} />
     </div>
   );
 }
-
-export default InventoryPage;
