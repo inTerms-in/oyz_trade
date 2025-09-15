@@ -370,7 +370,7 @@ function NewSalesReturnPage() {
                           <TableHead>Code</TableHead>
                           <TableHead className="text-right">Qty Sold</TableHead>
                           <TableHead className="text-right">Qty Returned</TableHead>
-                          <TableHead>{item.Unit}</TableHead>
+                          <TableHead>Unit</TableHead>
                           <TableHead className="text-right">Unit Price</TableHead>
                           <TableHead className="text-center">Qty to Return</TableHead>
                           <TableHead className="text-right">Total Refund</TableHead>
