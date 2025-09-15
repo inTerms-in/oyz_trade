@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ItemWithStock } from "@/types";
+import { ItemWithStock, Category } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { AddItemDialog } from "@/components/add-item-dialog";
@@ -13,14 +13,15 @@ import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog";
 import { BarcodePrintDialog } from "@/components/barcode-print-dialog";
 import { useLocation } from "react-router-dom";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/data-table-pagination";
-import { ArrowUpDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowUpDown, Pencil, Trash2, Plus, ScanBarcode, Printer } from "lucide-react";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
 
 type SortDirection = "asc" | "desc";
 
