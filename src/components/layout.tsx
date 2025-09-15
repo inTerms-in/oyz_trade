@@ -15,6 +15,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -41,6 +45,7 @@ function Layout() {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const newActionButtonRef = useRef<HTMLButtonElement>(null);
+  const [openParentMenu, setOpenParentMenu] = useState<string | null>(null); // State for accordion behavior
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -65,7 +70,7 @@ function Layout() {
   const navItems: NavItem[] = useMemo(() => [
     { to: "/", icon: LayoutDashboard, label: "Overview Dashboard", end: true },
     {
-      to: "/sales-module/dashboard",
+      to: "/sales-module", // Changed to parent path for module
       icon: ShoppingBag,
       label: "Sales Module",
       children: [
@@ -76,7 +81,7 @@ function Layout() {
       ],
     },
     {
-      to: "/purchase-module/dashboard",
+      to: "/purchase-module", // Changed to parent path for module
       icon: ShoppingCart,
       label: "Purchase Module",
       children: [
@@ -87,7 +92,7 @@ function Layout() {
       ],
     },
     {
-      to: "/inventory-module/dashboard",
+      to: "/inventory-module", // Changed to parent path for module
       icon: Package,
       label: "Inventory Module",
       children: [
@@ -101,7 +106,7 @@ function Layout() {
       ],
     },
     {
-      to: "/accounts-module/dashboard",
+      to: "/accounts-module", // Changed to parent path for module
       icon: Landmark,
       label: "Accounts Module",
       children: [
@@ -116,12 +121,12 @@ function Layout() {
       ],
     },
     {
-      to: "/reports-module/dashboard",
+      to: "/reports-module", // Changed to parent path for module
       icon: BarChart,
       label: "Reports Module",
       children: [
         {
-          to: "/reports-module/sales/date-wise",
+          to: "/reports-module/sales", // Parent path for sales reports
           icon: Calendar,
           label: "Sales Reports",
           children: [
@@ -130,10 +135,11 @@ function Layout() {
             { to: "/reports-module/sales/item-wise", icon: Tag, label: "Item-wise Sales" },
             { to: "/reports-module/sales/category-wise", icon: Users, label: "Category-wise Sales" },
             { to: "/reports-module/sales/customer-outstanding", icon: UserRound, label: "Customer Outstanding" },
+            { to: "/reports-module/sales/detail", icon: ScrollText, label: "Sales Detail" }, // New Sales Detail Report
           ],
         },
         {
-          to: "/reports-module/purchase/date-wise",
+          to: "/reports-module/purchase", // Parent path for purchase reports
           icon: Calendar,
           label: "Purchase Reports",
           children: [
@@ -142,10 +148,11 @@ function Layout() {
             { to: "/reports-module/purchase/item-wise", icon: Tag, label: "Item-wise Purchases" },
             { to: "/reports-module/purchase/category-wise", icon: Users, label: "Category-wise Purchases" },
             { to: "/reports-module/purchase/supplier-payables", icon: Truck, label: "Supplier Payables" },
+            { to: "/reports-module/purchase/detail", icon: ScrollText, label: "Purchase Detail" }, // New Purchase Detail Report
           ],
         },
         {
-          to: "/reports-module/inventory/stock-ledger",
+          to: "/reports-module/inventory", // Parent path for inventory reports
           icon: Package,
           label: "Inventory Reports",
           children: [
@@ -156,7 +163,7 @@ function Layout() {
           ],
         },
         {
-          to: "/reports-module/financial/profit-loss",
+          to: "/reports-module/financial", // Parent path for financial reports
           icon: Landmark,
           label: "Financial Reports",
           children: [
@@ -188,19 +195,31 @@ function Layout() {
 
   const currentPageTitle = useMemo(() => getCurrentPageTitle(location.pathname, navItems), [location.pathname, navItems, getCurrentPageTitle]);
 
-  const renderNavLinks = (items: NavItem[], isMobile: boolean) => {
+  const renderNavLinks = (items: NavItem[], isMobile: boolean, isSubMenu: boolean = false) => {
     return items.map((item) => {
       const currentPath = item.to;
       const isActive = location.pathname.startsWith(currentPath) && (item.end ? location.pathname === currentPath : true);
+      const isParentActive = location.pathname.startsWith(item.to);
 
       if (item.children && item.children.length > 0) {
         if (isMobile) {
           return (
-            <Collapsible key={item.label} defaultOpen={isActive} className="w-full">
+            <Collapsible
+              key={item.label}
+              open={isParentActive} // Keep open if current path is within this module
+              onOpenChange={(isOpen) => {
+                if (isOpen) {
+                  setOpenParentMenu(item.to);
+                } else if (openParentMenu === item.to) {
+                  setOpenParentMenu(null);
+                }
+              }}
+              className="w-full"
+            >
               <CollapsibleTrigger className="w-full">
                 <div className={cn(
                   "flex items-center justify-between w-full rounded-lg px-3 py-2 text-lg font-medium transition-all hover:text-primary cursor-pointer",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isParentActive ? "text-primary" : "text-muted-foreground"
                 )}>
                   <div className="flex items-center gap-3 flex-1">
                     <item.icon className="h-5 w-5" />
@@ -211,7 +230,7 @@ function Layout() {
               </CollapsibleTrigger>
               <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                 <nav className="grid items-start text-base font-medium ml-3 pl-6 border-l gap-1 py-2">
-                  {renderNavLinks(item.children, isMobile)}
+                  {renderNavLinks(item.children, isMobile, true)}
                 </nav>
               </CollapsibleContent>
             </Collapsible>
@@ -219,11 +238,41 @@ function Layout() {
         }
 
         if (isCollapsed) {
+          // Nested Dropdown Menu for collapsed sidebar
+          const renderCollapsedDropdown = (subItems: NavItem[], isSub: boolean = false) => {
+            return subItems.map(subItem => {
+              if (subItem.children && subItem.children.length > 0) {
+                return (
+                  <DropdownMenuSub key={subItem.label}>
+                    <DropdownMenuSubTrigger>
+                      <subItem.icon className="mr-2 h-4 w-4" />
+                      <span>{subItem.label}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        {renderCollapsedDropdown(subItem.children, true)}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                );
+              } else {
+                return (
+                  <DropdownMenuItem key={subItem.label} asChild>
+                    <NavLink to={subItem.to} className="w-full">
+                      <subItem.icon className="mr-2 h-4 w-4" />
+                      {subItem.label}
+                    </NavLink>
+                  </DropdownMenuItem>
+                );
+              }
+            });
+          };
+
           return (
             <DropdownMenu key={item.label}>
               <DropdownMenuTrigger asChild>
                 <div
-                  className={cn(navLinkClasses({ isActive }), "flex-col h-auto py-2")}
+                  className={cn(navLinkClasses({ isActive: isParentActive }), "flex-col h-auto py-2")}
                   role="button"
                   aria-label={item.label}
                 >
@@ -236,28 +285,38 @@ function Layout() {
               <DropdownMenuContent side="right" align="start" className="ml-2">
                 <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {item.children.map(child => (
-                  <DropdownMenuItem key={child.label} asChild>
-                    <NavLink to={child.to} className="w-full">
-                      <child.icon className="mr-2 h-4 w-4" />
-                      {child.label}
-                    </NavLink>
-                  </DropdownMenuItem>
-                ))}
+                {renderCollapsedDropdown(item.children)}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         }
 
+        // Expanded mode with accordion behavior
         return (
-          <Collapsible key={item.label} defaultOpen={isActive} className="w-full">
+          <Collapsible
+            key={item.label}
+            open={openParentMenu === item.to || (isParentActive && openParentMenu === null)} // Open if active or if it's the explicitly opened one
+            onOpenChange={(isOpen) => {
+              if (isOpen) {
+                setOpenParentMenu(item.to);
+              } else if (openParentMenu === item.to) {
+                setOpenParentMenu(null);
+              }
+            }}
+            className="w-full"
+          >
             <CollapsibleTrigger asChild>
               <div className={cn(
                 "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary cursor-pointer",
-                isActive ? "bg-muted text-primary" : "text-muted-foreground",
+                isParentActive ? "bg-muted text-primary" : "text-muted-foreground",
                 "pr-2"
               )}>
-                <NavLink to={item.to} className="flex items-center gap-3 flex-1" end={item.end} onClick={(e) => e.stopPropagation()}>
+                <NavLink to={item.to} className="flex items-center gap-3 flex-1" end={item.end} onClick={(e) => {
+                  // Prevent NavLink navigation if it's a parent with children
+                  if (item.children && item.children.length > 0) {
+                    e.preventDefault();
+                  }
+                }}>
                   <item.icon className="h-5 w-5" />
                   <span className="truncate">
                     {item.label}
@@ -268,16 +327,25 @@ function Layout() {
             </CollapsibleTrigger>
             <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
               <nav className={cn("grid items-start text-sm font-medium ml-3 pl-6 border-l")}>
-                {renderNavLinks(item.children, isMobile)}
+                {renderNavLinks(item.children, isMobile, true)}
               </nav>
             </CollapsibleContent>
           </Collapsible>
         );
       } else {
+        // Regular NavLink item
         return (
           <Tooltip key={item.label}>
             <TooltipTrigger asChild>
-              <NavLink to={item.to} className={isMobile ? mobileNavLinkClasses({isActive}) : navLinkClasses({isActive})} onClick={isMobile ? closeSheet : undefined} end={item.end}>
+              <NavLink
+                to={item.to}
+                className={isMobile ? mobileNavLinkClasses({isActive}) : navLinkClasses({isActive})}
+                onClick={() => {
+                  if (isMobile) closeSheet();
+                  if (!isSubMenu) setOpenParentMenu(null); // Collapse parent if a non-submenu item is clicked
+                }}
+                end={item.end}
+              >
                 <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
                 <span className={cn(
                   isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
