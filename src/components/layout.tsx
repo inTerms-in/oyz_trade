@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import {
   DropdownMenu,
+  DropdownMenuTrigger, // Added this import
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -17,7 +18,7 @@ import {
   DropdownMenuSub,
   DropdownMenuPortal,
   DropdownMenuSubContent,
-  DropdownMenuSubTrigger // Added this import
+  DropdownMenuSubTrigger
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
