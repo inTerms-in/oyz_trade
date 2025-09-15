@@ -26,10 +26,11 @@ export interface ItemWithCategory extends Item {
 export interface ItemWithStock extends Item {
   CategoryName: string | null;
   total_purchased: number;
-  total_sold:
-  number;
-  total_adjusted_in: number; // Added for stock adjustments
-  total_adjusted_out: number; // Added for stock adjustments
+  total_sold: number;
+  total_customer_returned: number; // New field
+  total_vendor_returned: number; // New field
+  total_manual_adjusted_in: number; // Renamed for clarity
+  total_manual_adjusted_out: number; // Renamed for clarity
   current_stock: number;
   RackNo?: string | null; // Added RackNo
   // ItemName: string | null; // Removed as it's now handled by extending Item

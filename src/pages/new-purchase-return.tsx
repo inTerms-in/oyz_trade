@@ -256,21 +256,7 @@ function NewPurchaseReturnPage() {
     }
 
     // Update stock for each returned item (stock decreases)
-    for (const item of itemsToReturn) {
-      const { error: stockError } = await supabase
-        .from("StockAdjustment")
-        .insert({
-          ItemId: item.ItemId,
-          AdjustmentType: 'out', // Stock decreases on return to supplier
-          Quantity: item.QtyToReturn,
-          Reason: `Purchase Return (Ref: ${refNoData})`,
-          // Removed user_id: user.id, // Added user_id
-        });
-      if (stockError) {
-        console.error(`Failed to update stock for item ${item.ItemName}:`, stockError.message);
-        // Decide if you want to roll back or just log. For now, log and continue.
-      }
-    }
+    // Removed direct StockAdjustment insert as stock is now calculated from transactional tables
 
     setIsSubmitting(false);
     toast.success(`Purchase Return ${refNoData} added successfully!`);
