@@ -180,15 +180,7 @@ function NewPurchaseReturnPage() {
     loadPurchaseDetails();
   }, [watchedPurchaseId, purchaseSuggestions]);
 
-  const handleQtyReturnedChange = (index: number, value: number) => {
-    const updatedItems = [...returnableItems];
-    const item = updatedItems[index];
-    const maxReturnable = item.QtyOriginal - item.QtyAlreadyReturned;
-    const newQty = Math.max(0, Math.min(value, maxReturnable)); // Cannot return more than available
-    item.QtyToReturn = newQty;
-    item.TotalPrice = parseFloat((newQty * item.UnitPrice).toFixed(2));
-    setReturnableItems(updatedItems);
-  };
+  // Removed handleQtyReturnedChange as it was unused
 
   const handleRemoveItem = (index: number) => {
     const updatedItems = [...returnableItems];

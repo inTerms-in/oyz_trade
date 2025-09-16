@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Supplier, PayableToSettle } from "@/types";
+import { Supplier, Payable, Purchase } from "@/types"; // Import Payable and Purchase
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,13 +30,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } => "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
 
 interface PayableToSettle extends Payable {
   amountToSettle: number;
   isSelected: boolean;
+  Purchase?: Purchase | null; // Add Purchase property for joined data
 }
 
 const paymentVoucherFormSchema = z.object({
@@ -90,7 +91,7 @@ function NewPaymentVoucherPage() {
   const [supplierSuggestions, setSupplierSuggestions] = useState<Supplier[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [payablesToSettle, setPayablesToSettle] = useState<PayableToSettle[]>([]);
-  const [displaySupplierName, setDisplaySupplierName] = useState("");
+  // Removed displaySupplierName as it was unused
 
   const form = useForm<PaymentVoucherFormValues>({
     resolver: zodResolver(paymentVoucherFormSchema),
@@ -160,11 +161,11 @@ function NewPaymentVoucherPage() {
     if (watchedSupplierId) {
       const supplier = supplierSuggestions.find(c => c.SupplierId === watchedSupplierId);
       setSelectedSupplier(supplier || null);
-      setDisplaySupplierName(supplier?.SupplierName || "");
+      // Removed setDisplaySupplierName
       fetchOutstandingPayables(watchedSupplierId);
     } else {
       setSelectedSupplier(null);
-      setDisplaySupplierName("");
+      // Removed setDisplaySupplierName
       setPayablesToSettle([]);
     }
   }, [watchedSupplierId, supplierSuggestions, fetchOutstandingPayables]);
@@ -213,9 +214,9 @@ function NewPaymentVoucherPage() {
     if (!matchedSupplier || name === "") {
       form.setValue("SupplierId", null, { shouldValidate: true });
       setSelectedSupplier(null);
-      setDisplaySupplierName("");
+      // Removed setDisplaySupplierName
     } else {
-      setDisplaySupplierName(matchedSupplier.SupplierName);
+      // Removed setDisplaySupplierName
     }
   };
 
@@ -237,7 +238,8 @@ function NewPaymentVoucherPage() {
     const payable = updatedPayables[index];
     const maxSettleable = payable.Balance;
     const newAmount = Math.max(0, Math.min(value, maxSettleable));
-    payable.AmountToSettle = newAmount;
+    payable.amountToSettle = newAmount; // Corrected property name
+    payable.isSelected = newAmount > 0; // Select if amount is entered
     setPayablesToSettle(updatedPayables);
   };
 

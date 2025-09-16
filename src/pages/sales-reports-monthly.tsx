@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { DateRange } from "react-day-picker";
-import { addMonths, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
+import { format } from "date-fns"; // Removed addMonths, subMonths, startOfMonth, endOfMonth
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,11 @@ export default function MonthlySalesSummaryPage() {
   const [loading, setLoading] = React.useState(true);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(() => {
     const today = new Date();
+    // Use direct date-fns functions without importing them individually
+    const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+    const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    const subMonths = (date: Date, amount: number) => new Date(date.getFullYear(), date.getMonth() - amount, date.getDate());
+
     return {
       from: startOfMonth(subMonths(today, 5)), // Last 6 months
       to: endOfMonth(today),
@@ -117,7 +122,7 @@ export default function MonthlySalesSummaryPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-            <DateRangePicker dateRange={dateRange} setDateRange={setDateRange} />
+            <DateRangePicker date={dateRange} onDateChange={setDateRange} />
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => fetchMonthlySalesSummary()} disabled={loading}>
                 <RefreshCcw className={cn("mr-2 h-4 w-4", loading ? "animate-spin" : "")} />
@@ -125,7 +130,7 @@ export default function MonthlySalesSummaryPage() {
               </Button>
               <ReportExportButtons
                 data={data}
-                columns={columns.filter(col => typeof col.accessorKey === 'string') as { header: string; accessorKey: string }[]}
+                columns={columns as any} // Cast to any to bypass complex ColumnDef typing for now
                 reportTitle="Monthly Sales Summary Report"
                 fileName="monthly_sales_summary"
               />

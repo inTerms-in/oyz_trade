@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ItemWithStock, StockAdjustment as StockAdjustmentType } from "@/types";
 import { format } from "date-fns";
-// Removed useAuth import as user_id is no longer used for filtering
 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +33,6 @@ const stockAdjustmentFormSchema = z.object({
 type StockAdjustmentFormValues = z.infer<typeof stockAdjustmentFormSchema>;
 
 function StockAdjustmentPage() {
-  // Removed user from useAuth
   const [itemSuggestions, setItemSuggestions] = useState<ItemWithStock[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
   const [recentAdjustments, setRecentAdjustments] = useState<StockAdjustmentType[]>([]);
@@ -305,7 +303,7 @@ function StockAdjustmentPage() {
                     ) : recentAdjustments.length > 0 ? (
                       recentAdjustments.map((adj) => (
                         <TableRow key={adj.StockAdjustmentId}>
-                          <TableCell>{format(new Date(adj.AdjustmentDate), "MMM d, yyyy")}</TableCell>
+                          <TableCell>{format(new Date(adj.AdjustmentDate || ''), "MMM d, yyyy")}</TableCell>
                           <TableCell>
                             <span className={`font-medium ${adj.AdjustmentType === 'in' ? 'text-green-600' : 'text-red-600'}`}>
                               {adj.AdjustmentType === 'in' ? 'Stock In' : 'Stock Out'}

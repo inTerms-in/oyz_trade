@@ -11,16 +11,12 @@ import { BarcodePrintDialog } from "@/components/barcode-print-dialog";
 import { useLocation } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTablePagination } from "@/components/data-table-pagination";
 import { Pencil, Trash2, Plus, ScanBarcode, Printer } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-
-type SortDirection = "asc" | "desc";
+import { BarcodeScannerDialog } from "@/components/barcode-scanner-dialog"; // Import BarcodeScannerDialog
 
 export default function InventoryPage() {
   const [data, setData] = useState<ItemWithStock[]>([]);
@@ -30,7 +26,7 @@ export default function InventoryPage() {
   const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]); // Keep categories if needed for AddItemDialog/EditItemDialog
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBarcodePrintOpen, setIsBarcodePrintOpen] = useState(false);
   const location = useLocation();
@@ -207,6 +203,7 @@ export default function InventoryPage() {
           <DeleteItemAlert item={selectedItem} onItemDeleted={handleItemDeleted} />
         </>
       )}
+      <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
       <BarcodePrintDialog open={isBarcodePrintOpen} onOpenChange={setIsBarcodePrintOpen} items={data} />
     </div>
   );

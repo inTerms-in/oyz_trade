@@ -22,6 +22,14 @@ export interface Item {
   created_at?: string;
 }
 
+export interface ItemMaster { // Explicitly define ItemMaster
+  ItemId: number;
+  ItemName: string;
+  ItemCode?: string | null;
+  Barcode?: string | null;
+  SellPrice?: number | null;
+}
+
 export interface ItemWithCategory extends Item {
   CategoryMaster?: Category | null;
 }
@@ -47,6 +55,12 @@ export interface Customer {
   CustomerName: string;
   MobileNo?: string | null;
   created_at?: string;
+}
+
+export interface CustomerMaster { // Explicitly define CustomerMaster
+  CustomerId: number;
+  CustomerName: string;
+  MobileNo?: string | null;
 }
 
 export interface Supplier {
@@ -299,13 +313,17 @@ export interface ReturnableItem {
 }
 
 export interface ReceivableToSettle extends Receivable {
-  Sales?: Sale | null;
-  CustomerMaster?: Customer | null;
+  amountToSettle: number;
+  isSelected: boolean;
+  Sales?: Sale | null; // Joined Sales details
+  CustomerMaster?: Customer | null; // Joined Customer details
 }
 
 export interface PayableToSettle extends Payable {
-  Purchase?: Purchase | null;
-  SupplierMaster?: Supplier | null;
+  amountToSettle: number;
+  isSelected: boolean;
+  Purchase?: Purchase | null; // Joined Purchase details
+  SupplierMaster?: Supplier | null; // Joined Supplier details
 }
 
 export interface MonthlySalesSummary {
@@ -345,11 +363,6 @@ export interface SalesDetail {
     MobileNo: string | null;
   } | null;
   SalesItem: SalesDetailItem[];
-}
-
-export interface CustomerMaster {
-  CustomerId: number;
-  CustomerName: string;
 }
 
 export interface ShopDetails {

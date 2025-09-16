@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { StockAdjustment, Item, Category } from "@/types";
+import { Item } from "@/types"; // Removed StockAdjustment, Category
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -71,7 +71,15 @@ export default function StockLedgerPage() {
       toast.error("Failed to fetch stock ledger", { description: error.message });
       setData([]);
     } else {
-      setData(stockAdjustments || []);
+      setData(stockAdjustments.map(adj => ({
+        AdjustmentDate: adj.AdjustmentDate,
+        ItemName: adj.ItemMaster?.ItemName || 'N/A',
+        ItemCode: adj.ItemMaster?.ItemCode || 'N/A',
+        CategoryName: adj.ItemMaster?.CategoryMaster?.CategoryName || 'N/A',
+        AdjustmentType: adj.AdjustmentType,
+        Quantity: adj.Quantity,
+        Reason: adj.Reason,
+      })) || []);
     }
     setLoading(false);
   }, [selectedItem, dateRange]);
@@ -210,3 +218,5 @@ export default function StockLedgerPage() {
     </div>
   );
 }
+
+export default StockLedgerPage;

@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Customer, ReceivableToSettle } from "@/types";
+import { Customer, Receivable, Sale } from "@/types"; // Import Receivable and Sale
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -37,6 +37,7 @@ import { Trash2 } from "lucide-react";
 interface ReceivableToSettle extends Receivable {
   amountToSettle: number;
   isSelected: boolean;
+  Sales?: Sale | null; // Add Sales property for joined data
 }
 
 const receiptVoucherFormSchema = z.object({
@@ -90,7 +91,7 @@ function NewReceiptVoucherPage() {
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [receivablesToSettle, setReceivablesToSettle] = useState<ReceivableToSettle[]>([]);
-  const [displayCustomerName, setDisplayCustomerName] = useState("");
+  // Removed displayCustomerName as it was unused
 
   const form = useForm<ReceiptVoucherFormValues>({
     resolver: zodResolver(receiptVoucherFormSchema),
@@ -227,22 +228,13 @@ function NewReceiptVoucherPage() {
     setReceivablesToSettle(updatedReceivables);
   };
 
-  const handleAmountToSettleChange = (index: number, value: number) => {
-    const updatedReceivables = [...receivablesToSettle];
-    const receivable = updatedReceivables[index];
-    const maxSettlement = receivable.Balance;
-    const newAmount = Math.max(0, Math.min(value, maxSettlement));
-    receivable.amountToSettle = newAmount;
-    receivable.isSelected = newAmount > 0; // Select if amount is entered
-    setReceivablesToSettle(updatedReceivables);
-  };
-
   const handleReceivableAmountChange = (index: number, value: number) => {
     const updatedReceivables = [...receivablesToSettle];
     const receivable = updatedReceivables[index];
     const maxSettleable = receivable.Balance;
     const newAmount = Math.max(0, Math.min(value, maxSettleable));
-    receivable.AmountToSettle = newAmount;
+    receivable.amountToSettle = newAmount; // Corrected property name
+    receivable.isSelected = newAmount > 0; // Select if amount is entered
     setReceivablesToSettle(updatedReceivables);
   };
 
@@ -506,7 +498,7 @@ function NewReceiptVoucherPage() {
                                   id={`amount-to-settle-${index}`}
                                   label=" "
                                   type="number"
-                                  value={receivable.AmountToSettle}
+                                  value={receivable.amountToSettle}
                                   onChange={(e) => handleReceivableAmountChange(index, e.target.valueAsNumber)}
                                   min={0}
                                   max={receivable.Balance}
