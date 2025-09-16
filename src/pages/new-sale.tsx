@@ -241,7 +241,7 @@ function NewSalePage() {
       ...EMPTY_ITEM, 
       ItemId: selectedItem.ItemId, 
       ItemName: selectedItem.ItemName ?? '',
-      CategoryName: selectedItem.CategoryMaster?.CategoryName,
+      CategoryName: undefined,
       Barcode: selectedItem.Barcode,
       ItemCode: selectedItem.ItemCode,
       Qty: 1,
@@ -298,7 +298,7 @@ function NewSalePage() {
     const newItemForList: SaleListItem = {
       ItemId: newItem.ItemId,
       ItemName: newItem.ItemName ?? '',
-      CategoryName: newSuggestion.CategoryMaster?.CategoryName,
+      CategoryName: undefined,
       Barcode: newItem.Barcode,
       ItemCode: newItem.ItemCode,
       Qty: 1,

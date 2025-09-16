@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Category, ItemWithCategory } from "@/types";
 import { generateItemCode } from "@/lib/utils";
 import Barcode from "@/components/barcode";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+import { useAuth } from "@/contexts/auth-provider";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger, // Added DialogTrigger here
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -29,7 +29,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
-import { FloatingLabelSelect } from "@/components/ui/floating-label-select"; // Using FloatingLabelSelect
+import { FloatingLabelSelect } from "@/components/ui/floating-label-select";
 import {
   SelectItem,
 } from "@/components/ui/select";
@@ -55,7 +55,7 @@ interface EditItemDialogProps {
 }
 
 export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
-  const { user } = useAuth(); // Use useAuth
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -65,8 +65,8 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
     defaultValues: {
-      ItemName: item.ItemName ?? '', // Fixed: Provide empty string fallback
-      CategoryId: item.CategoryId,
+      ItemName: item.ItemName ?? '',
+      CategoryId: item.CategoryId ?? 0,
       SellPrice: item.SellPrice,
       Barcode: item.Barcode,
       ItemCode: item.ItemCode,
@@ -78,7 +78,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
   const watchedBarcode = form.watch("Barcode");
   const watchedItemName = form.watch("ItemName");
   const watchedSellPrice = form.watch("SellPrice");
-
 
   useEffect(() => {
     if (open && item.ItemId) {
@@ -102,8 +101,8 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
 
   useEffect(() => {
     form.reset({
-      ItemName: item.ItemName ?? '', // Fixed: Provide empty string fallback
-      CategoryId: item.CategoryId,
+      ItemName: item.ItemName ?? '',
+      CategoryId: item.CategoryId ?? 0,
       SellPrice: item.SellPrice,
       Barcode: item.Barcode,
       ItemCode: item.ItemCode,
@@ -112,8 +111,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
   }, [item, form]);
 
   const handleGenerateBarcode = async () => {
-    // Barcode generation is a server-side RPC, so it requires online status
-    
     const { data, error } = await supabase.rpc('generate_unique_barcode');
     if (error) {
       toast.error("Failed to generate barcode", { description: error.message });
@@ -123,10 +120,9 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
     }
   };
 
-  async function onSubmit(values: ItemFormValues) {
-    if (!user?.id) return toast.error("Authentication error. Please log in again."); // Ensure user is logged in
+  const onSubmit: SubmitHandler<ItemFormValues> = async (values) => {
+    if (!user?.id) return toast.error("Authentication error. Please log in again.");
     setIsSubmitting(true);
-    // Ensure empty string barcode is converted to null
     const barcodeToUpdate = values.Barcode === "" ? null : values.Barcode;
 
     const { error } = await supabase
@@ -152,7 +148,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
       onItemUpdated();
       setOpen(false);
     }
-  }
+  };
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined) return 'N/A';
@@ -167,7 +163,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
             <Pencil className="h-4 w-4" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto"> {/* Added max-h and overflow */}
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
             <DialogDescription>
@@ -195,7 +191,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
                       className="bg-muted/50"
                   />
                   <FormField
-                    // @ts-ignore - temporary relaxation to align with existing custom Form components
                     control={form.control as any}
                     name="ItemCode"
                     render={({ field }) => (
@@ -206,7 +201,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
                               label="Item Code"
                               {...field}
                               value={field.value ?? ""}
-                              readOnly // ItemCode should not be editable directly
+                              readOnly
                               className="bg-muted/50 font-mono text-xs"
                           />
                         </FormControl>
@@ -216,7 +211,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
                   />
               </div>
               <FormField
-                // @ts-ignore - temporary relaxation to align with existing custom Form components
                 control={form.control as any}
                 name="ItemName"
                 render={({ field }) => (
@@ -229,7 +223,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
                 )}
               />
               <FormField
-                // @ts-ignore - temporary relaxation to align with existing custom Form components
                 control={form.control as any}
                 name="CategoryId"
                 render={({ field }) => (
@@ -253,7 +246,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
                 )}
               />
               <FormField
-                // @ts-ignore - temporary relaxation to align with existing custom Form components
                 control={form.control as any}
                 name="SellPrice"
                 render={({ field }) => (
@@ -272,7 +264,6 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
                 )}
               />
               <FormField
-                // @ts-ignore - temporary relaxation to align with existing custom Form components
                 control={form.control as any}
                 name="Barcode"
                 render={({ field }) => (
@@ -301,7 +292,7 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
                 )}
               />
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="RackNo"
                 render={({ field }) => (
                   <FormItem>

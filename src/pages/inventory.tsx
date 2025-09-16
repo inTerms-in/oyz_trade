@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/data-table-pagination";
-import { ArrowUpDown, Pencil, Trash2, Plus, ScanBarcode, Printer } from "lucide-react";
+import { Pencil, Trash2, Plus, ScanBarcode, Printer } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -203,11 +203,10 @@ export default function InventoryPage() {
       <AddItemDialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen} onItemAdded={handleItemAdded} />
       {selectedItem && (
         <>
-          <EditItemDialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen} item={selectedItem} onItemUpdated={handleItemUpdated} />
+          <EditItemDialog item={selectedItem} onItemUpdated={handleItemUpdated} />
           <DeleteItemAlert item={selectedItem} onItemDeleted={handleItemDeleted} />
         </>
       )}
-      <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
       <BarcodePrintDialog open={isBarcodePrintOpen} onOpenChange={setIsBarcodePrintOpen} items={data} />
     </div>
   );

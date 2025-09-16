@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useRef } from "react";
 import { ItemWithStock, PrintableItem } from "@/types";
-import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 
 import {
@@ -28,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 interface BarcodePrintDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  items: ItemWithStock[]; // All items from inventory
+  items: ItemWithStock[];
 }
 
 type SortDirection = "asc" | "desc";
@@ -38,7 +36,7 @@ export function BarcodePrintDialog({ open, onOpenChange, items }: BarcodePrintDi
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filteredItems, setFilteredItems] = useState<ItemWithStock[]>([]);
   const [selectedItems, setSelectedItems] = useState<PrintableItem[]>([]);
-  const [loading, setLoading] = useState(false); // Loading for internal filtering/sorting
+  const [loading, setLoading] = useState(false);
   const [sort, setSort] = useState<{ column: string; direction: SortDirection }>({
     column: "ItemName",
     direction: "asc",
@@ -83,9 +81,9 @@ export function BarcodePrintDialog({ open, onOpenChange, items }: BarcodePrintDi
     if (checked) {
       const allItemsAsPrintable = filteredItems.map(item => ({
         ...item,
-        CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
-        quantityToPrint: 1, // Default quantity
-      }));
+        CategoryMaster: null,
+        quantityToPrint: 1,
+      })) as PrintableItem[];
       setSelectedItems(allItemsAsPrintable);
     } else {
       setSelectedItems([]);
@@ -96,9 +94,9 @@ export function BarcodePrintDialog({ open, onOpenChange, items }: BarcodePrintDi
     if (checked) {
       setSelectedItems(prev => [...prev, {
         ...item,
-        CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
-        quantityToPrint: 1, // Default quantity
-      }]);
+        CategoryMaster: null,
+        quantityToPrint: 1,
+      } as PrintableItem]);
     } else {
       setSelectedItems(prev => prev.filter(selected => selected.ItemId !== item.ItemId));
     }

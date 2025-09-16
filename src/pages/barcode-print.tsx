@@ -80,9 +80,9 @@ function BarcodePrintPage() {
         // Pre-select items that were passed via state
         const preSelected = fetchedItems.map(item => ({
           ...item,
-          CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
+          CategoryMaster: null,
           quantityToPrint: 1,
-        }));
+        })) as PrintableItem[];
         setSelectedItems(preSelected);
       }
     }
@@ -106,9 +106,9 @@ function BarcodePrintPage() {
     if (checked) {
       const allItemsAsPrintable = items.map(item => ({
         ...item,
-        CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
+        CategoryMaster: null,
         quantityToPrint: 1, // Default quantity
-      }));
+      })) as PrintableItem[];
       setSelectedItems(allItemsAsPrintable);
     } else {
       setSelectedItems([]);
@@ -119,9 +119,9 @@ function BarcodePrintPage() {
     if (checked) {
       setSelectedItems(prev => [...prev, {
         ...item,
-        CategoryMaster: item.CategoryName ? { CategoryName: item.CategoryName } : null,
+        CategoryMaster: null,
         quantityToPrint: 1, // Default quantity
-      }]);
+      } as PrintableItem]);
     } else {
       setSelectedItems(prev => prev.filter(selected => selected.ItemId !== item.ItemId));
     }

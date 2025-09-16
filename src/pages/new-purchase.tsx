@@ -282,12 +282,12 @@ function NewPurchasePage() {
     const newItemForList: PurchaseListItem = {
       ItemId: newItem.ItemId,
       ItemName: newItem.ItemName ?? '',
-      CategoryName: newSuggestion.CategoryMaster?.CategoryName,
+      CategoryName: undefined,
       Barcode: newItem.Barcode,
       ItemCode: newItem.ItemCode,
       Qty: 1,
       Unit: "Piece",
-      UnitPrice: 0, // For purchase, unit price is usually entered manually
+      UnitPrice: 0,
       TotalPrice: 0,
     };
 
