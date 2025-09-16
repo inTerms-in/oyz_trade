@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Item } from "@/types"; // Removed StockAdjustment, Category
+import { Item } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -42,7 +42,7 @@ export default function StockLedgerPage() {
     if (error) {
       toast.error("Failed to fetch items for filter", { description: error.message });
     } else {
-      setItemSuggestions(itemsData || []);
+      setItemSuggestions(data || []);
     }
   }, []);
 
@@ -218,5 +218,3 @@ export default function StockLedgerPage() {
     </div>
   );
 }
-
-export default StockLedgerPage;

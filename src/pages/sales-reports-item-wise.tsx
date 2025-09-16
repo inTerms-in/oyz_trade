@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Autocomplete } from "@/components/autocomplete";
-import { ItemMaster } from "@/types"; // Corrected import
+import { ItemMaster, SaleItem } from "@/types"; // Corrected import, added SaleItem
 import { ReportExportButtons } from "@/components/report-export-buttons";
 
 interface ItemWiseSale {
@@ -95,7 +95,7 @@ export default function ItemWiseSalesPage() {
     } else {
       const itemSummaryMap = new Map<number, ItemWiseSale>(); // Use ItemWiseSale type
 
-      salesItemData.forEach((salesItem) => {
+      salesItemData.forEach((salesItem: SaleItem & { ItemMaster: ItemMaster | null }) => { // Explicitly type salesItem
         const itemId = salesItem.ItemId;
         const itemName = salesItem.ItemMaster?.ItemName || "Unknown Item";
         const itemCode = salesItem.ItemMaster?.ItemCode || "N/A";

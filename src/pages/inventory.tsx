@@ -23,8 +23,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState("");
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
-  const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  // Removed isEditItemDialogOpen and isDeleteDialogOpen as they are not directly used to control dialog open state
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
   const [categories, setCategories] = useState<Category[]>([]); // Keep categories if needed for AddItemDialog/EditItemDialog
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -126,12 +125,12 @@ export default function InventoryPage() {
 
   const handleEdit = (item: ItemWithStock) => {
     setSelectedItem(item);
-    setIsEditItemDialogOpen(true);
+    // Dialog will open based on selectedItem presence
   };
 
   const handleDelete = (item: ItemWithStock) => {
     setSelectedItem(item);
-    setIsDeleteDialogOpen(true);
+    // Dialog will open based on selectedItem presence
   };
 
   const handleItemAdded = () => {
@@ -141,14 +140,12 @@ export default function InventoryPage() {
 
   const handleItemUpdated = () => {
     fetchData();
-    setIsEditItemDialogOpen(false);
-    setSelectedItem(null);
+    setSelectedItem(null); // Close dialog by clearing selected item
   };
 
   const handleItemDeleted = () => {
     fetchData();
-    setIsDeleteDialogOpen(false);
-    setSelectedItem(null);
+    setSelectedItem(null); // Close dialog by clearing selected item
   };
 
   const handleScan = (barcode: string) => {

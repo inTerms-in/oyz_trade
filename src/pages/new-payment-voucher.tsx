@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } => "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // Corrected import syntax
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
 

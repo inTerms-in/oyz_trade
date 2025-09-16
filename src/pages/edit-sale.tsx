@@ -96,7 +96,7 @@ export default function EditSalePage() {
   const isActionFromNew = useRef(location.state?.actionFromNew || false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false); // New state for WhatsApp button
   const [hasHandledInitialAction, setHasHandledInitialAction] = useState(false); // New state to prevent re-triggering initial action
-  const [newlyCreatedSaleId, setNewlyCreatedSaleId] = useState<number | null>(null); // This state is not used in edit page, but kept for consistency if needed later.
+  // Removed newlyCreatedSaleId as it is not used in this component.
 
   const itemInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -591,10 +591,6 @@ export default function EditSalePage() {
   const handleCustomerSelect = (customer: Customer) => {
     setSelectedCustomer(customer);
     form.setValue("CustomerName", customer.CustomerName, { shouldValidate: true });
-  };
-
-  const handleCustomerNameChange = (name: string) => {
-    form.setValue("CustomerName", name, { shouldValidate: true });
   };
 
   const handleCurrentItemChange = (field: keyof typeof currentItem, value: string | number) => {
@@ -1103,7 +1099,7 @@ export default function EditSalePage() {
       <SalePostSaveActionsDialog
         open={isPostSaveActionsDialogOpen}
         onOpenChange={setIsPostSaveActionsDialogOpen}
-        saleId={newlyCreatedSaleId}
+        saleId={null} // Pass null or actual saleId if needed for new sales
         onSendWhatsApp={handleSendWhatsAppFromDialog}
         onPrint={handlePrintFromDialog}
         onReturnToList={handleReturnToListFromDialog}

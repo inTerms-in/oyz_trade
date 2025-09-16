@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { SalesDetail, ItemMaster, CustomerMaster } from "@/types"; // Corrected imports
+import { SalesDetail, ItemMaster, CustomerMaster, SalesDetailItem } from "@/types"; // Corrected imports
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -115,14 +115,14 @@ export default function SalesDetailReportPage() {
       setData([]);
     } else {
       // Ensure CustomerMaster and SalesItem are correctly typed
-      const processedData: SalesDetailReport[] = salesData.map(sale => ({
+      const processedData: SalesDetailReport[] = salesData.map((sale: SalesDetail) => ({ // Explicitly type sale
         ...sale,
         CustomerMaster: sale.CustomerMaster ? {
           CustomerId: sale.CustomerMaster.CustomerId,
           CustomerName: sale.CustomerMaster.CustomerName,
           MobileNo: sale.CustomerMaster.MobileNo,
         } : null,
-        SalesItem: sale.SalesItem.map(item => ({ // Removed 'any' cast
+        SalesItem: sale.SalesItem.map((item: SalesDetailItem) => ({ // Explicitly type item
           SalesItemId: item.SalesItemId,
           ItemId: item.ItemId,
           Qty: item.Qty,
