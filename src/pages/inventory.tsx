@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ItemWithStock, Category } from "@/types";
 import { toast } from "sonner";
-import { useDebounce } from "@/hooks/use-debounce";
 import { AddItemDialog } from "@/components/add-item-dialog";
 import { EditItemDialog } from "@/components/edit-item-dialog";
 import { DeleteItemAlert } from "@/components/delete-item-alert";

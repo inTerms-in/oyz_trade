@@ -13,7 +13,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -73,9 +72,9 @@ export function DataTable<TData, TValue>({
       rowSelection,
       globalFilter,
     },
-    onGlobalFilterChange: (updater) => {
-      // This is a controlled component for globalFilter, so we don't update it here.
-      // The parent component should handle globalFilter changes.
+    onGlobalFilterChange: (_updater) => {
+      // No-op: This component is controlled via the parent; acknowledge the updater but do nothing.
+      void _updater;
     },
   })
 
@@ -85,7 +84,7 @@ export function DataTable<TData, TValue>({
 
   const skeletonRows = Array.from({ length: 5 }).map((_, i) => (
     <TableRow key={i}>
-      {columns.map((columnDef, colIndex) => (
+      {columns.map((_, colIndex) => (
         <TableCell key={colIndex}>
           <Skeleton className="h-6 w-full" />
         </TableCell>
