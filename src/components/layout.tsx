@@ -201,6 +201,9 @@ function Layout() {
       const isActive = location.pathname.startsWith(currentPath) && (item.end ? location.pathname === currentPath : true);
       const isParentActive = location.pathname.startsWith(item.to);
 
+      // --- Mobile Collapsible State ---
+      const [mobileOpen, setMobileOpen] = isMobile && item.children ? useState(isParentActive) : [undefined, undefined];
+
       if (item.children && item.children.length > 0) {
         // For top-level collapsibles (level 0), use openModulePath for accordion behavior
         // For nested collapsibles (level > 0), just open if active
@@ -220,23 +223,25 @@ function Layout() {
         };
 
         if (isMobile) {
+          // Use local state for mobile collapsible open/close
+          const [open, setOpen] = useState(isParentActive);
           return (
             <Collapsible
               key={item.label}
-              open={isParentActive} // In mobile, just open if active
-              onOpenChange={() => { /* No global state management for mobile collapsibles */ }}
+              open={open}
+              onOpenChange={setOpen}
               className="w-full"
             >
               <CollapsibleTrigger className="w-full">
                 <div className={cn(
                   "flex items-center justify-between w-full rounded-lg px-3 py-2 text-lg font-medium transition-all hover:text-primary cursor-pointer",
-                  isParentActive ? "text-primary" : "text-muted-foreground"
+                  open ? "text-primary" : "text-muted-foreground"
                 )}>
                   <div className="flex items-center gap-3 flex-1">
                     <item.icon className="h-5 w-5" />
                     <span className="truncate">{item.label}</span>
                   </div>
-                  <ChevronDown className="h-5 w-5 shrink-0 transition-transform data-[state=open]:rotate-180" />
+                  <ChevronDown className={cn("h-5 w-5 shrink-0 transition-transform", open && "rotate-180")} />
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
