@@ -42,7 +42,7 @@ export default function StockLedgerPage() {
     if (error) {
       toast.error("Failed to fetch items for filter", { description: error.message });
     } else {
-      setItemSuggestions(data || []);
+      setItemSuggestions(itemsData || []);
     }
   }, []);
 

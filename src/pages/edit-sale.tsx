@@ -775,6 +775,10 @@ export default function EditSalePage() {
     );
   }
 
+  function handleCustomerNameChange(value: string): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="flex-1 p-4 sm:p-6">
       <div className="print-only">

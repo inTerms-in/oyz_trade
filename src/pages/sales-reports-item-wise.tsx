@@ -70,7 +70,7 @@ export default function ItemWiseSalesPage() {
         Sales (
           SaleDate
         ),
-        ItemMaster (
+        ItemMaster:ItemMaster (
           ItemId,
           ItemName,
           ItemCode
@@ -93,19 +93,18 @@ export default function ItemWiseSalesPage() {
       toast.error("Failed to fetch item-wise sales report", { description: error.message });
       setData([]);
     } else {
-      const itemSummaryMap = new Map<number, ItemWiseSale>(); // Use ItemWiseSale type
-
-      salesItemData.forEach((salesItem: SaleItem & { ItemMaster: ItemMaster | null }) => { // Explicitly type salesItem
+      const itemSummaryMap = new Map<number, ItemWiseSale>();
+      salesItemData.forEach((salesItem: any) => {
+        // Handle both array and object for ItemMaster
+        const itemMaster = Array.isArray(salesItem.ItemMaster) ? salesItem.ItemMaster[0] : salesItem.ItemMaster;
         const itemId = salesItem.ItemId;
-        const itemName = salesItem.ItemMaster?.ItemName || "Unknown Item";
-        const itemCode = salesItem.ItemMaster?.ItemCode || "N/A";
+        const itemName = itemMaster?.ItemName || "Unknown Item";
+        const itemCode = itemMaster?.ItemCode || "N/A";
         const qty = salesItem.Qty || 0;
         const unitPrice = salesItem.UnitPrice || 0;
-
         if (!itemSummaryMap.has(itemId)) {
           itemSummaryMap.set(itemId, { ItemId: itemId, ItemName: itemName, ItemCode: itemCode, total_qty_sold: 0, total_sales_amount: 0 });
         }
-
         const summary = itemSummaryMap.get(itemId)!;
         summary.total_qty_sold += qty;
         summary.total_sales_amount += qty * unitPrice;

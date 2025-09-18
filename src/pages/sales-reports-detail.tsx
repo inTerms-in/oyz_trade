@@ -114,26 +114,35 @@ export default function SalesDetailReportPage() {
       toast.error("Failed to fetch sales detail report", { description: error.message });
       setData([]);
     } else {
-      // Ensure CustomerMaster and SalesItem are correctly typed
-      const processedData: SalesDetailReport[] = salesData.map((sale: SalesDetail) => ({ // Explicitly type sale
-        ...sale,
-        CustomerMaster: sale.CustomerMaster ? {
-          CustomerId: sale.CustomerMaster.CustomerId,
-          CustomerName: sale.CustomerMaster.CustomerName,
-          MobileNo: sale.CustomerMaster.MobileNo,
-        } : null,
-        SalesItem: sale.SalesItem.map((item: SalesDetailItem) => ({ // Explicitly type item
-          SalesItemId: item.SalesItemId,
-          ItemId: item.ItemId,
-          Qty: item.Qty,
-          Unit: item.Unit,
-          UnitPrice: item.UnitPrice,
-          ItemMaster: {
-            ItemName: item.ItemMaster.ItemName,
-            ItemCode: item.ItemMaster.ItemCode,
-          },
-        })),
-      }));
+      // Ensure CustomerMaster and SalesItem are correctly typed, handling array or object
+      const processedData: SalesDetailReport[] = salesData.map((sale: any) => {
+        // Handle CustomerMaster as array or object
+        let customer = sale.CustomerMaster;
+        if (Array.isArray(customer)) {
+          customer = customer[0] || null;
+        }
+        // Handle SalesItem as array (should always be array)
+        const salesItems = Array.isArray(sale.SalesItem) ? sale.SalesItem : [];
+        return {
+          ...sale,
+          CustomerMaster: customer ? {
+            CustomerId: customer.CustomerId,
+            CustomerName: customer.CustomerName,
+            MobileNo: customer.MobileNo,
+          } : null,
+          SalesItem: salesItems.map((item: any) => ({
+            SalesItemId: item.SalesItemId,
+            ItemId: item.ItemId,
+            Qty: item.Qty,
+            Unit: item.Unit,
+            UnitPrice: item.UnitPrice,
+            ItemMaster: {
+              ItemName: item.ItemMaster?.ItemName,
+              ItemCode: item.ItemMaster?.ItemCode,
+            },
+          })),
+        };
+      });
       setData(processedData);
     }
     setLoading(false);
