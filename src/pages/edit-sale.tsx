@@ -775,9 +775,7 @@ export default function EditSalePage() {
     );
   }
 
-  function handleCustomerNameChange(value: string): void {
-    throw new Error("Function not implemented.");
-  }
+  // Removed unused handleCustomerNameChange function
 
   return (
     <div className="flex-1 p-4 sm:p-6">
@@ -832,7 +830,7 @@ export default function EditSalePage() {
                             label="Customer Name (Optional)"
                             suggestions={customerSuggestions}
                             value={field.value ?? ""}
-                            onValueChange={handleCustomerNameChange}
+                            onValueChange={field.onChange}
                             onSelect={handleCustomerSelect}
                             getId={(c) => c.CustomerId}
                             getName={(c) => c.CustomerName}

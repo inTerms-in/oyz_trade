@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { SalesDetail, ItemMaster, CustomerMaster, SalesDetailItem } from "@/types"; // Corrected imports
+import { SalesDetail, ItemMaster, CustomerMaster } from "@/types"; // Corrected imports
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";

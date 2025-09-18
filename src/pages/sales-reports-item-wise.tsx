@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Autocomplete } from "@/components/autocomplete";
-import { ItemMaster, SaleItem } from "@/types"; // Corrected import, added SaleItem
+import { ItemMaster } from "@/types";
 import { ReportExportButtons } from "@/components/report-export-buttons";
 
 interface ItemWiseSale {

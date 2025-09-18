@@ -25,7 +25,7 @@ export default function InventoryPage() {
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   // Removed isEditItemDialogOpen and isDeleteDialogOpen as they are not directly used to control dialog open state
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]); // Keep categories if needed for AddItemDialog/EditItemDialog
+  const [, setCategories] = useState<Category[]>([]); // Keep categories if needed for AddItemDialog/EditItemDialog
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBarcodePrintOpen, setIsBarcodePrintOpen] = useState(false);
   const location = useLocation();
