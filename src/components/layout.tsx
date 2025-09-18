@@ -202,7 +202,7 @@ function Layout() {
       const isParentActive = location.pathname.startsWith(item.to);
 
       // --- Mobile Collapsible State ---
-      const [mobileOpen, setMobileOpen] = isMobile && item.children ? useState(isParentActive) : [undefined, undefined];
+      
 
       if (item.children && item.children.length > 0) {
         // For top-level collapsibles (level 0), use openModulePath for accordion behavior
