@@ -19,7 +19,6 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useState, useRef, useMemo, useCallback } from "react";
 import { ChatbotTrigger } from "@/components/chatbot-trigger";
@@ -44,9 +43,6 @@ function Layout() {
 
   // Chatbot dialog state
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
-  // Fallback user and logout handler (replace with real auth logic)
-  const user: { email?: string } | undefined = undefined;
-  const handleLogout = () => {};
   // Router navigation
   const navigate = useNavigate();
   // Mobile sidebar Sheet open/close state
