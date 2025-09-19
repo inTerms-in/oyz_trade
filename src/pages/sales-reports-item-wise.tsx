@@ -94,20 +94,24 @@ export default function ItemWiseSalesPage() {
       setData([]);
     } else {
       const itemSummaryMap = new Map<number, ItemWiseSale>();
-      salesItemData.forEach((salesItem: any) => {
-        // Handle both array and object for ItemMaster
-        const itemMaster = Array.isArray(salesItem.ItemMaster) ? salesItem.ItemMaster[0] : salesItem.ItemMaster;
+      // Define a local type that matches the query shape
+      type SalesItemRow = {
+        Qty: number;
+        UnitPrice: number;
+        ItemId: number;
+        Sales: { SaleDate: string }[];
+        ItemMaster?: ItemMaster | null;
+      };
+      salesItemData.forEach((salesItem: SalesItemRow) => { // Explicitly type salesItem
         const itemId = salesItem.ItemId;
-        const itemName = itemMaster?.ItemName || "Unknown Item";
-        const itemCode = itemMaster?.ItemCode || "N/A";
-        const qty = salesItem.Qty || 0;
-        const unitPrice = salesItem.UnitPrice || 0;
+        const itemName = salesItem.ItemMaster?.ItemName ?? "";
+        const itemCode = salesItem.ItemMaster?.ItemCode ?? "";
         if (!itemSummaryMap.has(itemId)) {
           itemSummaryMap.set(itemId, { ItemId: itemId, ItemName: itemName, ItemCode: itemCode, total_qty_sold: 0, total_sales_amount: 0 });
         }
         const summary = itemSummaryMap.get(itemId)!;
-        summary.total_qty_sold += qty;
-        summary.total_sales_amount += qty * unitPrice;
+        summary.total_qty_sold += salesItem.Qty;
+        summary.total_sales_amount += salesItem.Qty * salesItem.UnitPrice;
       });
 
       const sortedSummary = Array.from(itemSummaryMap.values())

@@ -9,7 +9,6 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
 import { useAuth } from "@/contexts/auth-provider";
 import { format } from "date-fns";
-import { PayableSettlement } from "@/types"; // Added missing import
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,6 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, PlusCircle, ArrowUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { DeletePaymentVoucherAlert } from "@/components/delete-payment-vouchers-alert";
 
 type SortDirection = "asc" | "desc";
 
@@ -56,7 +54,7 @@ function PaymentVouchersPage() {
 
     let query = supabase
       .from("payment_vouchers")
-      .select("*, SupplierMaster(SupplierName), payable_settlements(*, Payables(ReferenceNo, Amount, Balance))", { count: "exact" });
+      .select("*, SupplierMaster(SupplierName), payable_settlements(*)", { count: "exact" });
 
     if (debouncedSearchTerm) {
       const { data: matchingSuppliers, error: supplierError } = await supabase

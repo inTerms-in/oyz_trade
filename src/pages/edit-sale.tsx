@@ -593,6 +593,17 @@ export default function EditSalePage() {
     form.setValue("CustomerName", customer.CustomerName, { shouldValidate: true });
   };
 
+  // New helper to update CustomerName as the user types and clear selection if needed
+  const handleCustomerNameChange = (value: string) => {
+    form.setValue("CustomerName", value, { shouldValidate: true });
+    // If user starts typing a different name, clear any previously selected customer
+    if (selectedCustomer && value && value.toLowerCase() !== selectedCustomer.CustomerName.toLowerCase()) {
+      setSelectedCustomer(null);
+    } else if (!value) {
+      setSelectedCustomer(null);
+    }
+  };
+
   const handleCurrentItemChange = (field: keyof typeof currentItem, value: string | number) => {
     const updatedItem = { ...currentItem, [field]: value };
     if (field === "ItemName") {
@@ -830,7 +841,7 @@ export default function EditSalePage() {
                             label="Customer Name (Optional)"
                             suggestions={customerSuggestions}
                             value={field.value ?? ""}
-                            onValueChange={field.onChange}
+                            onValueChange={handleCustomerNameChange}
                             onSelect={handleCustomerSelect}
                             getId={(c) => c.CustomerId}
                             getName={(c) => c.CustomerName}

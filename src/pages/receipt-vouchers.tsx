@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ReceiptVoucherWithSettlements, ReceivableSettlement } from "@/types";
+import { ReceiptVoucherWithSettlements } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
@@ -20,7 +20,6 @@ import { DataTablePagination } from "@/components/data-table-pagination";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { ChevronDown, PlusCircle, ArrowUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { DeleteReceiptVoucherAlert } from "@/components/delete-receipt-voucher-alert";
 
 type SortDirection = "asc" | "desc";
 
@@ -55,7 +54,7 @@ function ReceiptVouchersPage() {
 
     let query = supabase
       .from("receipt_vouchers")
-      .select("*, CustomerMaster(CustomerName), receivable_settlements(*, Receivables(ReferenceNo, Amount, Balance))", { count: "exact" });
+      .select("*, CustomerMaster(CustomerName), receivable_settlements(*)", { count: "exact" });
 
     if (debouncedSearchTerm) {
       const { data: matchingCustomers, error: customerError } = await supabase

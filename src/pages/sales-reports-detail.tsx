@@ -79,21 +79,7 @@ export default function SalesDetailReportPage() {
     setLoading(true);
     let query = supabase
       .from("Sales")
-      .select(`
-        SaleId,
-        SaleDate,
-        ReferenceNo,
-        TotalAmount,
-        AdditionalDiscount,
-        DiscountPercentage,
-        PaymentType,
-        PaymentMode,
-        CashAmount,
-        BankAmount,
-        CreditAmount,
-        CustomerMaster(CustomerId, CustomerName, MobileNo),
-        SalesItem(SalesItemId, ItemId, Qty, Unit, UnitPrice, ItemMaster(ItemName, ItemCode))
-      `);
+      .select("*, SalesItem(*, ItemMaster(*, CategoryMaster(*))), CustomerMaster(CustomerName, MobileNo)");
 
     if (dateRange?.from) {
       query = query.gte("SaleDate", format(dateRange.from, "yyyy-MM-dd"));
@@ -114,34 +100,34 @@ export default function SalesDetailReportPage() {
       toast.error("Failed to fetch sales detail report", { description: error.message });
       setData([]);
     } else {
-      // Ensure CustomerMaster and SalesItem are correctly typed, handling array or object
-      const processedData: SalesDetailReport[] = salesData.map((sale: any) => {
-        // Handle CustomerMaster as array or object
-        let customer = sale.CustomerMaster;
-        if (Array.isArray(customer)) {
-          customer = customer[0] || null;
-        }
-        // Handle SalesItem as array (should always be array)
-        const salesItems = Array.isArray(sale.SalesItem) ? sale.SalesItem : [];
+      // Normalize CustomerMaster and SalesItem shapes to the interface expectations
+      const processedData: SalesDetailReport[] = (salesData as any[]).map((sale: any) => {
+        // CustomerMaster may come as array or object; normalize to object or null
+        const customer: any = Array.isArray(sale.CustomerMaster) ? sale.CustomerMaster[0] : sale.CustomerMaster;
+        const CustomerMaster = customer
+          ? { CustomerId: customer.CustomerId, CustomerName: customer.CustomerName, MobileNo: customer.MobileNo }
+          : null;
+
+        // SalesItem may be an array; ensure shape matches SalesDetail.SalesItem
+        const SalesItem = Array.isArray(sale.SalesItem)
+          ? sale.SalesItem.map((si: any) => ({
+              SalesItemId: si.SalesItemId,
+              ItemId: si.ItemId,
+              Qty: si.Qty,
+              Unit: si.Unit,
+              UnitPrice: si.UnitPrice,
+              ItemMaster: {
+                ItemName: si.ItemMaster?.ItemName,
+                ItemCode: si.ItemMaster?.ItemCode
+              }
+            }))
+          : [];
+
         return {
           ...sale,
-          CustomerMaster: customer ? {
-            CustomerId: customer.CustomerId,
-            CustomerName: customer.CustomerName,
-            MobileNo: customer.MobileNo,
-          } : null,
-          SalesItem: salesItems.map((item: any) => ({
-            SalesItemId: item.SalesItemId,
-            ItemId: item.ItemId,
-            Qty: item.Qty,
-            Unit: item.Unit,
-            UnitPrice: item.UnitPrice,
-            ItemMaster: {
-              ItemName: item.ItemMaster?.ItemName,
-              ItemCode: item.ItemMaster?.ItemCode,
-            },
-          })),
-        };
+          CustomerMaster,
+          SalesItem
+        } as SalesDetailReport;
       });
       setData(processedData);
     }

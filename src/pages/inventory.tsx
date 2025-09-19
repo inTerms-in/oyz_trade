@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ItemWithStock, Category } from "@/types";
+import { ItemWithStock } from "@/types";
 import { toast } from "sonner";
 import { AddItemDialog } from "@/components/add-item-dialog";
 import { EditItemDialog } from "@/components/edit-item-dialog";
@@ -25,7 +26,7 @@ export default function InventoryPage() {
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   // Removed isEditItemDialogOpen and isDeleteDialogOpen as they are not directly used to control dialog open state
   const [selectedItem, setSelectedItem] = useState<ItemWithStock | null>(null);
-  const [, setCategories] = useState<Category[]>([]); // Keep categories if needed for AddItemDialog/EditItemDialog
+  // Removed unused categories state (TS6133)
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBarcodePrintOpen, setIsBarcodePrintOpen] = useState(false);
   const location = useLocation();
@@ -35,7 +36,7 @@ export default function InventoryPage() {
     if (error) {
       toast.error("Failed to fetch categories", { description: error.message });
     } else {
-      setCategories(data || []);
+      // setCategories(data || []);
     }
   }, []);
 
