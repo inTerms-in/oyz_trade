@@ -300,7 +300,11 @@ function ItemsPage() {
                         <div className="flex items-center justify-end space-x-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <EditItemDialog item={{...item, CategoryMaster: { CategoryId: 0, CategoryName: item.CategoryName || '' }}} onItemUpdated={fetchItems} />
+                              <EditItemDialog 
+                                item={{...item, CategoryMaster: { CategoryId: 0, CategoryName: item.CategoryName || '' }}} 
+                                onItemUpdated={fetchItems}
+                                onOpenChange={() => {}} 
+                              />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Edit Item (Ctrl+E)</p>
@@ -308,7 +312,11 @@ function ItemsPage() {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <DeleteItemAlert item={{...item, CategoryMaster: { CategoryId: 0, CategoryName: item.CategoryName || '' }}} onItemDeleted={fetchItems} />
+                              <DeleteItemAlert 
+                                item={{...item, CategoryMaster: { CategoryId: 0, CategoryName: item.CategoryName || '' }}} 
+                                onItemDeleted={fetchItems}
+                                onOpenChange={() => {}} 
+                              />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Delete Item (Ctrl+D)</p>

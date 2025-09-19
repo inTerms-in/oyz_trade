@@ -25,7 +25,7 @@ interface DeleteItemAlertProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function DeleteItemAlert({ item, onItemDeleted }: DeleteItemAlertProps) {
+export function DeleteItemAlert({ item, onItemDeleted, onOpenChange }: DeleteItemAlertProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDelete() {
