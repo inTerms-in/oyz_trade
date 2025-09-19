@@ -22,6 +22,7 @@ import { Trash2 } from "lucide-react";
 interface DeleteItemAlertProps {
   item: ItemWithCategory;
   onItemDeleted: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function DeleteItemAlert({ item, onItemDeleted }: DeleteItemAlertProps) {
@@ -47,7 +48,7 @@ export function DeleteItemAlert({ item, onItemDeleted }: DeleteItemAlertProps) {
   }
 
   return (
-    <AlertDialog>
+    <AlertDialog onOpenChange={onOpenChange}>
       <AlertDialogTrigger asChild>
         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
           <Trash2 className="h-4 w-4" />

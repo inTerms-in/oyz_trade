@@ -52,11 +52,12 @@ type ItemFormValues = z.infer<typeof itemFormSchema>;
 interface EditItemDialogProps {
   item: ItemWithCategory;
   onItemUpdated: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
+export function EditItemDialog({ item, onItemUpdated, onOpenChange }: EditItemDialogProps) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [itemCodeDisplay, setItemCodeDisplay] = useState("");
@@ -157,7 +158,10 @@ export function EditItemDialog({ item, onItemUpdated }: EditItemDialogProps) {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(value) => {
+        setOpen(value);
+        onOpenChange(value);
+      }}>
         <DialogTrigger asChild>
           <Button variant="ghost" size="icon">
             <Pencil className="h-4 w-4" />
