@@ -85,7 +85,7 @@ const navItems = useMemo(() => [
       { to: "/sales-module/sales-invoice", icon: Receipt, label: "Sales Invoice" },
       { to: "/sales-module/sales-return", icon: ReceiptText, label: "Sales Return" },
       { to: "/sales-module/customers", icon: Users, label: "Customers" },
-      { to: "/sales-module/receivables", icon: Wallet, label: "Receivables" },
+  { to: "/sales-module/customer-receivables", icon: Wallet, label: "Receivables" },
     ],
   },
   {
@@ -96,7 +96,7 @@ const navItems = useMemo(() => [
       { to: "/purchase-module/purchase-invoice", icon: Receipt, label: "Purchase Invoice" },
       { to: "/purchase-module/purchase-return", icon: ReceiptText, label: "Purchase Return" },
       { to: "/purchase-module/suppliers", icon: Truck, label: "Suppliers" },
-      { to: "/purchase-module/payables", icon: Banknote, label: "Payables" },
+  { to: "/purchase-module/supplier-payables", icon: Banknote, label: "Payables" },
     ],
   },
   {
