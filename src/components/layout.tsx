@@ -1,13 +1,12 @@
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/auth-provider.tsx";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
-  Menu, PlusCircle, LayoutDashboard, BarChart, Package, ShoppingCart, ShoppingBag, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText,
-  ChevronDown, DollarSign, FileText, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Calendar,
-  AlertCircle, Settings, ArrowLeftRight, Clock, Receipt, HandCoins
-} from "lucide-react";
+  Menu, PlusCircle, BarChart, Package, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText, 
+  ChevronDown, DollarSign, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Calendar, 
+  AlertCircle, Settings, Clock, Receipt, HandCoins 
+} from "lucide-react"; 
 import {
   DropdownMenu,
   DropdownMenuTrigger, // Added this import
@@ -22,89 +21,98 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { ChatbotTrigger } from "@/components/chatbot-trigger";
 import { ChatbotDialog } from "@/components/chatbot-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Define a type for navigation items, including nested children
-interface NavItem {
+
+// NavItem type for navigation structure
+type NavItem = {
   to: string;
   icon: React.ElementType;
   label: string;
   end?: boolean;
   children?: NavItem[];
-}
+};
 
 function Layout() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  // Ref for new action button
   const newActionButtonRef = useRef<HTMLButtonElement>(null);
-  const [openModulePath, setOpenModulePath] = useState<string | null>(null); // State for top-level accordion behavior
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
-
-  const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
-    cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-      isActive && "bg-muted text-primary",
-      isCollapsed && "h-auto w-full justify-center p-2 flex-col gap-1"
-    );
-  
-  const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
-    cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-      isActive && "bg-muted text-primary"
-    );
-
+  // Chatbot dialog state
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  // Fallback user and logout handler (replace with real auth logic)
+  const user: { email?: string } | undefined = undefined;
+  const handleLogout = () => {};
+  // Router navigation
+  const navigate = useNavigate();
+  // Mobile sidebar Sheet open/close state
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const closeSheet = () => setIsSheetOpen(false);
+  // Fallback navLinkClasses and mobileNavLinkClasses for styling
+  const navLinkClasses = ({ isActive }: { isActive?: boolean }) =>
+    `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive ? 'bg-primary text-white' : 'text-muted-foreground hover:text-primary'}`;
 
-  const navItems: NavItem[] = useMemo(() => [
-    { to: "/", icon: LayoutDashboard, label: "Overview Dashboard", end: true },
-    {
-      to: "/sales-module", // Changed to parent path for module
-      icon: ShoppingBag,
-      label: "Sales Module",
-      children: [
-        { to: "/sales-module/sales-invoice", icon: FileText, label: "Sales Invoice" },
-        { to: "/sales-module/sales-return", icon: ArrowLeftRight, label: "Sales Return" },
-        { to: "/sales-module/customer-receivables", icon: DollarSign, label: "Customer Receivables" },
-        { to: "/sales-module/customers", icon: UserRound, label: "Customer Master" },
-      ],
-    },
-    {
-      to: "/purchase-module", // Changed to parent path for module
-      icon: ShoppingCart,
-      label: "Purchase Module",
-      children: [
-        { to: "/purchase-module/purchase-invoice", icon: FileText, label: "Purchase Invoice" },
-        { to: "/purchase-module/purchase-return", icon: ArrowLeftRight, label: "Purchase Return" },
-        { to: "/purchase-module/supplier-payables", icon: Banknote, label: "Supplier Payables" },
-        { to: "/purchase-module/suppliers", icon: Truck, label: "Supplier Master" },
-      ],
-    },
-    {
-      to: "/inventory-module", // Changed to parent path for module
-      icon: Package,
-      label: "Inventory Module",
-      children: [
-        { to: "/inventory-module/item-master", icon: Tag, label: "Item Master" },
-        { to: "/inventory-module/categories", icon: Users, label: "Category Master" },
-        { to: "/inventory-module/stock-adjustment", icon: TrendingUp, label: "Stock Adjustment" },
-        { to: "/inventory-module/stock-ledger", icon: ScrollText, label: "Stock Ledger" },
-        { to: "/inventory-module/category-wise-stock", icon: ListChecks, label: "Category-wise Stock" },
-        { to: "/inventory-module/reorder-level-alerts", icon: AlertCircle, label: "Reorder Level Alerts" },
-        { to: "/inventory-module/barcode-print", icon: ScanBarcode, label: "Print Barcodes" },
-      ],
-    },
+  const mobileNavLinkClasses = ({ isActive }: { isActive?: boolean }) =>
+    `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive ? 'bg-primary text-white' : 'text-muted-foreground hover:text-primary'}`;
+  // Track open/closed state for all submenus (for nested collapsibles)
+  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
+
+  // Toggle a submenu open/closed
+  const toggleMenu = (key: string) => {
+    setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+  // Track which top-level module is open in expanded sidebar
+  const [openModulePath, setOpenModulePath] = useState<string | null>(null);
+  // Sidebar collapsed state
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+// Define a type for navigation items, including nested children
+
+// ...existing code...
+
+// Navigation rendering logic should be inside a function, not at the top level
+// (removed duplicate renderNavLinks and renderCollapsedDropdown definitions)
+const navItems = useMemo(() => [
+  {
+    to: "/sales-module",
+    icon: BarChart,
+    label: "Sales Module",
+    children: [
+      { to: "/sales-module/sales-invoice", icon: Receipt, label: "Sales Invoice" },
+      { to: "/sales-module/sales-return", icon: ReceiptText, label: "Sales Return" },
+      { to: "/sales-module/customers", icon: Users, label: "Customers" },
+      { to: "/sales-module/receivables", icon: Wallet, label: "Receivables" },
+    ],
+  },
+  {
+    to: "/purchase-module",
+    icon: Package,
+    label: "Purchase Module",
+    children: [
+      { to: "/purchase-module/purchase-invoice", icon: Receipt, label: "Purchase Invoice" },
+      { to: "/purchase-module/purchase-return", icon: ReceiptText, label: "Purchase Return" },
+      { to: "/purchase-module/suppliers", icon: Truck, label: "Suppliers" },
+      { to: "/purchase-module/payables", icon: Banknote, label: "Payables" },
+    ],
+  },
+  {
+    to: "/inventory-module", // Changed to parent path for module
+    icon: Package,
+    label: "Inventory Module",
+    children: [
+      { to: "/inventory-module/item-master", icon: Tag, label: "Item Master" },
+      { to: "/inventory-module/categories", icon: Users, label: "Category Master" },
+      { to: "/inventory-module/stock-adjustment", icon: TrendingUp, label: "Stock Adjustment" },
+      { to: "/inventory-module/stock-ledger", icon: ScrollText, label: "Stock Ledger" },
+      { to: "/inventory-module/category-wise-stock", icon: ListChecks, label: "Category-wise Stock" },
+      { to: "/inventory-module/reorder-level-alerts", icon: AlertCircle, label: "Reorder Level Alerts" },
+      { to: "/inventory-module/barcode-print", icon: ScanBarcode, label: "Print Barcodes" },
+    ],
+  },
     {
       to: "/accounts-module", // Changed to parent path for module
       icon: Landmark,
@@ -176,8 +184,8 @@ function Layout() {
         },
       ],
     },
-    { to: "/settings", icon: Settings, label: "Settings" },
-  ], []);
+  { to: "/settings", icon: Settings, label: "Settings" },
+], []);
 
   const getCurrentPageTitle = useCallback((pathname: string, items: NavItem[]): string => {
     for (const item of items) {
@@ -196,94 +204,45 @@ function Layout() {
   const currentPageTitle = useMemo(() => getCurrentPageTitle(location.pathname, navItems), [location.pathname, navItems, getCurrentPageTitle]);
 
   const renderNavLinks = (items: NavItem[], isMobile: boolean, level: number = 0) => {
-    return items.map((item) => {
-      const currentPath = item.to;
-      const isActive = location.pathname.startsWith(currentPath) && (item.end ? location.pathname === currentPath : true);
-      const isParentActive = location.pathname.startsWith(item.to);
+  // Helper for collapsed dropdown rendering
+  const renderCollapsedDropdown = (subItems: NavItem[], subLevel: number = 0) => {
+    return subItems.map(subItem => {
+      if (subItem.children && subItem.children.length > 0) {
+        return (
+          <DropdownMenuSub key={subItem.label}>
+            <DropdownMenuSubTrigger>
+              <subItem.icon className="mr-2 h-4 w-4" />
+              <span>{subItem.label}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                {renderCollapsedDropdown(subItem.children, subLevel + 1)}
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        );
+      } else {
+        return (
+          <DropdownMenuItem key={subItem.label} asChild>
+            <NavLink to={subItem.to} className="w-full">
+              <subItem.icon className="mr-2 h-4 w-4" />
+              {subItem.label}
+            </NavLink>
+          </DropdownMenuItem>
+        );
+      }
+    });
+  };
 
-      // --- Mobile Collapsible State ---
-      
+  return items.map((item) => {
+    const currentPath = item.to;
+    const isActive = location.pathname.startsWith(currentPath) && (item.end ? location.pathname === currentPath : true);
+    const isParentActive = location.pathname.startsWith(item.to);
+    const menuKey = currentPath;
 
-      if (item.children && item.children.length > 0) {
-        // For top-level collapsibles (level 0), use openModulePath for accordion behavior
-        // For nested collapsibles (level > 0), just open if active
-        const isOpen = level === 0
-          ? (openModulePath === item.to || (isParentActive && openModulePath === null))
-          : isParentActive;
-
-        const handleOpenChange = (isOpenState: boolean) => {
-          if (level === 0) { // Only manage top-level accordion
-            if (isOpenState) {
-              setOpenModulePath(item.to);
-            } else if (openModulePath === item.to) {
-              setOpenModulePath(null);
-            }
-          }
-          // For nested collapsibles, we don't manage a global state, they just open/close based on route
-        };
-
-        if (isMobile) {
-          // Use local state for mobile collapsible open/close
-          const [open, setOpen] = useState(isParentActive);
-          return (
-            <Collapsible
-              key={item.label}
-              open={open}
-              onOpenChange={setOpen}
-              className="w-full"
-            >
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center justify-between w-full rounded-lg px-3 py-2 text-lg font-medium transition-all hover:text-primary cursor-pointer",
-                  open ? "text-primary" : "text-muted-foreground"
-                )}>
-                  <div className="flex items-center gap-3 flex-1">
-                    <item.icon className="h-5 w-5" />
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                  <ChevronDown className={cn("h-5 w-5 shrink-0 transition-transform", open && "rotate-180")} />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                <nav className="grid items-start text-base font-medium ml-3 pl-6 border-l gap-1 py-2">
-                  {renderNavLinks(item.children, isMobile, level + 1)}
-                </nav>
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        }
-
-        if (isCollapsed) {
-          // Nested Dropdown Menu for collapsed sidebar
-          const renderCollapsedDropdown = (subItems: NavItem[], subLevel: number = 0) => {
-            return subItems.map(subItem => {
-              if (subItem.children && subItem.children.length > 0) {
-                return (
-                  <DropdownMenuSub key={subItem.label}>
-                    <DropdownMenuSubTrigger>
-                      <subItem.icon className="mr-2 h-4 w-4" />
-                      <span>{subItem.label}</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent>
-                        {renderCollapsedDropdown(subItem.children, subLevel + 1)}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenuSub>
-                );
-              } else {
-                return (
-                  <DropdownMenuItem key={subItem.label} asChild>
-                    <NavLink to={subItem.to} className="w-full">
-                      <subItem.icon className="mr-2 h-4 w-4" />
-                      {subItem.label}
-                    </NavLink>
-                  </DropdownMenuItem>
-                );
-              }
-            });
-          };
-
+      // Collapsed sidebar (desktop)
+      if (isCollapsed && !isMobile) {
+        if (item.children && item.children.length > 0) {
           return (
             <DropdownMenu key={item.label}>
               <DropdownMenuTrigger asChild>
@@ -305,14 +264,35 @@ function Layout() {
               </DropdownMenuContent>
             </DropdownMenu>
           );
+        } else {
+          return (
+            <Tooltip key={item.label}>
+              <TooltipTrigger asChild>
+                <NavLink
+                  to={item.to}
+                  className={navLinkClasses({ isActive })}
+                  end={item.end}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span className="text-xs text-center break-words max-w-full mt-1">
+                    {item.label}
+                  </span>
+                </NavLink>
+              </TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          );
         }
+      }
 
-        // Expanded mode with accordion behavior
+      // Expanded sidebar (desktop) - only one top-level open at a time
+      if (!isCollapsed && !isMobile && level === 0 && item.children && item.children.length > 0) {
+        const isOpen = openModulePath === item.to;
         return (
           <Collapsible
             key={item.label}
             open={isOpen}
-            onOpenChange={handleOpenChange}
+            onOpenChange={(open) => setOpenModulePath(open ? item.to : null)}
             className="w-full"
           >
             <CollapsibleTrigger asChild>
@@ -321,69 +301,114 @@ function Layout() {
                 isParentActive ? "bg-muted text-primary" : "text-muted-foreground",
                 "pr-2"
               )}>
-                <NavLink to={item.to} className="flex items-center gap-3 flex-1" end={item.end} onClick={(e) => {
-                  // Prevent NavLink navigation if it's a parent with children
-                  if (item.children && item.children.length > 0) {
-                    e.preventDefault();
-                  }
-                }}>
+                <NavLink to={item.to} className="flex items-center gap-3 flex-1" end={item.end} onClick={e => { e.preventDefault(); }}>
                   <item.icon className="h-5 w-5" />
-                  <span className="truncate">
-                    {item.label}
-                  </span>
+                  <span className="truncate">{item.label}</span>
                 </NavLink>
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-              <nav className={cn("grid items-start text-sm font-medium gap-1", level > 0 ? "ml-3 pl-6 border-l" : "")}>
+              <nav className={cn("grid items-start text-sm font-medium gap-1 ml-3 pl-6 border-l")}> 
                 {renderNavLinks(item.children, isMobile, level + 1)}
               </nav>
             </CollapsibleContent>
           </Collapsible>
         );
-      } else {
-        // Regular NavLink item
+      }
+
+      // Nested submenus in expanded sidebar (desktop)
+      if (!isCollapsed && !isMobile && level > 0 && item.children && item.children.length > 0) {
+        const isOpen = !!openMenus[menuKey];
         return (
-          <Tooltip key={item.label}>
-            <TooltipTrigger asChild>
-              <NavLink
-                to={item.to}
-                className={isMobile ? mobileNavLinkClasses({isActive}) : navLinkClasses({isActive})}
-                onClick={() => {
-                  if (isMobile) closeSheet();
-                  if (level === 0) setOpenModulePath(null); // Collapse top-level if a leaf item is clicked
-                }}
-                end={item.end}
-              >
-                <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
-                <span className={cn(
-                  isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
-                )}>
-                  {item.label}
-                </span>
-              </NavLink>
-            </TooltipTrigger>
-            {isCollapsed && !isMobile && <TooltipContent side="right">{item.label}</TooltipContent>}
-          </Tooltip>
+          <Collapsible
+            key={item.label}
+            open={isOpen}
+            onOpenChange={() => toggleMenu(menuKey)}
+            className="w-full"
+          >
+            <CollapsibleTrigger asChild>
+              <div className={cn(
+                "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary cursor-pointer",
+                isParentActive ? "bg-muted text-primary" : "text-muted-foreground",
+                "pr-2"
+              )}>
+                <NavLink to={item.to} className="flex items-center gap-3 flex-1" end={item.end} onClick={e => { e.preventDefault(); }}>
+                  <item.icon className="h-5 w-5" />
+                  <span className="truncate">{item.label}</span>
+                </NavLink>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+              <nav className={cn("grid items-start text-sm font-medium gap-1 ml-3 pl-6 border-l")}> 
+                {renderNavLinks(item.children, isMobile, level + 1)}
+              </nav>
+            </CollapsibleContent>
+          </Collapsible>
         );
       }
+
+      // Mobile view: allow all levels to expand/collapse independently
+      if (isMobile && item.children && item.children.length > 0) {
+        const isOpen = !!openMenus[menuKey];
+        return (
+          <Collapsible
+            key={item.label}
+            open={isOpen}
+            onOpenChange={() => toggleMenu(menuKey)}
+            className="w-full"
+          >
+            <CollapsibleTrigger asChild>
+              <div className={cn(
+                "flex items-center justify-between w-full rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary cursor-pointer",
+                isParentActive ? "bg-muted text-primary" : "text-muted-foreground",
+                "pr-2"
+              )}>
+                <span className="flex items-center gap-3 flex-1">
+                  <item.icon className="h-5 w-5" />
+                  <span className="truncate">{item.label}</span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform data-[state=open]:rotate-180" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+              <nav className={cn("grid items-start text-sm font-medium gap-1 ml-3 pl-6 border-l")}> 
+                {renderNavLinks(item.children, isMobile, level + 1)}
+              </nav>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      }
+
+      // Regular NavLink item (all modes)
+      return (
+        <Tooltip key={item.label}>
+          <TooltipTrigger asChild>
+            <NavLink
+              to={item.to}
+              className={isMobile ? mobileNavLinkClasses({ isActive }) : navLinkClasses({ isActive })}
+              onClick={() => {
+                if (isMobile) closeSheet();
+                if (level === 0 && !isCollapsed && !isMobile) setOpenModulePath(null);
+              }}
+              end={item.end}
+            >
+              <item.icon className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
+              <span className={cn(
+                isMobile ? "truncate" : (isCollapsed ? "text-xs text-center break-words max-w-full" : "truncate")
+              )}>
+                {item.label}
+              </span>
+            </NavLink>
+          </TooltipTrigger>
+          {isCollapsed && !isMobile && (
+            <TooltipContent side="right">{item.label}</TooltipContent>
+          )}
+        </Tooltip>
+      );
     });
   };
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.key === 'n') {
-        event.preventDefault();
-        newActionButtonRef.current?.click();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
 
   return (
     <TooltipProvider>
@@ -473,24 +498,6 @@ function Layout() {
                 <DropdownMenuItem onSelect={() => navigate('/accounts-module/payment-vouchers/new')}>New Payment Voucher</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" size="icon" className="rounded-full" aria-label="Toggle user menu">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => navigate('/settings')}>Settings</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </header>
           <main className="flex flex-1 flex-col gap-4 p-2 sm:p-4 bg-muted/20 overflow-y-auto">
             <Outlet key={location.pathname} />
