@@ -100,12 +100,17 @@ export default function ItemWiseSalesPage() {
         UnitPrice: number;
         ItemId: number;
         Sales: { SaleDate: string }[];
-        ItemMaster?: ItemMaster | null;
+        ItemMaster: {
+          ItemId: number;
+          ItemName: string;
+          ItemCode: string;
+        }[];
       };
       salesItemData.forEach((salesItem: SalesItemRow) => { // Explicitly type salesItem
         const itemId = salesItem.ItemId;
-        const itemName = salesItem.ItemMaster?.ItemName ?? "";
-        const itemCode = salesItem.ItemMaster?.ItemCode ?? "";
+        const itemMaster = salesItem.ItemMaster[0]; // Get the first item from the array
+        const itemName = itemMaster?.ItemName ?? "";
+        const itemCode = itemMaster?.ItemCode ?? "";
         if (!itemSummaryMap.has(itemId)) {
           itemSummaryMap.set(itemId, { ItemId: itemId, ItemName: itemName, ItemCode: itemCode, total_qty_sold: 0, total_sales_amount: 0 });
         }

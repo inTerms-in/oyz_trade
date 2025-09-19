@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ItemWithStock } from "@/types";
 import { toast } from "sonner";
@@ -32,7 +31,7 @@ export default function InventoryPage() {
   const location = useLocation();
 
   const fetchCategories = useCallback(async () => {
-    const { data, error } = await supabase.from("CategoryMaster").select("*");
+    const { error } = await supabase.from("CategoryMaster").select("*");
     if (error) {
       toast.error("Failed to fetch categories", { description: error.message });
     } else {
@@ -95,17 +94,17 @@ export default function InventoryPage() {
       {
         accessorKey: "SellPrice",
         header: "Sell Price",
-        cell: ({ row }) => (row.original.SellPrice ? `₹${row.original.SellPrice.toFixed(2)}` : "N/A"),
+        cell: ({ row }: { row: { original: ItemWithStock } }) => (row.original.SellPrice ? `₹${row.original.SellPrice.toFixed(2)}` : "N/A"),
       },
       {
         accessorKey: "current_stock",
         header: "Current Stock",
-        cell: ({ row }) => row.original.current_stock || 0,
+        cell: ({ row }: { row: { original: ItemWithStock } }) => row.original.current_stock || 0,
       },
       {
         id: "actions",
         header: "Actions",
-        cell: ({ row }) => (
+        cell: ({ row }: { row: { original: ItemWithStock } }) => (
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)}>
               <Pencil className="h-4 w-4" />
@@ -115,7 +114,7 @@ export default function InventoryPage() {
             </Button>
           </div>
         ),
-      },
+      }
     ],
     []
   );
@@ -197,8 +196,16 @@ export default function InventoryPage() {
       <AddItemDialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen} onItemAdded={handleItemAdded} />
       {selectedItem && (
         <>
-          <EditItemDialog item={selectedItem} onItemUpdated={handleItemUpdated} />
-          <DeleteItemAlert item={selectedItem} onItemDeleted={handleItemDeleted} />
+          <EditItemDialog 
+            item={selectedItem} 
+            onOpenChange={() => setSelectedItem(null)} 
+            onItemUpdated={handleItemUpdated} 
+          />
+          <DeleteItemAlert 
+            item={selectedItem} 
+            onOpenChange={() => setSelectedItem(null)} 
+            onItemDeleted={handleItemDeleted} 
+          />
         </>
       )}
       <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} onScanSuccess={handleScan} />
