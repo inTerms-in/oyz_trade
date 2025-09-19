@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Item } from "@/types";
+import { ItemMaster } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -32,17 +32,17 @@ export default function StockLedgerPage() {
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState("");
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
-  const [itemSuggestions, setItemSuggestions] = useState<Item[]>([]);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [itemSuggestions, setItemSuggestions] = useState<ItemMaster[]>([]);
+  const [selectedItem, setSelectedItem] = useState<ItemMaster | null>(null);
 
   const fetchItems = useCallback(async () => {
-    const { data: itemsData, error } = await supabase
+    const { data: items, error } = await supabase
       .from("ItemMaster")
       .select("ItemId, ItemName, Barcode, ItemCode");
     if (error) {
       toast.error("Failed to fetch items for filter", { description: error.message });
     } else {
-      setItemSuggestions(itemsData || []);
+      setItemSuggestions(items || []);
     }
   }, []);
 
@@ -129,7 +129,7 @@ export default function StockLedgerPage() {
     []
   );
 
-  const handleItemSelect = (item: Item) => {
+  const handleItemSelect = (item: ItemMaster) => {
     setSelectedItem(item);
   };
 
@@ -148,13 +148,13 @@ export default function StockLedgerPage() {
         <CardContent>
           <div className="flex flex-wrap items-center gap-4 py-4">
             <div className="relative flex-1 min-w-[200px]">
-              <Autocomplete<Item>
+              <Autocomplete<ItemMaster>
                 suggestions={itemSuggestions}
                 value={selectedItem?.ItemName || ""}
                 onValueChange={handleItemNameChange}
                 onSelect={handleItemSelect}
-                label="Filter by Item"
-                id="item-filter"
+                placeholder="Search for an item..."
+                disabled={loading}
                 getId={(item) => item.ItemId}
                 getName={(item) => item.ItemName || ''}
                 getItemCode={(item) => item.ItemCode}

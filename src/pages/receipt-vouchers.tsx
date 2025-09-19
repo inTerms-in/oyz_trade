@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ReceiptVoucherWithSettlements } from "@/types";
+import { ReceiptVoucherWithSettlements, ReceivableSettlement } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
@@ -54,7 +54,7 @@ function ReceiptVouchersPage() {
 
     let query = supabase
       .from("receipt_vouchers")
-      .select("*, CustomerMaster(CustomerName), receivable_settlements(*)", { count: "exact" });
+      .select("*, CustomerMaster(CustomerName), receivable_settlements(*, Receivables(*))", { count: "exact" });
 
     if (debouncedSearchTerm) {
       const { data: matchingCustomers, error: customerError } = await supabase
@@ -153,7 +153,7 @@ function ReceiptVouchersPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <Input
-                placeholder="Search customers or Ref No..."
+                placeholder="Search vouchers or Ref No..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-auto"
@@ -249,8 +249,8 @@ function ReceiptVouchersPage() {
                               <TooltipTrigger asChild>
                                 <Link to={`/accounts-module/receipt-vouchers/edit/${voucher.ReceiptVoucherId}`}>
                                   <Button variant="ghost" size="icon" aria-label="Edit receipt voucher">
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
+                                    {/* Pencil icon can be added here if desired */}
+                                  {/* </Button>
                                 </Link>
                               </TooltipTrigger>
                               <TooltipContent>
@@ -289,7 +289,7 @@ function ReceiptVouchersPage() {
                                         <TableCell className="font-mono text-xs">{settlement.Receivables?.ReferenceNo || 'N/A'}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.Receivables?.Amount || 0)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.AmountSettled)}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency((settlement.Receivables?.Amount || 0) - (settlement.Receivables?.Balance || 0) - settlement.AmountSettled)}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency((settlement.Receivables?.Balance || 0) - settlement.AmountSettled)}</TableCell>
                                       </TableRow>
                                     ))
                                   ) : (

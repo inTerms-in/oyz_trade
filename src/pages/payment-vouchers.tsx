@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { PaymentVoucherWithSettlements } from "@/types";
+import { PaymentVoucherWithSettlements, PayableSettlement } from "@/types";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DateRange } from "react-day-picker";
@@ -54,7 +54,7 @@ function PaymentVouchersPage() {
 
     let query = supabase
       .from("payment_vouchers")
-      .select("*, SupplierMaster(SupplierName), payable_settlements(*)", { count: "exact" });
+      .select("*, SupplierMaster(SupplierName), payable_settlements(*, Payables(*))", { count: "exact" });
 
     if (debouncedSearchTerm) {
       const { data: matchingSuppliers, error: supplierError } = await supabase
@@ -289,7 +289,7 @@ function PaymentVouchersPage() {
                                         <TableCell className="font-mono text-xs">{settlement.Payables?.ReferenceNo || 'N/A'}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.Payables?.Amount || 0)}</TableCell>
                                         <TableCell className="text-right">{formatCurrency(settlement.AmountSettled)}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency((settlement.Payables?.Amount || 0) - (settlement.Payables?.Balance || 0) - settlement.AmountSettled)}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency((settlement.Payables?.Balance || 0) - settlement.AmountSettled)}</TableCell>
                                       </TableRow>
                                     ))
                                   ) : (

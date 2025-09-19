@@ -122,6 +122,17 @@ export default function EditSalePage() {
   const itemsTotal = addedItems.reduce((sum: number, item: SaleListItem) => sum + item.TotalPrice, 0);
   const grandTotal = itemsTotal - (watchedAdditionalDiscount || 0);
 
+  // New helper to update CustomerName as the user types and clear selection if needed
+  const handleCustomerNameChange = (value: string) => {
+    form.setValue("CustomerName", value, { shouldValidate: true });
+    // If user starts typing a different name, clear any previously selected customer
+    if (selectedCustomer && value && value.toLowerCase() !== selectedCustomer.CustomerName.toLowerCase()) {
+      setSelectedCustomer(null);
+    } else if (!value) {
+      setSelectedCustomer(null);
+    }
+  };
+
   // Synchronize AdditionalDiscount and DiscountPercentage
   useEffect(() => {
     const currentAdditionalDiscount = form.getValues("AdditionalDiscount") ?? 0;
@@ -593,17 +604,6 @@ export default function EditSalePage() {
     form.setValue("CustomerName", customer.CustomerName, { shouldValidate: true });
   };
 
-  // New helper to update CustomerName as the user types and clear selection if needed
-  const handleCustomerNameChange = (value: string) => {
-    form.setValue("CustomerName", value, { shouldValidate: true });
-    // If user starts typing a different name, clear any previously selected customer
-    if (selectedCustomer && value && value.toLowerCase() !== selectedCustomer.CustomerName.toLowerCase()) {
-      setSelectedCustomer(null);
-    } else if (!value) {
-      setSelectedCustomer(null);
-    }
-  };
-
   const handleCurrentItemChange = (field: keyof typeof currentItem, value: string | number) => {
     const updatedItem = { ...currentItem, [field]: value };
     if (field === "ItemName") {
@@ -785,8 +785,6 @@ export default function EditSalePage() {
       </div>
     );
   }
-
-  // Removed unused handleCustomerNameChange function
 
   return (
     <div className="flex-1 p-4 sm:p-6">
