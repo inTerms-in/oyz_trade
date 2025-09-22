@@ -100,6 +100,8 @@ export interface Sale {
 export interface SaleWithItems extends Sale {
   SalesItem: SaleItem[];
   CustomerMaster?: Customer | null;
+  AdditionalDiscount?: number | null; // Added for discount calculation
+  DiscountPercentage?: number | null; // Added for discount calculation
 }
 
 export interface PurchaseItem {

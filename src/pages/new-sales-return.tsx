@@ -12,23 +12,24 @@ import { cn, generateItemCode } from "@/lib/utils";
 import { SaleWithItems } from "@/types";
 
 interface ReturnableItem {
-  OriginalItemId: number;
+  OriginalSalesItemId?: number; // The SalesItemId from the original sale
   ItemId: number;
   ItemName: string;
   ItemCode: string;
   CategoryName?: string;
-  QtyOriginal: number;
-  QtyAlreadyReturned: number;
+  QtyOriginal: number; // Original quantity sold in the linked sale
+  QtyAlreadyReturned: number; // Quantity already returned for *this specific original sale item*
   QtyToReturn: number;
   Unit: string;
-  UnitPrice: number;
+  UnitPrice: number; // This will be the effective unit price (after discount for linked sales)
   TotalPrice: number;
-  previousReturns?: Array<{
+  previousReturns?: Array<{ // Detailed history of returns for this specific item from this sale
     qty: number;
     returnId: number;
     returnRef: string;
     returnDate: string;
     unitPrice: number;
+    originalSaleId: number; // Added to filter by original sale
   }>;
 }
 
@@ -66,7 +67,7 @@ function NewSalesReturnPage() {
   const [saleSuggestions, setSaleSuggestions] = useState<SaleWithItems[]>([]);
   const [selectedSale, setSelectedSale] = useState<SaleWithItems | null>(null);
   const [returnableItems, setReturnableItems] = useState<ReturnableItem[]>([]);
-  const [displaySaleName, setDisplaySaleName] = useState(""); // New state for Autocomplete input text
+  const [displaySaleName, setDisplaySaleName] = useState("");
 
   const form = useForm<SalesReturnFormValues>({
     resolver: zodResolver(salesReturnFormSchema),
@@ -84,6 +85,9 @@ function NewSalesReturnPage() {
         SaleId,
         ReferenceNo,
         SaleDate,
+        TotalAmount,
+        AdditionalDiscount,
+        DiscountPercentage,
         CustomerMaster(CustomerName),
         SalesItem(
           SalesItemId,
@@ -95,20 +99,20 @@ function NewSalesReturnPage() {
         )
       `)
       .order("SaleDate", { ascending: false })
-      .limit(20); // Fetch recent sales for suggestions
+      .limit(20);
 
     if (error) {
       toast.error("Failed to fetch sales suggestions", { description: error.message });
     } else {
       const salesWithReturnInfo = await Promise.all((data || []).map(async (sale) => {
+        // Fetch all SalesReturnItems for this specific sale
         const { data: returnedItemsData, error: returnedItemsError } = await supabase
           .from("SalesReturnItem")
           .select(`
             ItemId,
-            Qty,
-            SalesReturn(SaleId)
+            Qty
           `)
-          .eq("SalesReturn.SaleId", sale.SaleId);
+          .eq("SalesReturn.SaleId", sale.SaleId); // Filter by the specific SaleId
 
         if (returnedItemsError) {
           console.error("Error fetching returned items for sale", sale.SaleId, returnedItemsError);
@@ -149,7 +153,7 @@ function NewSalesReturnPage() {
         if (sale) {
           setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`);
 
-          // Fetch all SalesReturnItems for these items across all sales
+          // Fetch all SalesReturnItems for items in this specific sale
           const { data: salesReturnItemsForItems, error: sriError } = await supabase
             .from("SalesReturnItem")
             .select(`
@@ -160,9 +164,7 @@ function NewSalesReturnPage() {
                 SalesReturnId,
                 ReferenceNo,
                 ReturnDate,
-                Sales(
-                  ReferenceNo
-                )
+                SaleId // Crucial for filtering by original sale
               )
             `)
             .in('ItemId', sale.SalesItem.map(item => item.ItemId));
@@ -173,47 +175,64 @@ function NewSalesReturnPage() {
             return;
           }
 
-          // Group returns by ItemId
+          // Group returns by ItemId and filter by the current sale
           const returnedItemsMap = new Map<number, Array<{
             qty: number;
             returnId: number;
             returnRef: string;
             returnDate: string;
             unitPrice: number;
+            originalSaleId: number;
           }>>();
           
           salesReturnItemsForItems.forEach(sri => {
-            const returns = returnedItemsMap.get(sri.ItemId) || [];
-            const returnRef = sri.SalesReturn.ReferenceNo;
-            const saleRef = sri.SalesReturn.Sales?.ReferenceNo;
-            returns.push({
-              qty: sri.Qty,
-              returnId: sri.SalesReturn.SalesReturnId,
-              returnRef: `${returnRef} (Sale: ${saleRef || 'N/A'})`,
-              returnDate: sri.SalesReturn.ReturnDate,
-              unitPrice: sri.UnitPrice
-            });
-            returnedItemsMap.set(sri.ItemId, returns);
+            // Only consider returns that are linked to the currently selected sale
+            if (sri.SalesReturn?.SaleId === sale.SaleId) {
+              const returns = returnedItemsMap.get(sri.ItemId) || [];
+              const returnRef = sri.SalesReturn.ReferenceNo;
+              returns.push({
+                qty: sri.Qty,
+                returnId: sri.SalesReturn.SalesReturnId,
+                returnRef: returnRef,
+                returnDate: sri.SalesReturn.ReturnDate,
+                unitPrice: sri.UnitPrice,
+                originalSaleId: sri.SalesReturn.SaleId,
+              });
+              returnedItemsMap.set(sri.ItemId, returns);
+            }
           });
+
+          // Calculate proportional discount for each item
+          const totalItemsAmountBeforeDiscount = sale.SalesItem.reduce((sum, item) => sum + (item.Qty * item.UnitPrice), 0);
+          const additionalDiscount = sale.AdditionalDiscount || 0;
 
           const items = sale.SalesItem.map(item => {
             const previousReturns = returnedItemsMap.get(item.ItemId) || [];
             const qtyAlreadyReturned = previousReturns.reduce((sum, r) => sum + r.qty, 0);
+
+            // Calculate effective unit price considering the sale's additional discount
+            let effectiveUnitPrice = item.UnitPrice;
+            if (totalItemsAmountBeforeDiscount > 0 && additionalDiscount > 0) {
+              const itemProportionalDiscount = (item.Qty * item.UnitPrice / totalItemsAmountBeforeDiscount) * additionalDiscount;
+              effectiveUnitPrice = (item.Qty * item.UnitPrice - itemProportionalDiscount) / item.Qty;
+            }
+            effectiveUnitPrice = parseFloat(effectiveUnitPrice.toFixed(2)); // Ensure 2 decimal places
+
             return {
-              OriginalItemId: item.SalesItemId, // Store original SalesItemId
+              OriginalSalesItemId: item.SalesItemId,
               ItemId: item.ItemId,
               ItemName: item.ItemMaster?.ItemName || 'Unknown Item',
               ItemCode: item.ItemMaster?.ItemCode || generateItemCode(item.ItemMaster?.CategoryMaster?.CategoryName, item.ItemId),
               CategoryName: item.ItemMaster?.CategoryMaster?.CategoryName,
-              QtyOriginal: item.Qty, // Original quantity sold
+              QtyOriginal: item.Qty,
               QtyAlreadyReturned: qtyAlreadyReturned,
               previousReturns: previousReturns,
               QtyToReturn: 0, // Default to 0 returned
               Unit: item.Unit,
-              UnitPrice: item.UnitPrice,
+              UnitPrice: effectiveUnitPrice, // Use effective discounted unit price
               TotalPrice: 0,
             };
-          }).filter(item => item.QtyOriginal > item.QtyAlreadyReturned); // Filter out items already fully returned
+          }).filter(item => item.QtyOriginal > item.QtyAlreadyReturned); // Only show items that still have quantity available to return
 
           setReturnableItems(items);
         } else {
@@ -229,27 +248,24 @@ function NewSalesReturnPage() {
     loadSaleDetails();
   }, [watchedSaleId, saleSuggestions]);
 
-  // Removed handleQtyReturnedChange as it was unused
-
   const handleRemoveItem = (index: number) => {
     const updatedItems = [...returnableItems];
     updatedItems.splice(index, 1);
     setReturnableItems(updatedItems);
   };
 
-  const handleItemFieldChange = (index: number, field: 'QtyToReturn' | 'UnitPrice', value: number) => {
+  const handleItemFieldChange = (index: number, field: 'QtyToReturn' | 'UnitPrice', value: string | number) => {
     const updatedItems = [...returnableItems];
     const item = updatedItems[index];
 
+    const numericValue = Number(value); // Ensure value is a number
+    if (isNaN(numericValue)) return; // Prevent NaN propagation
+
     if (field === 'QtyToReturn') {
-      // Calculate returns only from current sale
-      const returnsFromThisSale = item.previousReturns
-        ?.filter(ret => ret.returnRef.includes(`(Sale: ${selectedSale?.ReferenceNo || 'N/A'})`))
-        .reduce((sum, ret) => sum + ret.qty, 0) || 0;
-      const maxReturnable = item.QtyOriginal - returnsFromThisSale;
-      item.QtyToReturn = Math.max(0, Math.min(value, maxReturnable));
+      const maxReturnable = item.QtyOriginal - item.QtyAlreadyReturned;
+      item.QtyToReturn = Math.max(0, Math.min(numericValue, maxReturnable));
     } else if (field === 'UnitPrice') {
-      item.UnitPrice = Math.max(0, value); // Unit price cannot be negative
+      item.UnitPrice = Math.max(0, numericValue); // Unit price cannot be negative
     }
     item.TotalPrice = parseFloat((item.QtyToReturn * item.UnitPrice).toFixed(2));
     setReturnableItems(updatedItems);
@@ -310,7 +326,7 @@ function NewSalesReturnPage() {
       return;
     }
 
-    // Update stock for each returned item
+    // Update stock for each returned item (this logic is not implemented here, but would go here)
 
     setIsSubmitting(false);
     toast.success(`Sales Return ${refNoData} added successfully!`);
@@ -341,23 +357,22 @@ function NewSalesReturnPage() {
                         <Autocomplete<SaleWithItems>
                           id="sale-autocomplete"
                           suggestions={saleSuggestions}
-                          value={displaySaleName} // Use displaySaleName for input value
+                          value={displaySaleName}
                           onValueChange={(v) => {
                             setDisplaySaleName(v);
-                            // If the input is cleared, or the typed value no longer matches the currently selected sale, clear the form's SaleId
                             const isMatch = selectedSale && (
                               v.toLowerCase() === (selectedSale.ReferenceNo || '').toLowerCase() ||
                               v.toLowerCase() === `sale ${selectedSale.SaleId} (${selectedSale.CustomerMaster?.CustomerName || 'n/a'})`.toLowerCase()
                             );
                             if (!v.trim() || (selectedSale && !isMatch)) {
-                                field.onChange(null); // Set to null when no match or cleared
-                                setSelectedSale(null); // Also clear selectedSale
+                                field.onChange(null);
+                                setSelectedSale(null);
                             }
                           }}
                           onSelect={(sale) => {
                             field.onChange(sale.SaleId);
-                            setSelectedSale(sale); // Set selected sale
-                            setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`); // Update display name
+                            setSelectedSale(sale);
+                            setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`);
                           }}
                           placeholder="Search by Sale Ref No or Customer Name..."
                           getId={(s) => s.SaleId}
@@ -400,6 +415,9 @@ function NewSalesReturnPage() {
                   <p><strong>Customer:</strong> {selectedSale.CustomerMaster?.CustomerName || 'Walk-in Customer'}</p>
                   <p><strong>Sale Date:</strong> {format(parseISO(selectedSale.SaleDate), "PPP")}</p>
                   <p><strong>Total Amount:</strong> {formatCurrency(selectedSale.TotalAmount)}</p>
+                  {selectedSale.AdditionalDiscount && selectedSale.AdditionalDiscount > 0 && (
+                    <p><strong>Discount:</strong> {formatCurrency(selectedSale.AdditionalDiscount)} {selectedSale.DiscountPercentage ? `(${selectedSale.DiscountPercentage}%)` : ''}</p>
+                  )}
 
                   <h3 className="font-semibold mt-4">Items from Sale (Select for Return)</h3>
                   <div className="w-full overflow-x-auto">
@@ -409,7 +427,7 @@ function NewSalesReturnPage() {
                           <TableHead>Item</TableHead>
                           <TableHead>Code</TableHead>
                           <TableHead className="text-right">Qty Sold</TableHead>
-                          <TableHead className="text-right">Previous Returns</TableHead>
+                          <TableHead className="text-right">Already Returned</TableHead>
                           <TableHead>Unit</TableHead>
                           <TableHead className="text-right">Unit Price</TableHead>
                           <TableHead className="text-center">Qty to Return</TableHead>
@@ -420,18 +438,13 @@ function NewSalesReturnPage() {
                       <TableBody>
                         {returnableItems.length > 0 ? (
                           returnableItems.map((item, index) => (
-                            <TableRow key={item.OriginalItemId}>
+                            <TableRow key={item.OriginalSalesItemId}>
                               <TableCell className="font-medium">{item.ItemName}</TableCell>
                               <TableCell className="font-mono text-xs">{item.ItemCode}</TableCell>
                               <TableCell className="text-right">{item.QtyOriginal}</TableCell>
                               <TableCell className="text-right">
                                 <div className="font-semibold">
-                                  {(() => {
-                                    // Only show returns from the current sale's reference
-                                    return item.previousReturns
-                                      ?.filter(ret => ret.returnRef.includes(`(Sale: ${selectedSale?.ReferenceNo || 'N/A'})`))
-                                      .reduce((sum, ret) => sum + ret.qty, 0) || 0;
-                                  })()}
+                                  {item.QtyAlreadyReturned}
                                 </div>
                               </TableCell>
                               <TableCell>{item.Unit}</TableCell>
@@ -441,7 +454,7 @@ function NewSalesReturnPage() {
                                   label=" "
                                   type="number"
                                   value={item.UnitPrice}
-                                  onChange={(e) => handleItemFieldChange(index, 'UnitPrice', e.target.valueAsNumber)}
+                                  onChange={(e) => handleItemFieldChange(index, 'UnitPrice', e.target.value)}
                                   min={0}
                                   step="0.01"
                                   className="w-24 text-right"
@@ -453,7 +466,7 @@ function NewSalesReturnPage() {
                                   label=" "
                                   type="number"
                                   value={item.QtyToReturn}
-                                  onChange={(e) => handleItemFieldChange(index, 'QtyToReturn', e.target.valueAsNumber)}
+                                  onChange={(e) => handleItemFieldChange(index, 'QtyToReturn', e.target.value)}
                                   min={0}
                                   max={item.QtyOriginal - item.QtyAlreadyReturned}
                                   className="w-20 text-center"
@@ -506,7 +519,7 @@ function NewSalesReturnPage() {
                   <Button type="submit" disabled={isSubmitting || !form.formState.isValid || totalRefundAmount <= 0} className="flex-1 sm:flex-none">{isSubmitting ? "Saving..." : "Record Sales Return"}</Button>
                 </div>
                 <div className="w-full sm:w-auto sm:max-w-xs space-y-1 text-sm self-end">
-                    <div className="flex justify-between font-semibold border-t pt-1 mt-1 text-base">
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1">
                         <span>Total Refund Amount</span>
                         <span>{formatCurrency(totalRefundAmount)}</span>
                     </div>
