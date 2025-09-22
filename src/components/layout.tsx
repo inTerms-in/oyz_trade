@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Menu, PlusCircle, BarChart, Package, Tag, Users, ChevronsLeft, UserRound, Truck, ScanBarcode, TrendingUp, ReceiptText, 
   ChevronDown, DollarSign, Scale, Landmark, ScrollText, ClipboardList, LineChart, ListChecks, FileStack, Wallet, Banknote, Calendar, 
-  AlertCircle, Settings, Clock, Receipt, HandCoins 
+  AlertCircle, Settings, Clock, Receipt, HandCoins, LogOut, User, HelpCircle
 } from "lucide-react"; 
 import {
   DropdownMenu,
@@ -74,9 +74,19 @@ function Layout() {
 // (removed duplicate renderNavLinks and renderCollapsedDropdown definitions)
 const navItems = useMemo(() => [
   {
+    to: "/dashboard",
+    icon: BarChart,
+    label: "Dashboard",
+    children: [
+      { to: "/", icon: BarChart, label: "Overview" },
+      { to: "/dashboard/sales", icon: LineChart, label: "Sales Dashboard" },
+      { to: "/dashboard/purchase", icon: TrendingUp, label: "Purchase Dashboard" },
+    ],
+  },
+  {
     to: "/sales-module",
     icon: BarChart,
-    label: "Sales Module",
+    label: "Sales",
     children: [
       { to: "/sales-module/sales-invoice", icon: Receipt, label: "Sales Invoice" },
       { to: "/sales-module/sales-return", icon: ReceiptText, label: "Sales Return" },
@@ -87,7 +97,7 @@ const navItems = useMemo(() => [
   {
     to: "/purchase-module",
     icon: Package,
-    label: "Purchase Module",
+    label: "Purchase",
     children: [
       { to: "/purchase-module/purchase-invoice", icon: Receipt, label: "Purchase Invoice" },
       { to: "/purchase-module/purchase-return", icon: ReceiptText, label: "Purchase Return" },
@@ -96,9 +106,9 @@ const navItems = useMemo(() => [
     ],
   },
   {
-    to: "/inventory-module", // Changed to parent path for module
+    to: "/inventory-module",
     icon: Package,
-    label: "Inventory Module",
+    label: "Inventory",
     children: [
       { to: "/inventory-module/item-master", icon: Tag, label: "Item Master" },
       { to: "/inventory-module/categories", icon: Users, label: "Category Master" },
@@ -110,9 +120,9 @@ const navItems = useMemo(() => [
     ],
   },
     {
-      to: "/accounts-module", // Changed to parent path for module
+      to: "/accounts-module",
       icon: Landmark,
-      label: "Accounts Module",
+      label: "Accounts",
       children: [
         { to: "/accounts-module/payables-receivables", icon: Wallet, label: "Payables & Receivables" },
         { to: "/accounts-module/receipt-vouchers", icon: Receipt, label: "Receipt Vouchers" },
@@ -125,9 +135,9 @@ const navItems = useMemo(() => [
       ],
     },
     {
-      to: "/reports-module", // Changed to parent path for module
+      to: "/reports-module",
       icon: BarChart,
-      label: "Reports Module",
+      label: "Reports",
       children: [
         {
           to: "/reports-module/sales", // Parent path for sales reports
@@ -460,16 +470,17 @@ const navItems = useMemo(() => [
               </SheetContent>
             </Sheet>
             <h1 className="text-lg font-semibold md:text-xl mr-auto">{currentPageTitle}</h1>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button ref={newActionButtonRef} size="sm" className="ml-auto sm:ml-4">
-                      <span className="flex items-center">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        <span>New</span>
-                      </span>
-                    </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button ref={newActionButtonRef} size="sm">
+                        <span className="flex items-center">
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          <span>New</span>
+                        </span>
+                      </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>New (Ctrl+N)</p>
@@ -494,6 +505,32 @@ const navItems = useMemo(() => [
                 <DropdownMenuItem onSelect={() => navigate('/accounts-module/payment-vouchers/new')}>New Payment Voucher</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="h-5 w-5" />
+                  <span className="sr-only">User menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate('/help')}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Help
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           </header>
           <main className="flex flex-1 flex-col gap-4 p-2 sm:p-4 bg-muted/20 overflow-y-auto">
             <Outlet key={location.pathname} />
