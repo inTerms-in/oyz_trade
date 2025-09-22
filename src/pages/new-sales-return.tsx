@@ -127,11 +127,15 @@ function NewSalesReturnPage() {
               ItemId,
               Qty,
               UnitPrice,
-              SalesReturn(
+              SalesReturn!inner(
                 SalesReturnId,
                 ReferenceNo,
                 ReturnDate,
-                SaleId
+                SaleId,
+                Sales(
+                  SaleId,
+                  ReferenceNo
+                )
               )
             `)
             .in('ItemId', sale.SalesItem.map(item => item.ItemId));
@@ -154,7 +158,7 @@ function NewSalesReturnPage() {
           
           salesReturnItemsForItems.forEach(sri => {
             // Only consider returns that are linked to the currently selected sale
-            if (sri.SalesReturn?.SaleId === sale.SaleId) {
+            if (sri.SalesReturn?.Sales?.SaleId === sale.SaleId) {
               const returns = returnedItemsMap.get(sri.ItemId) || [];
               const returnRef = sri.SalesReturn.ReferenceNo;
               returns.push({
@@ -163,7 +167,7 @@ function NewSalesReturnPage() {
                 returnRef: returnRef,
                 returnDate: sri.SalesReturn.ReturnDate,
                 unitPrice: sri.UnitPrice,
-                originalSaleId: sri.SalesReturn.SaleId,
+                originalSaleId: sri.SalesReturn.Sales.SaleId,
               });
               returnedItemsMap.set(sri.ItemId, returns);
             }

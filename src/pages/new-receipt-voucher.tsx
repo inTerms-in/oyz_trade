@@ -137,7 +137,17 @@ function NewReceiptVoucherPage() {
   const fetchOutstandingReceivables = useCallback(async (customerId: number) => {
     const { data, error } = await supabase
       .from("Receivables")
-      .select("*, Sales(ReferenceNo, SaleId), SalesReturn(TotalRefundAmount, SaleId)") // Select SalesReturn data
+      .select(`
+        *,
+        Sales(
+          ReferenceNo, 
+          SaleId,
+          SalesReturn(
+            TotalRefundAmount,
+            SaleId
+          )
+        )
+      `)
       .eq("CustomerId", customerId)
       .neq("Status", "Paid")
       .order("DueDate", { ascending: true });
@@ -148,9 +158,8 @@ function NewReceiptVoucherPage() {
     } else {
       const processedReceivables = data.map(r => {
         // Calculate total sales return amount for this specific sale
-        const totalSalesReturnAmount = r.SalesReturn
-          ? (Array.isArray(r.SalesReturn) ? r.SalesReturn : [r.SalesReturn])
-              .filter(sr => sr.SaleId === r.SaleId) // Ensure return is for this specific sale
+        const totalSalesReturnAmount = r.Sales?.SalesReturn
+          ? (Array.isArray(r.Sales.SalesReturn) ? r.Sales.SalesReturn : [r.Sales.SalesReturn])
               .reduce((sum, sr) => sum + (sr.TotalRefundAmount || 0), 0)
           : 0;
 
