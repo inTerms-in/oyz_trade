@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Supplier } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAuth } from "@/contexts/auth-provider"; // Import useAuth
+import { useAuth } from "@/contexts/auth-provider";
 
 interface SupplierPayable extends Supplier {
   total_purchase_amount: number;
@@ -16,13 +16,13 @@ interface SupplierPayable extends Supplier {
 }
 
 export default function SupplierPayablesPage() {
-  const { user } = useAuth(); // Use useAuth
+  const { user } = useAuth();
   const [payables, setPayables] = useState<SupplierPayable[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSupplierPayables = async () => {
-      if (!user?.id) { // Still need user for authentication, but not for data filtering
+      if (!user?.id) {
         setLoading(false);
         return;
       }
@@ -66,7 +66,6 @@ export default function SupplierPayablesPage() {
         supplierMap.set(supplier.SupplierId, existing);
       });
 
-      // Filter out suppliers with 0 net payable if desired, or show all
       const sortedPayables = Array.from(supplierMap.values())
         .filter(s => s.net_payable > 0) // Only show positive payables
         .sort((a, b) => b.net_payable - a.net_payable); // Sort by highest payable
