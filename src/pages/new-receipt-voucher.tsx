@@ -38,6 +38,7 @@ interface ReceivableToSettle extends Receivable {
   amountToSettle: number;
   isSelected: boolean;
   Sales?: Sale | null; // Add Sales property for joined data
+  effectiveBalance: number; // New field to store balance after considering returns
 }
 
 const receiptVoucherFormSchema = z.object({
@@ -136,7 +137,7 @@ function NewReceiptVoucherPage() {
   const fetchOutstandingReceivables = useCallback(async (customerId: number) => {
     const { data, error } = await supabase
       .from("Receivables")
-      .select("*, Sales(ReferenceNo)")
+      .select("*, Sales(ReferenceNo, SaleId), SalesReturn(TotalRefundAmount, SaleId)") // Select SalesReturn data
       .eq("CustomerId", customerId)
       .neq("Status", "Paid")
       .order("DueDate", { ascending: true });
@@ -145,11 +146,26 @@ function NewReceiptVoucherPage() {
       toast.error("Failed to fetch outstanding receivables", { description: error.message });
       setReceivablesToSettle([]);
     } else {
-      setReceivablesToSettle(data.map(r => ({
-        ...r,
-        amountToSettle: 0,
-        isSelected: false,
-      })) || []);
+      const processedReceivables = data.map(r => {
+        // Calculate total sales return amount for this specific sale
+        const totalSalesReturnAmount = r.SalesReturn
+          ? (Array.isArray(r.SalesReturn) ? r.SalesReturn : [r.SalesReturn])
+              .filter(sr => sr.SaleId === r.SaleId) // Ensure return is for this specific sale
+              .reduce((sum, sr) => sum + (sr.TotalRefundAmount || 0), 0)
+          : 0;
+
+        // The effective balance is the original balance minus any sales returns
+        const effectiveBalance = Math.max(0, r.Balance - totalSalesReturnAmount);
+
+        return {
+          ...r,
+          amountToSettle: 0,
+          isSelected: false,
+          effectiveBalance: effectiveBalance,
+        };
+      }).filter(r => r.effectiveBalance > 0); // Only show receivables with a positive effective balance
+
+      setReceivablesToSettle(processedReceivables || []);
     }
   }, []);
 
@@ -223,7 +239,7 @@ function NewReceiptVoucherPage() {
       receivable.amountToSettle = 0;
     } else {
       // Automatically fill max amount if selected, or 0 if unselected
-      receivable.amountToSettle = Math.min(receivable.Balance, remainingAmountToAllocate);
+      receivable.amountToSettle = Math.min(receivable.effectiveBalance, remainingAmountToAllocate);
     }
     setReceivablesToSettle(updatedReceivables);
   };
@@ -231,7 +247,7 @@ function NewReceiptVoucherPage() {
   const handleReceivableAmountChange = (index: number, value: number) => {
     const updatedReceivables = [...receivablesToSettle];
     const receivable = updatedReceivables[index];
-    const maxSettleable = receivable.Balance;
+    const maxSettleable = receivable.effectiveBalance; // Use effectiveBalance here
     const newAmount = Math.max(0, Math.min(value, maxSettleable));
     receivable.amountToSettle = newAmount; // Corrected property name
     receivable.isSelected = newAmount > 0; // Select if amount is entered
@@ -492,7 +508,7 @@ function NewReceiptVoucherPage() {
                               </TableCell>
                               <TableCell className="font-mono text-xs">{receivable.Sales?.ReferenceNo || 'N/A'}</TableCell>
                               <TableCell className="text-right">{formatCurrency(receivable.Amount)}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(receivable.Balance)}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(receivable.effectiveBalance)}</TableCell>
                               <TableCell className="text-center">
                                 <FloatingLabelInput
                                   id={`amount-to-settle-${index}`}
@@ -501,7 +517,7 @@ function NewReceiptVoucherPage() {
                                   value={receivable.amountToSettle}
                                   onChange={(e) => handleReceivableAmountChange(index, e.target.valueAsNumber)}
                                   min={0}
-                                  max={receivable.Balance}
+                                  max={receivable.effectiveBalance}
                                   step="0.01"
                                   className="w-24 text-center"
                                 />
