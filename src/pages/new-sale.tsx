@@ -355,12 +355,12 @@ function NewSalePage() {
     let customerToUpdate: Customer | null = null;
 
     if (values.CustomerName) {
-      const existingCustomer = customerSuggestions.find((c: Customer) => c.CustomerName.toLowerCase() === values.CustomerName!.toLowerCase());
-
-      if (existingCustomer) {
-        finalCustomerId = existingCustomer.CustomerId;
-        customerToUpdate = existingCustomer;
+      // Only use existing customer if they were explicitly selected from dropdown
+      if (selectedCustomer && selectedCustomer.CustomerName.toLowerCase() === values.CustomerName.toLowerCase()) {
+        finalCustomerId = selectedCustomer.CustomerId;
+        customerToUpdate = selectedCustomer;
       } else {
+        // If customer name is typed but not selected from dropdown, always create new customer
         const { data: newCustomer, error: createCustomerError } = await supabase
           .from("CustomerMaster")
           .insert([{ CustomerName: values.CustomerName, MobileNo: values.customerMobileNo || null }])
