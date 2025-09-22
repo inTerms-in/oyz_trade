@@ -78,16 +78,13 @@ function NewSalesReturnPage() {
   const watchedSaleId = form.watch("SaleId");
   const totalRefundAmount = returnableItems.reduce((sum, item) => sum + item.TotalPrice, 0);
 
-  const fetchSalesSuggestions = useCallback(async () => {
-    const { data, error } = await supabase
+    const fetchSalesSuggestions = useCallback(async (searchText = "") => {
+    const query = supabase
       .from("Sales")
       .select(`
         SaleId,
         ReferenceNo,
         SaleDate,
-        TotalAmount,
-        AdditionalDiscount,
-        DiscountPercentage,
         CustomerMaster(CustomerName),
         SalesItem(
           SalesItemId,
@@ -98,52 +95,22 @@ function NewSalesReturnPage() {
           ItemMaster(ItemName, ItemCode, CategoryMaster(CategoryName))
         )
       `)
+      .or(searchText ? 
+        `ReferenceNo.ilike.%${searchText}%,CustomerMaster.CustomerName.ilike.%${searchText}%` 
+        : 'ReferenceNo.neq.""')
       .order("SaleDate", { ascending: false })
       .limit(20);
 
-    if (error) {
-      toast.error("Failed to fetch sales suggestions", { description: error.message });
-    } else {
-      const salesWithReturnInfo = await Promise.all((data || []).map(async (sale) => {
-        // Fetch all SalesReturnItems for this specific sale
-        const { data: returnedItemsData, error: returnedItemsError } = await supabase
-          .from("SalesReturnItem")
-          .select(`
-            ItemId,
-            Qty
-          `)
-          .eq("SalesReturn.SaleId", sale.SaleId); // Filter by the specific SaleId
-
-        if (returnedItemsError) {
-          console.error("Error fetching returned items for sale", sale.SaleId, returnedItemsError);
-          return { ...sale, hasAnyItemAvailableForReturn: false };
-        }
-
-        const totalQtySoldMap = new Map<number, number>();
-        sale.SalesItem.forEach(si => totalQtySoldMap.set(si.ItemId, (totalQtySoldMap.get(si.ItemId) || 0) + si.Qty));
-
-        const totalQtyReturnedMap = new Map<number, number>();
-        returnedItemsData.forEach(sri => totalQtyReturnedMap.set(sri.ItemId, (totalQtyReturnedMap.get(sri.ItemId) || 0) + sri.Qty));
-
-        let hasAnyItemAvailableForReturn = false;
-        for (const [itemId, qtySold] of totalQtySoldMap.entries()) {
-          const qtyReturned = totalQtyReturnedMap.get(itemId) || 0;
-          if (qtySold > qtyReturned) {
-            hasAnyItemAvailableForReturn = true;
-            break;
-          }
-        }
-        return { ...sale, hasAnyItemAvailableForReturn };
-      }));
-
-      const filteredSales = salesWithReturnInfo.filter(sale => sale.hasAnyItemAvailableForReturn);
-      setSaleSuggestions(filteredSales as unknown as SaleWithItems[]);
+    const { data, error } = await query;
+    
+    if (!error && data) {
+      setSaleSuggestions(data as unknown as SaleWithItems[]);
+    } else if (error) {
+      console.error('Error fetching sales suggestions:', error);
     }
   }, []);
 
-  useEffect(() => {
-    fetchSalesSuggestions();
-  }, [fetchSalesSuggestions]);
+
 
   useEffect(() => {
     const loadSaleDetails = async () => {
@@ -164,7 +131,7 @@ function NewSalesReturnPage() {
                 SalesReturnId,
                 ReferenceNo,
                 ReturnDate,
-                SaleId // Crucial for filtering by original sale
+                SaleId
               )
             `)
             .in('ItemId', sale.SalesItem.map(item => item.ItemId));
@@ -358,16 +325,18 @@ function NewSalesReturnPage() {
                           id="sale-autocomplete"
                           suggestions={saleSuggestions}
                           value={displaySaleName}
-                          onValueChange={(v) => {
+                          onValueChange={async (v) => {
                             setDisplaySaleName(v);
                             const isMatch = selectedSale && (
                               v.toLowerCase() === (selectedSale.ReferenceNo || '').toLowerCase() ||
                               v.toLowerCase() === `sale ${selectedSale.SaleId} (${selectedSale.CustomerMaster?.CustomerName || 'n/a'})`.toLowerCase()
                             );
                             if (!v.trim() || (selectedSale && !isMatch)) {
-                                field.onChange(null);
-                                setSelectedSale(null);
+                              field.onChange(null);
+                              setSelectedSale(null);
                             }
+                            // Search for sales if there's input
+                            await fetchSalesSuggestions(v);
                           }}
                           onSelect={(sale) => {
                             field.onChange(sale.SaleId);
@@ -428,6 +397,7 @@ function NewSalesReturnPage() {
                           <TableHead>Code</TableHead>
                           <TableHead className="text-right">Qty Sold</TableHead>
                           <TableHead className="text-right">Already Returned</TableHead>
+                          <TableHead className="text-right">Remaining</TableHead>
                           <TableHead>Unit</TableHead>
                           <TableHead className="text-right">Unit Price</TableHead>
                           <TableHead className="text-center">Qty to Return</TableHead>
@@ -439,13 +409,23 @@ function NewSalesReturnPage() {
                         {returnableItems.length > 0 ? (
                           returnableItems.map((item, index) => (
                             <TableRow key={item.OriginalSalesItemId}>
-                              <TableCell className="font-medium">{item.ItemName}</TableCell>
+                              <TableCell className="font-medium">
+                                {item.ItemName}
+                                {item.QtyAlreadyReturned > 0 && (
+                                  <span className="ml-2 text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">
+                                    Partially Returned
+                                  </span>
+                                )}
+                              </TableCell>
                               <TableCell className="font-mono text-xs">{item.ItemCode}</TableCell>
                               <TableCell className="text-right">{item.QtyOriginal}</TableCell>
                               <TableCell className="text-right">
                                 <div className="font-semibold">
                                   {item.QtyAlreadyReturned}
                                 </div>
+                              </TableCell>
+                              <TableCell className="text-right font-medium text-muted-foreground">
+                                {item.QtyOriginal - item.QtyAlreadyReturned}
                               </TableCell>
                               <TableCell>{item.Unit}</TableCell>
                               <TableCell className="text-right">
