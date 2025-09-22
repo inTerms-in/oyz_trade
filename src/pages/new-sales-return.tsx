@@ -9,7 +9,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn, generateItemCode } from "@/lib/utils";
-import { SaleWithItems, ReturnableItem } from "@/types";
+import { SaleWithItems } from "@/types";
+
+interface ReturnableItem {
+  OriginalItemId: number;
+  ItemId: number;
+  ItemName: string;
+  ItemCode: string;
+  CategoryName?: string;
+  QtyOriginal: number;
+  QtyAlreadyReturned: number;
+  QtyToReturn: number;
+  Unit: string;
+  UnitPrice: number;
+  TotalPrice: number;
+  previousReturns?: Array<{
+    qty: number;
+    returnId: number;
+    returnRef: string;
+    returnDate: string;
+    unitPrice: number;
+  }>;
+}
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -128,15 +149,23 @@ function NewSalesReturnPage() {
         if (sale) {
           setDisplaySaleName(sale.ReferenceNo || `Sale ${sale.SaleId} (${sale.CustomerMaster?.CustomerName || 'N/A'})`);
 
-          // Fetch all SalesReturnItems related to this specific SaleId
-          const { data: salesReturnItemsForSale, error: sriError } = await supabase
+          // Fetch all SalesReturnItems for these items across all sales
+          const { data: salesReturnItemsForItems, error: sriError } = await supabase
             .from("SalesReturnItem")
             .select(`
               ItemId,
               Qty,
-              SalesReturn(SaleId)
+              UnitPrice,
+              SalesReturn(
+                SalesReturnId,
+                ReferenceNo,
+                ReturnDate,
+                Sales(
+                  ReferenceNo
+                )
+              )
             `)
-            .eq("SalesReturn.SaleId", sale.SaleId);
+            .in('ItemId', sale.SalesItem.map(item => item.ItemId));
 
           if (sriError) {
             toast.error("Failed to fetch existing return quantities.", { description: sriError.message });
@@ -144,13 +173,32 @@ function NewSalesReturnPage() {
             return;
           }
 
-          const returnedQtyMap = new Map<number, number>();
-          salesReturnItemsForSale.forEach(sri => {
-            returnedQtyMap.set(sri.ItemId, (returnedQtyMap.get(sri.ItemId) || 0) + sri.Qty);
+          // Group returns by ItemId
+          const returnedItemsMap = new Map<number, Array<{
+            qty: number;
+            returnId: number;
+            returnRef: string;
+            returnDate: string;
+            unitPrice: number;
+          }>>();
+          
+          salesReturnItemsForItems.forEach(sri => {
+            const returns = returnedItemsMap.get(sri.ItemId) || [];
+            const returnRef = sri.SalesReturn.ReferenceNo;
+            const saleRef = sri.SalesReturn.Sales?.ReferenceNo;
+            returns.push({
+              qty: sri.Qty,
+              returnId: sri.SalesReturn.SalesReturnId,
+              returnRef: `${returnRef} (Sale: ${saleRef || 'N/A'})`,
+              returnDate: sri.SalesReturn.ReturnDate,
+              unitPrice: sri.UnitPrice
+            });
+            returnedItemsMap.set(sri.ItemId, returns);
           });
 
           const items = sale.SalesItem.map(item => {
-            const qtyAlreadyReturned = returnedQtyMap.get(item.ItemId) || 0;
+            const previousReturns = returnedItemsMap.get(item.ItemId) || [];
+            const qtyAlreadyReturned = previousReturns.reduce((sum, r) => sum + r.qty, 0);
             return {
               OriginalItemId: item.SalesItemId, // Store original SalesItemId
               ItemId: item.ItemId,
@@ -159,6 +207,7 @@ function NewSalesReturnPage() {
               CategoryName: item.ItemMaster?.CategoryMaster?.CategoryName,
               QtyOriginal: item.Qty, // Original quantity sold
               QtyAlreadyReturned: qtyAlreadyReturned,
+              previousReturns: previousReturns,
               QtyToReturn: 0, // Default to 0 returned
               Unit: item.Unit,
               UnitPrice: item.UnitPrice,
@@ -193,7 +242,11 @@ function NewSalesReturnPage() {
     const item = updatedItems[index];
 
     if (field === 'QtyToReturn') {
-      const maxReturnable = item.QtyOriginal - item.QtyAlreadyReturned;
+      // Calculate returns only from current sale
+      const returnsFromThisSale = item.previousReturns
+        ?.filter(ret => ret.returnRef.includes(`(Sale: ${selectedSale?.ReferenceNo || 'N/A'})`))
+        .reduce((sum, ret) => sum + ret.qty, 0) || 0;
+      const maxReturnable = item.QtyOriginal - returnsFromThisSale;
       item.QtyToReturn = Math.max(0, Math.min(value, maxReturnable));
     } else if (field === 'UnitPrice') {
       item.UnitPrice = Math.max(0, value); // Unit price cannot be negative
@@ -356,7 +409,7 @@ function NewSalesReturnPage() {
                           <TableHead>Item</TableHead>
                           <TableHead>Code</TableHead>
                           <TableHead className="text-right">Qty Sold</TableHead>
-                          <TableHead className="text-right">Qty Returned</TableHead>
+                          <TableHead className="text-right">Previous Returns</TableHead>
                           <TableHead>Unit</TableHead>
                           <TableHead className="text-right">Unit Price</TableHead>
                           <TableHead className="text-center">Qty to Return</TableHead>
@@ -371,7 +424,16 @@ function NewSalesReturnPage() {
                               <TableCell className="font-medium">{item.ItemName}</TableCell>
                               <TableCell className="font-mono text-xs">{item.ItemCode}</TableCell>
                               <TableCell className="text-right">{item.QtyOriginal}</TableCell>
-                              <TableCell className="text-right">{item.QtyAlreadyReturned}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="font-semibold">
+                                  {(() => {
+                                    // Only show returns from the current sale's reference
+                                    return item.previousReturns
+                                      ?.filter(ret => ret.returnRef.includes(`(Sale: ${selectedSale?.ReferenceNo || 'N/A'})`))
+                                      .reduce((sum, ret) => sum + ret.qty, 0) || 0;
+                                  })()}
+                                </div>
+                              </TableCell>
                               <TableCell>{item.Unit}</TableCell>
                               <TableCell className="text-right">
                                 <FloatingLabelInput
